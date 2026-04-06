@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Data
-@ConfigurationProperties(prefix = "smark.learning.academy.tencent")
+@ConfigurationProperties(prefix = "smart.learning.academy.tencent")
 public class TencentCOSProperties {
     private String secretId;
     private String secretKey;
