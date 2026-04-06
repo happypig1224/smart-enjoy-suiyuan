@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = "smark.learning.academy.jwt")
+@ConfigurationProperties(prefix = "smart.learning.academy.jwt")
 public class JwtProperties {
     // 管理端
     private String adminSecretKey;
