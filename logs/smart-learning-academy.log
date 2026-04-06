@@ -357,3 +357,174 @@ java.sql.SQLException: Access denied for user 'root'@'localhost' (using password
 2026-04-06 14:19:15.433 INFO  3944 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
 2026-04-06 14:19:15.457 INFO  3944 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closing ...
 2026-04-06 14:19:15.467 INFO  3944 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closed
+2026-04-06 15:37:18.597 INFO  16196 --- [           main] .s.SmartLearningAcademyServerApplication : Starting SmartLearningAcademyServerApplication using Java 17.0.17 with PID 16196 (D:\GitWorkSpace\smart-learning-academy\smart-learning-academy-server\target\classes started by 1 in D:\GitWorkSpace\smart-learning-academy)
+2026-04-06 15:37:18.600 DEBUG 16196 --- [           main] .s.SmartLearningAcademyServerApplication : Running with Spring Boot v3.5.12, Spring v6.2.17
+2026-04-06 15:37:18.602 INFO  16196 --- [           main] .s.SmartLearningAcademyServerApplication : The following 1 profile is active: "dev"
+2026-04-06 15:37:20.165 INFO  16196 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-04-06 15:37:20.172 INFO  16196 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-04-06 15:37:20.229 INFO  16196 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 32 ms. Found 0 Redis repository interfaces.
+2026-04-06 15:37:21.118 INFO  16196 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-04-06 15:37:21.139 INFO  16196 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-06 15:37:21.142 INFO  16196 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-06 15:37:21.143 INFO  16196 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.52]
+2026-04-06 15:37:21.283 INFO  16196 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-06 15:37:21.283 INFO  16196 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2602 ms
+2026-04-06 15:37:24.128 INFO  16196 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Starting ProtocolHandler ["http-nio-8080"]
+2026-04-06 15:37:24.146 INFO  16196 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-04-06 15:37:24.161 INFO  16196 --- [           main] .s.SmartLearningAcademyServerApplication : Started SmartLearningAcademyServerApplication in 6.842 seconds (process running for 8.427)
+2026-04-06 15:48:53.201 INFO  16196 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-06 15:48:53.334 INFO  16196 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-04-06 15:48:53.361 INFO  16196 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-0} closing ...
+2026-04-06 15:49:04.653 INFO  16780 --- [           main] .s.SmartLearningAcademyServerApplication : Starting SmartLearningAcademyServerApplication using Java 17.0.17 with PID 16780 (D:\GitWorkSpace\smart-learning-academy\smart-learning-academy-server\target\classes started by 1 in D:\GitWorkSpace\smart-learning-academy)
+2026-04-06 15:49:04.655 DEBUG 16780 --- [           main] .s.SmartLearningAcademyServerApplication : Running with Spring Boot v3.5.12, Spring v6.2.17
+2026-04-06 15:49:04.657 INFO  16780 --- [           main] .s.SmartLearningAcademyServerApplication : The following 1 profile is active: "dev"
+2026-04-06 15:49:06.852 INFO  16780 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-04-06 15:49:06.859 INFO  16780 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-04-06 15:49:06.923 INFO  16780 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 36 ms. Found 0 Redis repository interfaces.
+2026-04-06 15:49:08.113 INFO  16780 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-04-06 15:49:08.142 INFO  16780 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-06 15:49:08.147 INFO  16780 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-06 15:49:08.148 INFO  16780 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.52]
+2026-04-06 15:49:08.339 INFO  16780 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-06 15:49:08.340 INFO  16780 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3550 ms
+2026-04-06 15:49:11.527 INFO  16780 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-04-06 15:49:11.633 INFO  16780 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Starting ProtocolHandler ["http-nio-8080"]
+2026-04-06 15:49:11.655 INFO  16780 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-04-06 15:49:11.678 INFO  16780 --- [           main] .s.SmartLearningAcademyServerApplication : Started SmartLearningAcademyServerApplication in 8.045 seconds (process running for 9.219)
+2026-04-06 15:49:12.059 INFO  16780 --- [(2)-26.41.45.36] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-06 15:49:12.059 INFO  16780 --- [(2)-26.41.45.36] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-06 15:49:12.062 INFO  16780 --- [(2)-26.41.45.36] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-04-06 15:49:12.179 INFO  16780 --- [(4)-26.41.45.36] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2026-04-06 15:49:13.199 WARN  16780 --- [oundedElastic-1] o.s.b.a.d.r.RedisReactiveHealthIndicator : Redis health check failed
+org.springframework.data.redis.RedisConnectionFailureException: Unable to connect to Redis
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory$ExceptionTranslatingConnectionProvider.translateException(LettuceConnectionFactory.java:1869)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory$ExceptionTranslatingConnectionProvider.getConnection(LettuceConnectionFactory.java:1800)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory$SharedConnection.getNativeConnection(LettuceConnectionFactory.java:1597)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory$SharedConnection.lambda$getConnection$0(LettuceConnectionFactory.java:1577)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory.doInLock(LettuceConnectionFactory.java:1538)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory$SharedConnection.getConnection(LettuceConnectionFactory.java:1574)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory.getSharedReactiveConnection(LettuceConnectionFactory.java:1285)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory.getReactiveConnection(LettuceConnectionFactory.java:1155)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory.getReactiveConnection(LettuceConnectionFactory.java:120)
+	at reactor.core.publisher.MonoSupplier.call(MonoSupplier.java:67)
+	at reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription.run(FluxSubscribeOnCallable.java:228)
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:68)
+	at reactor.core.scheduler.SchedulerTask.call(SchedulerTask.java:28)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: org.springframework.data.redis.connection.PoolException: Could not prepare the pool
+	at org.springframework.data.redis.connection.lettuce.LettucePoolingConnectionProvider.lambda$getConnection$1(LettucePoolingConnectionProvider.java:105)
+	at java.base/java.util.concurrent.ConcurrentHashMap.computeIfAbsent(ConcurrentHashMap.java:1708)
+	at org.springframework.data.redis.connection.lettuce.LettucePoolingConnectionProvider.getConnection(LettucePoolingConnectionProvider.java:97)
+	at org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory$ExceptionTranslatingConnectionProvider.getConnection(LettuceConnectionFactory.java:1798)
+	... 16 common frames omitted
+Caused by: io.lettuce.core.RedisConnectionException: Unable to connect to localhost/<unresolved>:6379
+	at io.lettuce.core.RedisConnectionException.create(RedisConnectionException.java:63)
+	at io.lettuce.core.RedisConnectionException.create(RedisConnectionException.java:41)
+	at io.lettuce.core.AbstractRedisClient.getConnection(AbstractRedisClient.java:354)
+	at io.lettuce.core.RedisClient.connect(RedisClient.java:220)
+	at org.springframework.data.redis.connection.lettuce.StandaloneConnectionProvider.lambda$getConnection$1(StandaloneConnectionProvider.java:112)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at org.springframework.data.redis.connection.lettuce.StandaloneConnectionProvider.getConnection(StandaloneConnectionProvider.java:112)
+	at org.springframework.data.redis.connection.lettuce.LettucePoolingConnectionProvider.lambda$getConnection$0(LettucePoolingConnectionProvider.java:100)
+	at io.lettuce.core.support.ConnectionPoolSupport$RedisPooledObjectFactory.create(ConnectionPoolSupport.java:270)
+	at io.lettuce.core.support.ConnectionPoolSupport$RedisPooledObjectFactory.create(ConnectionPoolSupport.java:257)
+	at org.apache.commons.pool2.BasePooledObjectFactory.makeObject(BasePooledObjectFactory.java:70)
+	at org.apache.commons.pool2.impl.GenericObjectPool.create(GenericObjectPool.java:571)
+	at org.apache.commons.pool2.impl.GenericObjectPool.ensureIdle(GenericObjectPool.java:637)
+	at org.apache.commons.pool2.impl.GenericObjectPool.ensureMinIdle(GenericObjectPool.java:659)
+	at org.apache.commons.pool2.impl.GenericObjectPool.preparePool(GenericObjectPool.java:974)
+	at org.springframework.data.redis.connection.lettuce.LettucePoolingConnectionProvider.lambda$getConnection$1(LettucePoolingConnectionProvider.java:103)
+	... 19 common frames omitted
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: getsockopt: localhost/127.0.0.1:6379
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:672)
+	at java.base/sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:946)
+	at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:336)
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:339)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:784)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+2026-04-06 15:51:24.955 INFO  16780 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-06 15:51:25.068 INFO  16780 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-04-06 15:51:25.092 INFO  16780 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closing ...
+2026-04-06 15:51:25.099 INFO  16780 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closed
+2026-04-06 15:51:31.530 INFO  12852 --- [           main] .s.SmartLearningAcademyServerApplication : Starting SmartLearningAcademyServerApplication using Java 17.0.17 with PID 12852 (D:\GitWorkSpace\smart-learning-academy\smart-learning-academy-server\target\classes started by 1 in D:\GitWorkSpace\smart-learning-academy)
+2026-04-06 15:51:31.533 DEBUG 12852 --- [           main] .s.SmartLearningAcademyServerApplication : Running with Spring Boot v3.5.12, Spring v6.2.17
+2026-04-06 15:51:31.534 INFO  12852 --- [           main] .s.SmartLearningAcademyServerApplication : The following 1 profile is active: "dev"
+2026-04-06 15:51:33.225 INFO  12852 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-04-06 15:51:33.229 INFO  12852 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-04-06 15:51:33.279 INFO  12852 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 27 ms. Found 0 Redis repository interfaces.
+2026-04-06 15:51:34.095 INFO  12852 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-04-06 15:51:34.114 INFO  12852 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-06 15:51:34.117 INFO  12852 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-06 15:51:34.117 INFO  12852 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.52]
+2026-04-06 15:51:34.246 INFO  12852 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-06 15:51:34.246 INFO  12852 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2649 ms
+2026-04-06 15:51:36.891 INFO  12852 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-04-06 15:51:36.971 INFO  12852 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Starting ProtocolHandler ["http-nio-8080"]
+2026-04-06 15:51:36.998 INFO  12852 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-04-06 15:51:37.016 INFO  12852 --- [           main] .s.SmartLearningAcademyServerApplication : Started SmartLearningAcademyServerApplication in 6.308 seconds (process running for 7.197)
+2026-04-06 15:51:37.690 INFO  12852 --- [(2)-26.41.45.36] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-06 15:51:37.690 INFO  12852 --- [(2)-26.41.45.36] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-06 15:51:37.694 INFO  12852 --- [(2)-26.41.45.36] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-04-06 15:51:37.751 INFO  12852 --- [(3)-26.41.45.36] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2026-04-06 15:54:02.564 ERROR 12852 --- [nio-8080-exec-2] c.s.s.handler.GlobalExceptionHandler     : 未知异常：No static resource api/user/captcha/send.
+2026-04-06 15:57:24.776 ERROR 12852 --- [nio-8080-exec-5] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/smart_learning_academy?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true, jdbcUrl : jdbc:mysql://localhost:3306/smart_learning_academy?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true, lastPacketReceivedIdleMillis : 346864
+2026-04-06 15:57:24.786 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.selectCount      : ==>  Preparing: SELECT COUNT( * ) AS total FROM user WHERE (user_name = ?)
+2026-04-06 15:57:24.813 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.selectCount      : ==> Parameters: 2810531804(String)
+2026-04-06 15:57:24.841 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.selectCount      : <==      Total: 1
+2026-04-06 15:57:24.844 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.selectCount      : ==>  Preparing: SELECT COUNT( * ) AS total FROM user WHERE (phone = ?)
+2026-04-06 15:57:24.845 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.selectCount      : ==> Parameters: 19997556477(String)
+2026-04-06 15:57:24.848 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.selectCount      : <==      Total: 1
+2026-04-06 15:57:24.858 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.insert           : ==>  Preparing: INSERT INTO user ( nick_name, user_name, user_password, user_gender, phone, role, create_time, update_time ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ? )
+2026-04-06 15:57:24.860 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.insert           : ==> Parameters: userbda20(String), 2810531804(String), e10adc3949ba59abbe56e057f20f883e(String), 1(Integer), 19997556477(String), 1(Integer), 2026-04-06 15:57:24.85(Timestamp), 2026-04-06 15:57:24.85(Timestamp)
+2026-04-06 15:57:24.940 DEBUG 12852 --- [nio-8080-exec-5] c.s.s.mapper.UserMapper.insert           : <==    Updates: 1
+2026-04-06 15:57:25.186 ERROR 12852 --- [nio-8080-exec-5] c.s.s.handler.GlobalExceptionHandler     : 未知异常：Cannot invoke "String.getBytes(java.nio.charset.Charset)" because "secretKey" is null
+2026-04-06 15:59:55.844 INFO  12852 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-06 15:59:55.965 INFO  12852 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-04-06 15:59:55.991 INFO  12852 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closing ...
+2026-04-06 15:59:55.995 INFO  12852 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closed
+2026-04-06 15:59:59.578 INFO  20412 --- [           main] .s.SmartLearningAcademyServerApplication : Starting SmartLearningAcademyServerApplication using Java 17.0.17 with PID 20412 (D:\GitWorkSpace\smart-learning-academy\smart-learning-academy-server\target\classes started by 1 in D:\GitWorkSpace\smart-learning-academy)
+2026-04-06 15:59:59.580 DEBUG 20412 --- [           main] .s.SmartLearningAcademyServerApplication : Running with Spring Boot v3.5.12, Spring v6.2.17
+2026-04-06 15:59:59.581 INFO  20412 --- [           main] .s.SmartLearningAcademyServerApplication : The following 1 profile is active: "dev"
+2026-04-06 16:00:01.238 INFO  20412 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-04-06 16:00:01.242 INFO  20412 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-04-06 16:00:01.291 INFO  20412 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 27 ms. Found 0 Redis repository interfaces.
+2026-04-06 16:00:02.102 INFO  20412 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-04-06 16:00:02.120 INFO  20412 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Initializing ProtocolHandler ["http-nio-8080"]
+2026-04-06 16:00:02.124 INFO  20412 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-06 16:00:02.124 INFO  20412 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.52]
+2026-04-06 16:00:02.249 INFO  20412 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-06 16:00:02.250 INFO  20412 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2597 ms
+2026-04-06 16:00:05.063 INFO  20412 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-04-06 16:00:05.143 INFO  20412 --- [           main] o.a.coyote.http11.Http11NioProtocol      : Starting ProtocolHandler ["http-nio-8080"]
+2026-04-06 16:00:05.158 INFO  20412 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-04-06 16:00:05.175 INFO  20412 --- [           main] .s.SmartLearningAcademyServerApplication : Started SmartLearningAcademyServerApplication in 6.529 seconds (process running for 7.464)
+2026-04-06 16:00:05.726 INFO  20412 --- [(4)-26.41.45.36] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-06 16:00:05.727 INFO  20412 --- [(4)-26.41.45.36] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-06 16:00:05.729 INFO  20412 --- [(4)-26.41.45.36] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-04-06 16:00:05.819 INFO  20412 --- [(1)-26.41.45.36] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2026-04-06 16:00:16.877 ERROR 20412 --- [nio-8080-exec-2] c.s.s.handler.GlobalExceptionHandler     : 未知异常：短信验证失败：com.aliyun.sdk.gateway.pop.exception.PopClientException: 
+(Code: isv.ValidateFail
+Message: code: 400, 验证失败 request id: 3470FD1C-CB0C-5FB2-B495-2C09C0F6E98F
+Request ID: 3470FD1C-CB0C-5FB2-B495-2C09C0F6E98F
+Description: null)
+2026-04-06 16:01:28.132 ERROR 20412 --- [nio-8080-exec-6] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/smart_learning_academy?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true, jdbcUrl : jdbc:mysql://localhost:3306/smart_learning_academy?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true, lastPacketReceivedIdleMillis : 82149
+2026-04-06 16:01:28.150 DEBUG 20412 --- [nio-8080-exec-6] c.s.s.mapper.UserMapper.selectCount      : ==>  Preparing: SELECT COUNT( * ) AS total FROM user WHERE (user_name = ?)
+2026-04-06 16:01:28.179 DEBUG 20412 --- [nio-8080-exec-6] c.s.s.mapper.UserMapper.selectCount      : ==> Parameters: 2810531804(String)
+2026-04-06 16:01:28.211 DEBUG 20412 --- [nio-8080-exec-6] c.s.s.mapper.UserMapper.selectCount      : <==      Total: 1
+2026-04-06 16:01:28.214 ERROR 20412 --- [nio-8080-exec-6] c.s.s.handler.GlobalExceptionHandler     : 业务异常：用户已存在
+2026-04-06 16:04:57.808 INFO  20412 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-06 16:04:57.917 INFO  20412 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-04-06 16:04:57.945 INFO  20412 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closing ...
+2026-04-06 16:04:57.948 INFO  20412 --- [ionShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closed
