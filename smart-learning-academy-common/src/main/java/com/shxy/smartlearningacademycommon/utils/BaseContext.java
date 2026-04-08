@@ -15,7 +15,7 @@ public class BaseContext {
      * 设置当前线程的userId
      * @param userId
      */
-    public static void setThreadLocal(Long userId){
+    public static void setCurrentUserId(Long userId){
         threadLocal.set(userId);
     }
 
@@ -23,7 +23,7 @@ public class BaseContext {
      * 获取当前线程的userId
      * @return
      */
-    public static Long getThreadLocal(){
+    public static Long getCurrentUserId(){
         return threadLocal.get();
     }
 
@@ -31,7 +31,7 @@ public class BaseContext {
     /**
      * 清理当前线程的userId
      */
-    public static void removeThreadLocal(){
+    public static void remove(){
         threadLocal.remove();
     }
 

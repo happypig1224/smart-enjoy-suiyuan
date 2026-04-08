@@ -97,7 +97,7 @@ public class SmsVerifyCodeUtil {
             try {
                 resp = response.get();
             } catch (Exception e) {
-                throw new SmsVerifyFailException(e.getMessage());
+                return Result.fail("验证码错误!");
             }
             return Result.success("验证成功");
         }
