@@ -18,7 +18,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserDTO {
     private String userName;
-    @JsonIgnore
     private String userPassword;
     private String phone;
     private String code;
