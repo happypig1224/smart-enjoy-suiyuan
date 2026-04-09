@@ -18,7 +18,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserDTO {
     private String userName;
+    private String nickName;
     private String userPassword;
+    private String newPassword;
+    private Integer userGender;
+    private Integer userAge;
+    private String userGrade;
     private String phone;
     private String code;
 
