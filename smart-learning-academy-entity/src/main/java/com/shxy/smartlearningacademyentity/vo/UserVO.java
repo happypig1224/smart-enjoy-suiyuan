@@ -23,7 +23,6 @@ public class UserVO {
     private Long id;
     private String nickName;
     private String userName;
-    private String userPassword;
     private Integer userGender;
     private Integer userAge;
     private String userGrade;
