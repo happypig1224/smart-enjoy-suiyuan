@@ -1,6 +1,13 @@
 package com.shxy.smartlearningacademycommon.enums;
 import lombok.Getter;
 
+/**
+ * 紧急程度枚举
+ * @author huang qi long
+ * @version 1.0
+ * @School Suihua University
+ * @since 2026/4/11 21:09
+ */
 @Getter
 public enum UrgencyEnum {
     NORMAL(0, "普通"),

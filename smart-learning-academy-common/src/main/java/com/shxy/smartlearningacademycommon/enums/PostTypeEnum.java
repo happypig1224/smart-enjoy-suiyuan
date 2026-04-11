@@ -1,7 +1,13 @@
 package com.shxy.smartlearningacademycommon.enums;
 
 import lombok.Getter;
-
+/**
+ * 帖子类型枚举
+ * @author huang qi long
+ * @version 1.0
+ * @School Suihua University
+ * @since 2026/4/11 21:05
+ */
 @Getter
 public enum PostTypeEnum {
     LOST(0, "寻物启事"),
