@@ -129,69 +129,6 @@ public class TencentCOSAvatarUtil {
         }
     }
 
-
-    /**
-     * 上传通用文件到腾讯云COS
-     *
-     * @param file 文件
-     * @return 文件访问URL
-     */
-    public String uploadFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new FileUploadException("文件不能为空");
-        }
-
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null) {
-            throw new FileUploadException("文件名不能为空");
-        }
-
-        long fileSize = file.getSize();
-        if (fileSize > 50 * 1024 * 1024) {
-            throw new FileUploadException("文件大小不能超过50MB");
-        }
-
-        COSClient cosClient = null;
-        try {
-            cosClient = initCOSClient();
-
-            String fileName = generateFileName(originalFilename);
-            String key = "resources/" + fileName;
-
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(fileSize);
-            metadata.setContentType(file.getContentType());
-
-            InputStream inputStream = file.getInputStream();
-            PutObjectRequest putObjectRequest = new PutObjectRequest(
-                    tencentCOSProperties.getBucketName(),
-                    key,
-                    inputStream,
-                    metadata
-            );
-
-            PutObjectResult result = cosClient.putObject(putObjectRequest);
-
-            log.info("文件上传成功，ETag: {}, Key: {}", result.getETag(), key);
-
-            return getCosUrl(key);
-
-        } catch (CosServiceException e) {
-            log.error("COS服务异常，状态码: {}, 错误码: {}, 错误信息: {}",
-                    e.getStatusCode(), e.getErrorCode(), e.getErrorMessage());
-            throw new FileUploadException("文件上传失败：" + e.getErrorMessage());
-        } catch (CosClientException e) {
-            log.error("COS客户端异常", e);
-            throw new FileUploadException("文件上传失败：" + e.getMessage());
-        } catch (IOException e) {
-            log.error("文件读取异常", e);
-            throw new FileUploadException("文件读取失败");
-        } finally {
-            if (cosClient != null) {
-                cosClient.shutdown();
-            }
-        }
-    }
     /**
      * 初始化COS客户端
      *
@@ -269,7 +206,7 @@ public class TencentCOSAvatarUtil {
     }
 
     /**
-     * 从URL中提取Key
+     * 从 URL 中提取 Key
      *
      * @param url COS URL
      * @return 对象键
@@ -283,8 +220,71 @@ public class TencentCOSAvatarUtil {
                 return url.substring(prefix.length());
             }
         } catch (Exception e) {
-            log.error("解析URL失败", e);
+            log.error("解析 URL 失败", e);
         }
         return null;
+    }
+
+    /**
+     * 上传通用文件到腾讯云 COS
+     *
+     * @param file 文件
+     * @return 文件访问 URL
+     */
+    public String uploadFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new FileUploadException("上传文件不能为空");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            throw new FileUploadException("文件名不能为空");
+        }
+
+        long fileSize = file.getSize();
+        if (fileSize > 50 * 1024 * 1024) {
+            throw new FileUploadException("文件大小不能超过 50MB");
+        }
+
+        COSClient cosClient = null;
+        try {
+            cosClient = initCOSClient();
+            
+            String fileName = generateFileName(originalFilename);
+            String key = tencentCOSProperties.getAvatarDir() + "/resources/" + fileName;
+
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(fileSize);
+            metadata.setContentType(getContentType(originalFilename));
+
+            InputStream inputStream = file.getInputStream();
+            PutObjectRequest putObjectRequest = new PutObjectRequest(
+                    tencentCOSProperties.getBucketName(),
+                    key,
+                    inputStream,
+                    metadata
+            );
+
+            PutObjectResult result = cosClient.putObject(putObjectRequest);
+            
+            log.info("文件上传成功，ETag: {}, Key: {}", result.getETag(), key);
+
+            return getCosUrl(key);
+
+        } catch (CosServiceException e) {
+            log.error("COS 服务异常，状态码：{}, 错误码：{}, 错误信息：{}", 
+                    e.getStatusCode(), e.getErrorCode(), e.getErrorMessage());
+            throw new FileUploadException("文件上传失败：" + e.getErrorMessage());
+        } catch (CosClientException e) {
+            log.error("COS 客户端异常", e);
+            throw new FileUploadException("文件上传失败：" + e.getMessage());
+        } catch (IOException e) {
+            log.error("文件读取异常", e);
+            throw new FileUploadException("文件读取失败");
+        } finally {
+            if (cosClient != null) {
+                cosClient.shutdown();
+            }
+        }
     }
 }
