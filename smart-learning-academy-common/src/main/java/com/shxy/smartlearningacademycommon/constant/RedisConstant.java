@@ -9,4 +9,9 @@ package com.shxy.smartlearningacademycommon.constant;
 public class RedisConstant {
     public static final String USER_TOKEN_KEY_PREFIX = "user:token:";
     public static final String USER_INFO_KEY_PREFIX="user:info:";
+    public static final String USER_Resource_KEY_PREFIX="user:resource:";
+    public static final String USER_LostFound_KEY_PREFIX="user:lostFound:";
+    public static final String USER_Comment_KEY_PREFIX="user:comment:";
+    public static final String USER_Post_KEY_PREFIX="user:post:";
+    public static long USER_Resource_TTL = 1800;
 }
