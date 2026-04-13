@@ -19,6 +19,8 @@ public class RedisConstant {
 
     public static final String POST_LIST_KEY_PREFIX = "post:list:";
     public static final String POST_DETAIL_KEY_PREFIX = "post:detail:";
+    public static final String POST_LIKE_KEY_PREFIX = "post:like:users:";
+    public static final String POST_LIKE_COUNT_PREFIX = "post:like:count:";
 
     public static final String LOSTFOUND_LIST_KEY_PREFIX = "lostfound:list:";
     public static final String LOSTFOUND_DETAIL_KEY_PREFIX = "lostfound:detail:";
@@ -30,6 +32,7 @@ public class RedisConstant {
     public static long RESOURCE_DETAIL_TTL = 1800;
     public static long POST_LIST_TTL = 300;
     public static long POST_DETAIL_TTL = 900;
+    public static long POST_LIKE_TTL = 86400 * 7; // 7天
     public static long LOSTFOUND_LIST_TTL = 600;
     public static long LOSTFOUND_DETAIL_TTL = 1800;
     public static long COMMENT_LIST_TTL = 300;

@@ -14,7 +14,10 @@ import com.shxy.smartlearningacademycommon.result.Result;
 import darabonba.core.client.ClientOverrideConfiguration;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -30,25 +33,8 @@ import java.util.concurrent.CompletableFuture;
 @Component
 @Slf4j
 public class SmsVerifyCodeUtil {
+    @Autowired
     private static AsyncClient client;
-
-    @PostConstruct
-    public void init() {
-        StaticCredentialProvider provider = StaticCredentialProvider.create(
-                Credential.builder()
-                        .accessKeyId(System.getenv("ALIYUN_ACCESS_KEY_ID"))
-                        .accessKeySecret(System.getenv("ALIYUN_ACCESS_KEY_SECRET"))
-                        .build()
-        );
-        client = AsyncClient.builder()
-                .region("cn-shenzhen") // Region ID
-                .credentialsProvider(provider)
-                .overrideConfiguration(
-                        ClientOverrideConfiguration.create()
-                                .setEndpointOverride("dypnsapi.aliyuncs.com")
-                )
-                .build();
-    }
 
     /**
      * 发送短信验证码
@@ -57,9 +43,6 @@ public class SmsVerifyCodeUtil {
      * @return
      */
     public static Result<String> sendSmsVerifyCode(String phoneNumber) {
-//        DefaultCredentialProvider provider = DefaultCredentialProvider.builder()
-//                .build();
-
         try {
             SendSmsVerifyCodeRequest sendSmsVerifyCodeRequest = SendSmsVerifyCodeRequest.builder()
                     .signName("速通互联验证码")

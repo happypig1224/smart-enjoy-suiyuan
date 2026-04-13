@@ -1,5 +1,7 @@
 package com.shxy.smartlearningacademyentity.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +24,7 @@ public class ResourceCreateDTO {
     /**
      * 资源类型：image, pdf, doc, txt, md
      */
+    @NotBlank(message = "资源类型不能为空")
     @Schema(description = "资源类型：image, pdf, doc, txt, md")
     private String type;
     
@@ -34,6 +37,7 @@ public class ResourceCreateDTO {
     /**
      * 资源描述
      */
+    @Size(max = 500, message = "资源描述长度不能超过500个字符")
     @Schema(description = "资源描述")
     private String description;
 }
