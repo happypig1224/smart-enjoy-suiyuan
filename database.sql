@@ -150,3 +150,66 @@ CREATE TABLE chat_message (
                               INDEX idx_session_create (session_id, create_time),
                               INDEX idx_user_create (user_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天记录表';
+
+-- =====================================================
+-- 7. AI会话管理表 (AI Session Management)
+-- 描述: 管理用户与AI的会话会话，支持多轮对话、上下文记忆
+-- =====================================================
+CREATE TABLE ai_session (
+                             id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '会话ID',
+                             user_id BIGINT NOT NULL COMMENT '用户ID，关联user.id',
+                             session_name VARCHAR(100) COMMENT '会话名称/标题',
+                             token_count INT DEFAULT 0 COMMENT '累计消耗Token数',
+                             message_count INT DEFAULT 0 COMMENT '会话消息数',
+                             status TINYINT DEFAULT 1 COMMENT '状态: 1-活跃, 0-归档, -1-删除',
+                             last_message TEXT COMMENT '最后一条消息摘要',
+                             create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                             update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                             INDEX idx_user (user_id),
+                             INDEX idx_user_status (user_id, status),
+                             INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI会话管理表';
+
+-- =====================================================
+-- 8. 知识库表 (Knowledge Base)
+-- 描述: AI RAG增强检索所需的知识库集合
+-- =====================================================
+CREATE TABLE kb_info (
+                          id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '知识库ID',
+                          kb_name VARCHAR(100) NOT NULL COMMENT '知识库名称',
+                          kb_description TEXT COMMENT '知识库描述',
+                          kb_category VARCHAR(50) COMMENT '知识库分类',
+                          source_type VARCHAR(20) COMMENT '来源类型: manual-手动, document-文档, web-网页',
+                          document_count INT DEFAULT 0 COMMENT '文档数量',
+                          is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除标记',
+                          create_user_id BIGINT COMMENT '创建人ID',
+                          create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                          update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                          INDEX idx_category (kb_category),
+                          INDEX idx_deleted (is_deleted),
+                          INDEX idx_create_user (create_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库信息表';
+
+-- =====================================================
+-- 9. 知识库文档表 (Knowledge Base Document)
+-- 描述: 存储知识库中的具体文档内容
+-- =====================================================
+CREATE TABLE kb_document (
+                              id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '文档ID',
+                              kb_id BIGINT NOT NULL COMMENT '所属知识库ID',
+                              doc_title VARCHAR(255) NOT NULL COMMENT '文档标题',
+                              doc_content TEXT COMMENT '文档内容',
+                              file_path VARCHAR(500) COMMENT '文件存储路径',
+                              file_type VARCHAR(20) COMMENT '文件类型: txt, pdf, docx, md, html',
+                              file_size BIGINT COMMENT '文件大小(字节)',
+                              vector_status TINYINT DEFAULT 0 COMMENT '向量化状态: 0-未处理, 1-处理中, 2-已完成, -1-失败',
+                              milvus_doc_id VARCHAR(100) COMMENT 'Milvus中的文档ID',
+                              vector_error_msg TEXT COMMENT '向量化错误信息',
+                              status TINYINT DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
+                              create_user_id BIGINT COMMENT '创建人ID',
+                              create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                              update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                              INDEX idx_kb (kb_id),
+                              INDEX idx_vector_status (vector_status),
+                              INDEX idx_create_user (create_user_id),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库文档表';
