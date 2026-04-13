@@ -1,5 +1,7 @@
 package com.shxy.smartlearningacademyentity.vo;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,6 +52,7 @@ public class PostVO {
     private Integer viewCount;
     
     @Schema(description = "图片列表")
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> images;
     
     @Schema(description = "创建时间")

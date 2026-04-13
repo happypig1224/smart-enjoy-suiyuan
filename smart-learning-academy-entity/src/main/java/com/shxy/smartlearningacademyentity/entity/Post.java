@@ -63,9 +63,9 @@ public class Post {
     private Integer viewCount;
 
     /**
-     * 配图列表，存储URL数组
+     * 配图列表,存储URL数组(JSON格式)
      */
-    private Object images;
+    private String images;
 
     /**
      * 发布时间

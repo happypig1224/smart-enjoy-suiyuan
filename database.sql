@@ -48,9 +48,11 @@ CREATE TABLE resource (
                           create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
                           update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                           INDEX idx_user (user_id),
-                          INDEX idx_type (type),
-                          INDEX idx_subject (subject),
-                          INDEX idx_download (download_count)
+                      INDEX idx_type (type),
+                      INDEX idx_subject (subject),
+                      INDEX idx_download (download_count),
+                      INDEX idx_type_time (type, create_time),
+                      INDEX idx_download_time (download_count, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习资源表';
 
 -- =====================================================
@@ -75,7 +77,9 @@ CREATE TABLE lost_found (
                             INDEX idx_user (user_id),
                             INDEX idx_type_status (type, status),
                             INDEX idx_urgent (urgent),
-                            INDEX idx_create_time (create_time)
+                            INDEX idx_create_time (create_time),
+                            INDEX idx_type_status_urgent (type, status, urgent),
+                            INDEX idx_type_create_time (type, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='失物招领信息表';
 
 -- =====================================================
@@ -97,7 +101,10 @@ CREATE TABLE post (
                       INDEX idx_user (user_id),
                       INDEX idx_type (type),
                       INDEX idx_like_count (like_count),
-                      INDEX idx_create_time (create_time)
+                      INDEX idx_create_time (create_time),
+                      INDEX idx_type_time (type, create_time),
+                      INDEX idx_type_like (type, like_count),
+                      INDEX idx_id_user (id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='社区帖子表';
 
 -- =====================================================
@@ -123,7 +130,9 @@ CREATE TABLE comment (
                          INDEX idx_post (post_id),
                          INDEX idx_lost_item (lost_item_id),
                          INDEX idx_parent (parent_id),
-                         INDEX idx_create_time (create_time)
+                         INDEX idx_create_time (create_time),
+                         INDEX idx_post_time (post_id, create_time),
+                         INDEX idx_lost_time (lost_item_id, create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论回复表';
 
 -- =====================================================

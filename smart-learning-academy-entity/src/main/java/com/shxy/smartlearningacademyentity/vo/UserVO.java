@@ -2,6 +2,7 @@ package com.shxy.smartlearningacademyentity.vo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,14 +21,24 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserVO {
+    @Schema(description = "用户ID")
     private Long id;
+    @Schema(description = "昵称")
     private String nickName;
+    @Schema(description = "用户名")
     private String userName;
+    @Schema(description = "性别")
     private Integer userGender;
+    @Schema(description = "年龄")
     private Integer userAge;
+    @Schema(description = "年级")
     private String userGrade;
+    @Schema(description = "头像")
     private String avatar;
+    @Schema(description = "手机号")
     private String phone;
+    @Schema(description = "角色")
     private Integer role;
+    @Schema(description = "创建时间")
     private Date createTime;
 }
