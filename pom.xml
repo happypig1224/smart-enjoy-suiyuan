@@ -24,9 +24,11 @@
         <!-- 第三方依赖版本 -->
         <mybatis.version>3.0.3</mybatis.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
-        <jjwt.version>0.9.1</jjwt.version>
+        <mysql.version>8.0.33</mysql.version>
+        <spring.security.crypto.version>5.1.2.RELEASE</spring.security.crypto.version>
+        <jjwt.version>0.12.6</jjwt.version>
         <druid>1.1.24</druid>
-        <knife4j>3.0.3</knife4j>
+        <knife4j>4.5.0</knife4j>
         <pagehelper>2.1.0</pagehelper>
         <commons.lang>2.6</commons.lang>
         <hutool.version>5.8.27</hutool.version>
@@ -49,6 +51,20 @@
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
+            </dependency>
+
+            <!-- MySQL -->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql.version}</version>
+            </dependency>
+
+            <!-- Spring Security Crypto -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-crypto</artifactId>
+                <version>${spring.security.crypto.version}</version>
             </dependency>
 
             <!-- JWT -->
@@ -97,9 +113,11 @@
             <!-- Swagger -->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-spring-boot-starter</artifactId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j}</version>
             </dependency>
+
+
 
             <!-- Hutool 工具类 -->
             <dependency>

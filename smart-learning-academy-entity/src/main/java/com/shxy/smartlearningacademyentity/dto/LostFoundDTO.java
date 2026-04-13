@@ -33,7 +33,5 @@ public class LostFoundDTO {
 
     private String wechatContact;
 
-
-
     private List<String> images;
 }

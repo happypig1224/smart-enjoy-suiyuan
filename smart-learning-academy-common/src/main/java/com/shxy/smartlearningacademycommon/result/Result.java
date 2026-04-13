@@ -33,19 +33,19 @@ public class Result<T> implements Serializable {
         return result;
     }
     // 1.3无信息带数据
-    public static <T> Result<T> success(T Object) {
+    public static <T> Result<T> success(T data) {
         Result<T> result = new Result<>();
         result.code = 200;
         result.message = "操作成功";
-        result.data = Object;
+        result.data = data;
         return result;
     }
     // 1.4带信息带数据
-    public static <T> Result<T> success(String message,T Object) {
+    public static <T> Result<T> success(String message,T data) {
         Result<T> result = new Result<>();
         result.code = 200;
         result.message = message;
-        result.data = Object;
+        result.data = data;
         return result;
     }
     //2、失败
@@ -64,19 +64,19 @@ public class Result<T> implements Serializable {
         return result;
     }
     // 2.3无信息带数据
-    public static <T> Result<T> fail(T Object) {
+    public static <T> Result<T> fail(T data) {
         Result<T> result = new Result<>();
         result.code = 500;
         result.message = "操作失败";
-        result.data = Object;
+        result.data = data;
         return result;
     }
     // 2.4带信息带数据
-    public static <T> Result<T> fail(String message,T Object) {
+    public static <T> Result<T> fail(String message,T data) {
         Result<T> result = new Result<>();
         result.code = 500;
         result.message = message;
-        result.data = Object;
+        result.data = data;
         return result;
     }
 }
