@@ -8,60 +8,55 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 社区帖子表
- * @TableName post
+ * 知识库信息表
+ * @TableName kb_info
  */
-@TableName(value ="post")
+@TableName(value ="kb_info")
 @Data
-public class Post {
+public class KbInfo {
     /**
-     * 主键ID
+     * 知识库ID
      */
     @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
-     * 发布者ID，关联user.id
+     * 知识库名称
      */
-    private Long userId;
+    private String kbName;
 
     /**
-     * 帖子标题
+     * 知识库描述
      */
-    private String title;
+    private String kbDescription;
 
     /**
-     * 帖子正文内容
+     * 知识库分类
      */
-    private String content;
+    private String kbCategory;
 
     /**
-     * 板块分类: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他
+     * 来源类型: manual-手动, document-文档, web-网页
      */
-    private Integer type;
+    private String sourceType;
 
     /**
-     * 点赞总数
+     * 文档数量
      */
-    private Integer likeCount;
+    private Integer documentCount;
 
     /**
-     * 评论总数
+     * 逻辑删除标记
      */
-    private Integer commentCount;
+    private Integer isDeleted;
 
     /**
-     * 浏览次数
+     * 创建人ID
      */
-    private Integer viewCount;
+    private Long createUserId;
 
     /**
-     * 配图列表，存储URL数组
-     */
-    private Object images;
-
-    /**
-     * 发布时间
+     * 创建时间
      */
     private Date createTime;
 

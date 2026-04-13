@@ -8,60 +8,50 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 社区帖子表
- * @TableName post
+ * AI会话管理表
+ * @TableName ai_session
  */
-@TableName(value ="post")
+@TableName(value ="ai_session")
 @Data
-public class Post {
+public class AiSession {
     /**
-     * 主键ID
+     * 会话ID
      */
     @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
-     * 发布者ID，关联user.id
+     * 用户ID，关联user.id
      */
     private Long userId;
 
     /**
-     * 帖子标题
+     * 会话名称/标题
      */
-    private String title;
+    private String sessionName;
 
     /**
-     * 帖子正文内容
+     * 累计消耗Token数
      */
-    private String content;
+    private Integer tokenCount;
 
     /**
-     * 板块分类: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他
+     * 会话消息数
      */
-    private Integer type;
+    private Integer messageCount;
 
     /**
-     * 点赞总数
+     * 状态: 1-活跃, 0-归档, -1-删除
      */
-    private Integer likeCount;
+    private Integer status;
 
     /**
-     * 评论总数
+     * 最后一条消息摘要
      */
-    private Integer commentCount;
+    private String lastMessage;
 
     /**
-     * 浏览次数
-     */
-    private Integer viewCount;
-
-    /**
-     * 配图列表，存储URL数组
-     */
-    private Object images;
-
-    /**
-     * 发布时间
+     * 创建时间
      */
     private Date createTime;
 

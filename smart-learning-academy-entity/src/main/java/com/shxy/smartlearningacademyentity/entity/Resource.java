@@ -5,11 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * 学习资源表
@@ -17,9 +13,6 @@ import lombok.NoArgsConstructor;
  */
 @TableName(value ="resource")
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class Resource {
     /**
      * 主键ID

@@ -11,205 +11,250 @@ USE `smart_learning_academy`;
 -- 1. 用户表 (User Management)
 -- 描述: 存储平台所有用户的基础信息、认证凭据及账户状态
 -- =====================================================
-CREATE TABLE user (
-                      id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-                      nick_name VARCHAR(50) NOT NULL COMMENT '用户昵称',
-                      user_name VARCHAR(50) UNIQUE NOT NULL COMMENT '登录用户名，全局唯一',
-                      user_password VARCHAR(100) NOT NULL COMMENT '登录密码，BCrypt加密存储',
-                      user_gender TINYINT DEFAULT 0 COMMENT '性别: 0-未填写, 1-男, 2-女',
-                      user_age INT COMMENT '用户年龄',
-                      user_grade VARCHAR(20) COMMENT '所属年级，如2023级',
-                      avatar VARCHAR(255) COMMENT '头像图片URL地址',
-                      phone VARCHAR(20) UNIQUE COMMENT '绑定手机号，唯一索引',
-                      role TINYINT DEFAULT 1 COMMENT '角色权限: 1-普通用户, 0-管理员',
-                      status TINYINT DEFAULT 1 COMMENT '账户状态: 1-正常, 0-禁用(封号)',
-                      create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册/创建时间',
-                      update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-                      is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
-                      INDEX idx_user_name (user_name),
-                      INDEX idx_phone (phone),
-                      INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户信息表';
+CREATE TABLE user
+(
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    nick_name     VARCHAR(50)        NOT NULL COMMENT '用户昵称',
+    user_name     VARCHAR(50) UNIQUE NOT NULL COMMENT '登录用户名，全局唯一',
+    user_password VARCHAR(100)       NOT NULL COMMENT '登录密码，BCrypt加密存储',
+    user_gender   TINYINT  DEFAULT 0 COMMENT '性别: 0-未填写, 1-男, 2-女',
+    user_age      INT COMMENT '用户年龄',
+    user_grade    VARCHAR(20) COMMENT '所属年级，如2023级',
+    avatar        VARCHAR(255) COMMENT '头像图片URL地址',
+    phone         VARCHAR(20) UNIQUE COMMENT '绑定手机号，唯一索引',
+    role          TINYINT  DEFAULT 1 COMMENT '角色权限: 1-普通用户, 0-管理员',
+    status        TINYINT  DEFAULT 1 COMMENT '账户状态: 1-正常, 0-禁用(封号)',
+    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册/创建时间',
+    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    is_deleted    TINYINT  DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_user_name (user_name),
+    INDEX idx_phone (phone),
+    INDEX idx_status (status)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='用户信息表';
 
 -- =====================================================
 -- 2. 资源表 (Resource Sharing)
 -- 描述: 存储用户上传的学习资料（PDF/文档/图片等）元数据
 -- =====================================================
-CREATE TABLE resource (
-                          id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-                          user_id BIGINT NOT NULL COMMENT '上传者ID，关联user.id',
-                          type VARCHAR(20) NOT NULL COMMENT '资源格式: image, pdf, doc, txt, md',
-                          subject INT DEFAULT NULL COMMENT '所属学科分类ID',
-                          resource_url VARCHAR(1000) NOT NULL COMMENT '文件在COS/服务器的存储路径',
-                          file_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
-                          file_size BIGINT COMMENT '文件大小，单位字节(B)',
-                          description TEXT COMMENT '资源简介或备注',
-                          download_count INT DEFAULT 0 COMMENT '累计下载次数',
-                          create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
-                          update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                          INDEX idx_user (user_id),
-                      INDEX idx_type (type),
-                      INDEX idx_subject (subject),
-                      INDEX idx_download (download_count),
-                      INDEX idx_type_time (type, create_time),
-                      INDEX idx_download_time (download_count, create_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习资源表';
+CREATE TABLE resource
+(
+    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id        BIGINT        NOT NULL COMMENT '上传者ID，关联user.id',
+    type           VARCHAR(20)   NOT NULL COMMENT '资源格式: image, pdf, doc, txt, md',
+    subject        INT      DEFAULT NULL COMMENT '所属学科分类ID',
+    resource_url   VARCHAR(1000) NOT NULL COMMENT '文件在COS/服务器的存储路径',
+    file_name      VARCHAR(255)  NOT NULL COMMENT '原始文件名',
+    file_size      BIGINT COMMENT '文件大小，单位字节(B)',
+    description    TEXT COMMENT '资源简介或备注',
+    download_count INT      DEFAULT 0 COMMENT '累计下载次数',
+    create_time    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    update_time    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user (user_id),
+    INDEX idx_type (type),
+    INDEX idx_subject (subject),
+    INDEX idx_download (download_count),
+    INDEX idx_type_time (type, create_time),
+    INDEX idx_download_time (download_count, create_time)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='学习资源表';
 
 -- =====================================================
 -- 3. 失物招领表 (Lost and Found)
 -- 描述: 记录校园内的寻物启事与招领信息发布
 -- =====================================================
-CREATE TABLE lost_found (
-                            id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-                            user_id BIGINT NOT NULL COMMENT '发布人ID，关联user.id',
-                            type TINYINT NOT NULL COMMENT '帖子类型: 0-寻物启事, 1-招领启事',
-                            status TINYINT DEFAULT 0 COMMENT '处理状态: 0-未解决, 1-已解决/已领取',
-                            title VARCHAR(100) NOT NULL COMMENT '标题，简述物品',
-                            description TEXT NOT NULL COMMENT '详细描述，丢失/拾取经过',
-                            urgent TINYINT DEFAULT 0 COMMENT '紧急程度: 0-普通, 1-紧急(置顶)',
-                            location VARCHAR(100) COMMENT '具体地点，如图书馆三楼',
-                            phone_contact VARCHAR(20) COMMENT '联系电话，可为空',
-                            wechat_contact VARCHAR(50) COMMENT '联系微信号',
-                            images JSON COMMENT '图片列表，存储URL数组',
-                            view_count INT DEFAULT 0 COMMENT '浏览量/查看次数',
-                            create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
-                            update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                            INDEX idx_user (user_id),
-                            INDEX idx_type_status (type, status),
-                            INDEX idx_urgent (urgent),
-                            INDEX idx_create_time (create_time),
-                            INDEX idx_type_status_urgent (type, status, urgent),
-                            INDEX idx_type_create_time (type, create_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='失物招领信息表';
+CREATE TABLE lost_found
+(
+    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id        BIGINT       NOT NULL COMMENT '发布人ID，关联user.id',
+    type           TINYINT      NOT NULL COMMENT '帖子类型: 0-寻物启事, 1-招领启事',
+    status         TINYINT  DEFAULT 0 COMMENT '处理状态: 0-未解决, 1-已解决/已领取',
+    title          VARCHAR(100) NOT NULL COMMENT '标题，简述物品',
+    description    TEXT         NOT NULL COMMENT '详细描述，丢失/拾取经过',
+    urgent         TINYINT  DEFAULT 0 COMMENT '紧急程度: 0-普通, 1-紧急(置顶)',
+    location       VARCHAR(100) COMMENT '具体地点，如图书馆三楼',
+    phone_contact  VARCHAR(20) COMMENT '联系电话，可为空',
+    wechat_contact VARCHAR(50) COMMENT '联系微信号',
+    images         JSON COMMENT '图片列表，存储URL数组',
+    view_count     INT      DEFAULT 0 COMMENT '浏览量/查看次数',
+    create_time    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+    update_time    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user (user_id),
+    INDEX idx_type_status (type, status),
+    INDEX idx_urgent (urgent),
+    INDEX idx_create_time (create_time),
+    INDEX idx_type_status_urgent (type, status, urgent),
+    INDEX idx_type_create_time (type, create_time)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='失物招领信息表';
 
 -- =====================================================
 -- 4. 帖子表 (Community Posts)
 -- 描述: 校园社区论坛，支持技术讨论、生活分享等
 -- =====================================================
-CREATE TABLE post (
-                      id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-                      user_id BIGINT NOT NULL COMMENT '发布者ID，关联user.id',
-                      title VARCHAR(100) NOT NULL COMMENT '帖子标题',
-                      content TEXT NOT NULL COMMENT '帖子正文内容',
-                      type TINYINT NOT NULL COMMENT '板块分类: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他',
-                      like_count INT DEFAULT 0 COMMENT '点赞总数',
-                      comment_count INT DEFAULT 0 COMMENT '评论总数',
-                      view_count INT DEFAULT 0 COMMENT '浏览次数',
-                      images JSON COMMENT '配图列表，存储URL数组',
-                      create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
-                      update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                      INDEX idx_user (user_id),
-                      INDEX idx_type (type),
-                      INDEX idx_like_count (like_count),
-                      INDEX idx_create_time (create_time),
-                      INDEX idx_type_time (type, create_time),
-                      INDEX idx_type_like (type, like_count),
-                      INDEX idx_id_user (id, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='社区帖子表';
+CREATE TABLE post
+(
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id       BIGINT       NOT NULL COMMENT '发布者ID，关联user.id',
+    title         VARCHAR(100) NOT NULL COMMENT '帖子标题',
+    content       TEXT         NOT NULL COMMENT '帖子正文内容',
+    type          TINYINT      NOT NULL COMMENT '板块分类: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他',
+    like_count    INT      DEFAULT 0 COMMENT '点赞总数',
+    comment_count INT      DEFAULT 0 COMMENT '评论总数',
+    view_count    INT      DEFAULT 0 COMMENT '浏览次数',
+    images        JSON COMMENT '配图列表，存储URL数组',
+    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user (user_id),
+    INDEX idx_type (type),
+    INDEX idx_like_count (like_count),
+    INDEX idx_create_time (create_time),
+    INDEX idx_type_time (type, create_time),
+    INDEX idx_type_like (type, like_count),
+    INDEX idx_id_user (id, user_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='社区帖子表';
 
 -- =====================================================
 -- 5. 评论表 (Comments)
 -- 描述: 支持对帖子和失物招领进行评论及回复
 -- =====================================================
-CREATE TABLE comment (
-                         id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-                         user_id BIGINT NOT NULL COMMENT '评论者ID，关联user.id',
-                         content TEXT NOT NULL COMMENT '评论内容',
-                         post_id BIGINT NULL COMMENT '关联帖子ID，回复帖子时使用',
-                         lost_item_id BIGINT NULL COMMENT '关联失物招领ID，回复招领时使用',
-                         parent_id BIGINT DEFAULT 0 COMMENT '父级评论ID，用于实现二级回复',
-                         like_count INT DEFAULT 0 COMMENT '点赞数',
-                         status TINYINT DEFAULT 1 COMMENT '状态: 1-正常显示, -1-逻辑删除',
-                         create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
-                         update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                         is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除标记',
-                         FOREIGN KEY (user_id) REFERENCES user(id),
-                         FOREIGN KEY (post_id) REFERENCES post(id),
-                         FOREIGN KEY (lost_item_id) REFERENCES lost_found(id),
-                         INDEX idx_user (user_id),
-                         INDEX idx_post (post_id),
-                         INDEX idx_lost_item (lost_item_id),
-                         INDEX idx_parent (parent_id),
-                         INDEX idx_create_time (create_time),
-                         INDEX idx_post_time (post_id, create_time),
-                         INDEX idx_lost_time (lost_item_id, create_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论回复表';
+CREATE TABLE comment
+(
+    id           BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id      BIGINT NOT NULL COMMENT '评论者ID，关联user.id',
+    content      TEXT   NOT NULL COMMENT '评论内容',
+    post_id      BIGINT NULL COMMENT '关联帖子ID，回复帖子时使用',
+    lost_item_id BIGINT NULL COMMENT '关联失物招领ID，回复招领时使用',
+    parent_id    BIGINT   DEFAULT 0 COMMENT '父级评论ID，用于实现二级回复',
+    like_count   INT      DEFAULT 0 COMMENT '点赞数',
+    status       TINYINT  DEFAULT 1 COMMENT '状态: 1-正常显示, -1-逻辑删除',
+    create_time  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
+    update_time  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted   TINYINT  DEFAULT 0 COMMENT '逻辑删除标记',
+    FOREIGN KEY (user_id) REFERENCES user (id),
+    FOREIGN KEY (post_id) REFERENCES post (id),
+    FOREIGN KEY (lost_item_id) REFERENCES lost_found (id),
+    INDEX idx_user (user_id),
+    INDEX idx_post (post_id),
+    INDEX idx_lost_item (lost_item_id),
+    INDEX idx_parent (parent_id),
+    INDEX idx_create_time (create_time),
+    INDEX idx_post_time (post_id, create_time),
+    INDEX idx_lost_time (lost_item_id, create_time)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='评论回复表';
 
 -- =====================================================
 -- 6. 聊天消息表 (AI Chat History)
 -- 描述: 存储用户与AI智能助手的对话历史记录
 -- =====================================================
-CREATE TABLE chat_message (
-                              id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-                              session_id BIGINT NOT NULL COMMENT '会话ID，用于区分不同轮次的对话',
-                              user_id BIGINT NOT NULL COMMENT '用户ID，关联user.id',
-                              role ENUM('user','assistant','system','tool') NOT NULL COMMENT '角色: user(用户), assistant(AI), system(系统), tool(工具)',
-                              content TEXT NOT NULL COMMENT '消息内容，包含文本或Token',
-                              create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                              update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                              INDEX idx_session_create (session_id, create_time),
-                              INDEX idx_user_create (user_id, create_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI聊天记录表';
+CREATE TABLE chat_message
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    session_id  BIGINT                                    NOT NULL COMMENT '会话ID，用于区分不同轮次的对话',
+    user_id     BIGINT                                    NOT NULL COMMENT '用户ID，关联user.id',
+    role        ENUM ('user','assistant','system','tool') NOT NULL COMMENT '角色: user(用户), assistant(AI), system(系统), tool(工具)',
+    content     TEXT                                      NOT NULL COMMENT '消息内容，包含文本或Token',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_session_create (session_id, create_time),
+    INDEX idx_user_create (user_id, create_time)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='AI聊天记录表';
 
 -- =====================================================
--- 7. AI会话管理表 (AI Session Management)
+-- 7. 资源收藏表(Resource Favorite)
+-- 描述: 管理用户收藏的资源
+-- =====================================================
+CREATE TABLE resource_favorite
+(
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id       BIGINT                                  NOT NULL COMMENT '用户ID，关联user.id',
+    resource_id   BIGINT                                  NOT NULL COMMENT '资源ID，关联资源表',
+    resource_type ENUM ('post','lost_item','kb_document') NOT NULL COMMENT '资源类型: post(帖子), lost_item(失物招领), kb_document(知识库文档)',
+    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user (user_id),
+    INDEX idx_resource_type (resource_type)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='资源收藏表';
+
+-- =====================================================
+-- 8. AI会话管理表 (AI Session Management)
 -- 描述: 管理用户与AI的会话会话，支持多轮对话、上下文记忆
 -- =====================================================
-CREATE TABLE ai_session (
-                             id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '会话ID',
-                             user_id BIGINT NOT NULL COMMENT '用户ID，关联user.id',
-                             session_name VARCHAR(100) COMMENT '会话名称/标题',
-                             token_count INT DEFAULT 0 COMMENT '累计消耗Token数',
-                             message_count INT DEFAULT 0 COMMENT '会话消息数',
-                             status TINYINT DEFAULT 1 COMMENT '状态: 1-活跃, 0-归档, -1-删除',
-                             last_message TEXT COMMENT '最后一条消息摘要',
-                             create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                             update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                             INDEX idx_user (user_id),
-                             INDEX idx_user_status (user_id, status),
-                             INDEX idx_create_time (create_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI会话管理表';
+CREATE TABLE ai_session
+(
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '会话ID',
+    user_id       BIGINT NOT NULL COMMENT '用户ID，关联user.id',
+    session_name  VARCHAR(100) COMMENT '会话名称/标题',
+    token_count   INT      DEFAULT 0 COMMENT '累计消耗Token数',
+    message_count INT      DEFAULT 0 COMMENT '会话消息数',
+    status        TINYINT  DEFAULT 1 COMMENT '状态: 1-活跃, 0-归档, -1-删除',
+    last_message  TEXT COMMENT '最后一条消息摘要',
+    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user (user_id),
+    INDEX idx_user_status (user_id, status),
+    INDEX idx_create_time (create_time)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='AI会话管理表';
 
 -- =====================================================
--- 8. 知识库表 (Knowledge Base)
+-- 9. 知识库表 (Knowledge Base)
 -- 描述: AI RAG增强检索所需的知识库集合
 -- =====================================================
-CREATE TABLE kb_info (
-                          id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '知识库ID',
-                          kb_name VARCHAR(100) NOT NULL COMMENT '知识库名称',
-                          kb_description TEXT COMMENT '知识库描述',
-                          kb_category VARCHAR(50) COMMENT '知识库分类',
-                          source_type VARCHAR(20) COMMENT '来源类型: manual-手动, document-文档, web-网页',
-                          document_count INT DEFAULT 0 COMMENT '文档数量',
-                          is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除标记',
-                          create_user_id BIGINT COMMENT '创建人ID',
-                          create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                          update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                          INDEX idx_category (kb_category),
-                          INDEX idx_deleted (is_deleted),
-                          INDEX idx_create_user (create_user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库信息表';
+CREATE TABLE kb_info
+(
+    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '知识库ID',
+    kb_name        VARCHAR(100) NOT NULL COMMENT '知识库名称',
+    kb_description TEXT COMMENT '知识库描述',
+    kb_category    VARCHAR(50) COMMENT '知识库分类',
+    source_type    VARCHAR(20) COMMENT '来源类型: manual-手动, document-文档, web-网页',
+    document_count INT      DEFAULT 0 COMMENT '文档数量',
+    is_deleted     TINYINT  DEFAULT 0 COMMENT '逻辑删除标记',
+    create_user_id BIGINT COMMENT '创建人ID',
+    create_time    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_category (kb_category),
+    INDEX idx_deleted (is_deleted),
+    INDEX idx_create_user (create_user_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='知识库信息表';
 
 -- =====================================================
--- 9. 知识库文档表 (Knowledge Base Document)
+-- 10. 知识库文档表 (Knowledge Base Document)
 -- 描述: 存储知识库中的具体文档内容
 -- =====================================================
-CREATE TABLE kb_document (
-                              id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '文档ID',
-                              kb_id BIGINT NOT NULL COMMENT '所属知识库ID',
-                              doc_title VARCHAR(255) NOT NULL COMMENT '文档标题',
-                              doc_content TEXT COMMENT '文档内容',
-                              file_path VARCHAR(500) COMMENT '文件存储路径',
-                              file_type VARCHAR(20) COMMENT '文件类型: txt, pdf, docx, md, html',
-                              file_size BIGINT COMMENT '文件大小(字节)',
-                              vector_status TINYINT DEFAULT 0 COMMENT '向量化状态: 0-未处理, 1-处理中, 2-已完成, -1-失败',
-                              milvus_doc_id VARCHAR(100) COMMENT 'Milvus中的文档ID',
-                              vector_error_msg TEXT COMMENT '向量化错误信息',
-                              status TINYINT DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
-                              create_user_id BIGINT COMMENT '创建人ID',
-                              create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                              update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                              INDEX idx_kb (kb_id),
-                              INDEX idx_vector_status (vector_status),
-                              INDEX idx_create_user (create_user_id),
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库文档表';
+CREATE TABLE kb_document
+(
+    id               BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '文档ID',
+    kb_id            BIGINT       NOT NULL COMMENT '所属知识库ID',
+    doc_title        VARCHAR(255) NOT NULL COMMENT '文档标题',
+    doc_content      TEXT COMMENT '文档内容',
+    file_path        VARCHAR(500) COMMENT '文件存储路径',
+    file_type        VARCHAR(20) COMMENT '文件类型: txt, pdf, docx, md, html',
+    file_size        BIGINT COMMENT '文件大小(字节)',
+    vector_status    TINYINT  DEFAULT 0 COMMENT '向量化状态: 0-未处理, 1-处理中, 2-已完成, -1-失败',
+    milvus_doc_id    VARCHAR(100) COMMENT 'Milvus中的文档ID',
+    vector_error_msg TEXT COMMENT '向量化错误信息',
+    status           TINYINT  DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
+    create_user_id   BIGINT COMMENT '创建人ID',
+    create_time      DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_kb (kb_id),
+    INDEX idx_vector_status (vector_status),
+    INDEX idx_create_user (create_user_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='知识库文档表';
