@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * AI会话管理表
@@ -13,6 +17,9 @@ import lombok.Data;
  */
 @TableName(value ="ai_session")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class AiSession {
     /**
      * 会话ID

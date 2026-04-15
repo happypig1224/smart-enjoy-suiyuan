@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 资源收藏表
@@ -13,6 +17,9 @@ import lombok.Data;
  */
 @TableName(value ="resource_favorite")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class ResourceFavorite {
     /**
      * 主键ID

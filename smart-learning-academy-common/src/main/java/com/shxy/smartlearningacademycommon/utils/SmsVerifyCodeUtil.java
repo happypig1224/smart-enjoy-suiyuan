@@ -33,8 +33,12 @@ import java.util.concurrent.CompletableFuture;
 @Component
 @Slf4j
 public class SmsVerifyCodeUtil {
+    private AsyncClient client;
+
     @Autowired
-    private static AsyncClient client;
+    public void setClient(AsyncClient client) {
+        this.client = client;
+    }
 
     /**
      * 发送短信验证码
@@ -42,7 +46,7 @@ public class SmsVerifyCodeUtil {
      * @param phoneNumber 手机号
      * @return
      */
-    public static Result<String> sendSmsVerifyCode(String phoneNumber) {
+    public Result<String> sendSmsVerifyCode(String phoneNumber) {
         try {
             SendSmsVerifyCodeRequest sendSmsVerifyCodeRequest = SendSmsVerifyCodeRequest.builder()
                     .signName("速通互联验证码")
@@ -67,7 +71,7 @@ public class SmsVerifyCodeUtil {
      * @param verifyCode  验证码
      * @return
      */
-    public static Result<String> checkSmsVerifyCode(String phoneNumber, String verifyCode) {
+    public Result<String> checkSmsVerifyCode(String phoneNumber, String verifyCode) {
         CheckSmsVerifyCodeRequest checkSmsVerifyCodeRequest = CheckSmsVerifyCodeRequest.builder()
                 .phoneNumber(phoneNumber)
                 .verifyCode(verifyCode)

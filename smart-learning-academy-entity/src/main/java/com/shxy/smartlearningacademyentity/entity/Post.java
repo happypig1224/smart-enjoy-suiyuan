@@ -5,7 +5,11 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 社区帖子表
@@ -13,7 +17,11 @@ import lombok.Data;
  */
 @TableName(value ="post")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Post {
+
     /**
      * 主键ID
      */
