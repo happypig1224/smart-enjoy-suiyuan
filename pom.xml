@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -9,15 +9,15 @@
         <relativePath/>
     </parent>
     <groupId>com.shxy</groupId>
-    <artifactId>smart-learning-academy</artifactId>
+    <artifactId>smart-enjoy-suiyuan</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>smart-learning-academy</name>
     <description>smart-learning-academy</description>
     <modules>
-        <module>smart-learning-academy-common</module>
-        <module>smart-learning-academy-entity</module>
-        <module>smart-learning-academy-server</module>
+        <module>smart-enjoy-suiyuan-common</module>
+        <module>smart-enjoy-suiyuan-entity</module>
+        <module>smart-enjoy-suiyuan-server</module>
     </modules>
     <properties>
         <java.version>17</java.version>

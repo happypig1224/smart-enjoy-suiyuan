@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shxy.suiyuanserver.mapper.ResourceFavoriteMapper">
+
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.ResourceFavorite">
+            <id property="id" column="id" />
+            <result property="userId" column="user_id" />
+            <result property="resourceId" column="resource_id" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,resource_id,create_time,update_time
+    </sql>
+
+    <!-- 检查是否已收藏 -->
+    <select id="checkFavorite" resultMap="BaseResultMap">
+        SELECT * FROM resource_favorite
+        WHERE user_id = #{userId} AND resource_id = #{resourceId}
+        LIMIT 1
+    </select>
+
+    <!-- 添加收藏 -->
+    <insert id="addFavorite">
+        INSERT INTO resource_favorite (user_id, resource_id, create_time)
+        VALUES (#{userId}, #{resourceId}, NOW())
+    </insert>
+
+    <!-- 取消收藏 -->
+    <delete id="cancelFavorite">
+        DELETE FROM resource_favorite
+        WHERE user_id = #{userId} AND resource_id = #{resourceId}
+    </delete>
+
+    <!-- 判断是否已收藏 -->
+    <select id="isFavorite" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM resource_favorite WHERE user_id = #{userId} AND resource_id = #{resourceId})
+    </select>
+</mapper>

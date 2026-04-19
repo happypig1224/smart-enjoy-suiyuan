@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shxy.suiyuanserver.mapper.ResourceMapper">
+
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.Resource">
+            <id property="id" column="id" />
+            <result property="userId" column="user_id" />
+            <result property="type" column="type" />
+            <result property="subject" column="subject" />
+            <result property="resourceUrl" column="resource_url" />
+            <result property="fileName" column="file_name" />
+            <result property="fileSize" column="file_size" />
+            <result property="description" column="description" />
+            <result property="downloadCount" column="download_count" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,type,subject,resource_url,file_name,
+        file_size,description,download_count,create_time,update_time
+    </sql>
+</mapper>

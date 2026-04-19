@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shxy.suiyuanserver.mapper.LostFoundMapper">
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.LostFound">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="urgent" column="urgent"/>
+        <result property="location" column="location"/>
+        <result property="phoneContact" column="phone_contact"/>
+        <result property="wechatContact" column="wechat_contact"/>
+        <result property="images" column="images"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,user_id,type,status,title,description,
+        urgent,location,phone_contact,wechat_contact,images,
+        view_count,create_time,update_time
+    </sql>
+
+    <update id="updateLostFound">
+        update lost_found
+        <set>
+            <if test="title != null">
+                title = #{title},
+            </if>
+            <if test="description != null">
+                description = #{description},
+            </if>
+            <if test="urgent != null">
+                urgent = #{urgent},
+            </if>
+            <if test="location != null">
+                location = #{location},
+            </if>
+            <if test="phoneContact != null">
+                phone_contact = #{phoneContact},
+            </if>
+            <if test="wechatContact != null">
+                wechat_contact = #{wechatContact},
+            </if>
+            <if test="images != null">
+                images = #{images},
+            </if>
+            update_time = NOW()
+        </set>
+        where id = #{id}
+    </update>
+
+    <update id="updateLostFoundStatus">
+        update lost_found
+        <set>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            update_time = NOW()
+        </set>
+        where id = #{id}
+    </update>
+</mapper>
+

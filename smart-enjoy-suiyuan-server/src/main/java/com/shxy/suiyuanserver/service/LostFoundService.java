@@ -1,0 +1,29 @@
+package com.shxy.suiyuanserver.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.shxy.suiyuancommon.result.PageResult;
+import com.shxy.suiyuancommon.result.Result;
+import com.shxy.suiyuanentity.dto.LostFoundDTO;
+import com.shxy.suiyuanentity.entity.LostFound;
+
+import java.util.Map;
+
+/**
+* @author Wu, Hui Ming
+* @description 针对表【lost_found】的数据库操作Service
+* @createDate 2026-04-04 21:30:08
+*/
+public interface LostFoundService extends IService<LostFound> {
+
+    Result<LostFound> createLostFound(LostFoundDTO lostFoundDTO);
+
+    Result<PageResult> listLostFound(Integer page, Integer pageSize, String type, String status, String urgent);
+
+    Result<LostFound> detailLostFound(Long id);
+
+    Result<String> deleteLostFound(Long id);
+
+    Result<String> updateLostFound(LostFoundDTO lostFoundDTO);
+
+    Result<String> updateLostFoundStatus(Long id, Integer status);
+}

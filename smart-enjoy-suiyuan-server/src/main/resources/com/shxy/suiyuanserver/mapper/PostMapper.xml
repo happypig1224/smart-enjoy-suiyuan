@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shxy.suiyuanserver.mapper.PostMapper">
+
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.Post">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="type" column="type" />
+        <result property="likeCount" column="like_count" />
+        <result property="commentCount" column="comment_count" />
+        <result property="viewCount" column="view_count" />
+        <result property="images" column="images" jdbcType="VARCHAR" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <resultMap id="PostVOResultMap" type="com.shxy.suiyuanentity.vo.PostVO">
+        <id property="id" column="post_id" />
+        <result property="userId" column="user_id" />
+        <result property="userNickName" column="nick_name" />
+        <result property="userAvatar" column="avatar" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="type" column="type" />
+        <result property="likeCount" column="like_count" />
+        <result property="commentCount" column="comment_count" />
+        <result property="viewCount" column="view_count" />
+        <result property="images" column="images" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler" javaType="java.util.List" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,title,content,type,like_count,
+        comment_count,view_count,images,create_time,update_time
+    </sql>
+
+    <select id="selectPostWithUser" resultMap="PostVOResultMap">
+        SELECT
+            p.id as post_id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.type,
+            p.like_count,
+            p.comment_count,
+            p.view_count,
+            p.images,
+            p.create_time,
+            p.update_time,
+            u.nick_name,
+            u.avatar
+        FROM post p
+                 LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.id = #{postId}
+    </select>
+
+    <select id="selectPostListWithUser" resultMap="PostVOResultMap">
+        SELECT
+        p.id as post_id,
+        p.user_id,
+        p.title,
+        p.content,
+        p.type,
+        p.like_count,
+        p.comment_count,
+        p.view_count,
+        p.images,
+        p.create_time,
+        p.update_time,
+        u.nick_name,
+        u.avatar
+        FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        <where>
+            <if test="type != null">
+                AND p.type = #{type}
+            </if>
+        </where>
+        <choose>
+            <when test="orderBy == 'hottest'">
+                ORDER BY p.view_count DESC
+            </when>
+            <when test="orderBy == 'mostLiked'">
+                ORDER BY p.like_count DESC
+            </when>
+            <otherwise>
+                ORDER BY p.create_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="selectPostCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM post
+        <where>
+            <if test="type != null">
+                AND type = #{type}
+            </if>
+        </where>
+    </select>
+
+</mapper>

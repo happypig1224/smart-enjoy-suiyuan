@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shxy.suiyuanserver.mapper.KbInfoMapper">
+
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.KbInfo">
+            <id property="id" column="id" />
+            <result property="kbName" column="kb_name" />
+            <result property="kbDescription" column="kb_description" />
+            <result property="kbCategory" column="kb_category" />
+            <result property="sourceType" column="source_type" />
+            <result property="documentCount" column="document_count" />
+            <result property="isDeleted" column="is_deleted" />
+            <result property="createUserId" column="create_user_id" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,kb_name,kb_description,kb_category,source_type,document_count,
+        is_deleted,create_user_id,create_time,update_time
+    </sql>
+</mapper>

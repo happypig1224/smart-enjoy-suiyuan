@@ -1,0 +1,29 @@
+package com.shxy.suiyuanserver.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shxy.suiyuanentity.entity.Post;
+import com.shxy.suiyuanentity.vo.PostVO;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+/**
+* @author Wu, Hui Ming
+* @description 针对表【post】的数据库操作Mapper
+* @createDate 2026-04-04 21:30:08
+* @Entity com.shxy.entity.Post
+*/
+public interface PostMapper extends BaseMapper<Post> {
+    List<PostVO> selectPostWithUser(@Param("postId") Long postId);
+
+    List<PostVO> selectPostListWithUser(@Param("type") Integer type,
+                                        @Param("offset") int offset,
+                                        @Param("size") int size,
+                                        @Param("orderBy") String orderBy);
+
+    Long selectPostCount(@Param("type") Integer type);
+}
+
+
+
+

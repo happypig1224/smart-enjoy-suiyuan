@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shxy.suiyuanserver.mapper.CommentMapper">
+
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.Comment">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="content" column="content" />
+        <result property="postId" column="post_id" />
+        <result property="lostItemId" column="lost_item_id" />
+        <result property="parentId" column="parent_id" />
+        <result property="likeCount" column="like_count" />
+        <result property="status" column="status" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="isDeleted" column="is_deleted" />
+    </resultMap>
+
+    <resultMap id="CommentVOResultMap" type="com.shxy.suiyuanentity.vo.CommentVO">
+        <id property="id" column="comment_id" />
+        <result property="userId" column="user_id" />
+        <result property="userNickName" column="nick_name" />
+        <result property="userAvatar" column="avatar" />
+        <result property="content" column="content" />
+        <result property="postId" column="post_id" />
+        <result property="lostItemId" column="lost_item_id" />
+        <result property="parentId" column="parent_id" />
+        <result property="likeCount" column="like_count" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_id,content,post_id,lost_item_id,parent_id,
+        like_count,status,create_time,update_time,is_deleted
+    </sql>
+
+    <update id="updateIsDelete">
+        update comment set is_deleted = 1 where id = #{id}
+    </update>
+
+    <select id="selectCommentListWithUser" resultMap="CommentVOResultMap">
+        SELECT
+        c.id as comment_id,
+        c.user_id,
+        c.content,
+        c.post_id,
+        c.lost_item_id,
+        c.parent_id,
+        c.like_count,
+        c.create_time,
+        u.nick_name,
+        u.avatar
+        FROM comment c
+        LEFT JOIN user u ON c.user_id = u.id
+        <where>
+            c.is_deleted = 0
+            AND c.status = 1
+            <if test="postId != null">
+                AND c.post_id = #{postId}
+            </if>
+            <if test="lostItemId != null">
+                AND c.lost_item_id = #{lostItemId}
+            </if>
+        </where>
+        <choose>
+            <when test="orderBy == 'likeCount'">
+                ORDER BY c.like_count DESC
+            </when>
+            <otherwise>
+                ORDER BY c.create_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="selectCommentCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM comment
+        <where>
+            is_deleted = 0
+            AND status = 1
+            <if test="postId != null">
+                AND post_id = #{postId}
+            </if>
+            <if test="lostItemId != null">
+                AND lost_item_id = #{lostItemId}
+            </if>
+        </where>
+    </select>
+</mapper>

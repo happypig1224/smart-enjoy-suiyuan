@@ -1,0 +1,41 @@
+smart:
+  enjoy:
+    suiyuan:
+      ai:
+        dashscope:
+          api-key: ${ALIYUN_DASHSCOPE_API_KEY}
+          chat:
+            model: qwen-max
+            temperature: 0.7
+            top-p: 0.8
+        embedding:
+          options:
+            model: text-embedding-v3
+      datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://${MYSQL_HOST}:3306/smart_learning_academy?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true
+        username: ${MYSQL_USERNAME}
+        password: ${MYSQL_PASSWORD}
+      data:
+        redis:
+          host: ${REDIS_HOST}
+          port: 6379
+          password: ${REDIS_PASSWORD}
+      tencent:
+        cos:
+          secret-id: ${TENCENT_COS_SECRET_ID}
+          secret-key: ${TENCENT_COS_SECRET_KEY}
+          region: ap-guangzhou
+          bucket-name: smartlearnacademy-1383957992
+          avatar-dir: smart-learning-academy/
+          image-dir: images/
+      jwt:
+        # 加密使用的密钥(至少32字符)
+        admin-secret-key: ${JWT_ADMIN_SECRET_KEY}
+        # 令牌过期时间
+        admin-ttl: 7200000
+        # 前端交互的令牌名称
+        admin-token-name: token
+        user-secret-key: ${JWT_USER_SECRET_KEY:smartLearningAcademyUserSecretKey2026Secure}
+        user-ttl: 7200000
+        user-token-name: authentication

@@ -1,0 +1,110 @@
+spring:
+  main:
+    banner-mode: console
+  application:
+    name: smart-enjoy-suiyuan
+  profiles:
+    active: dev
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 50MB        # 单个文件最大大小
+      max-request-size: 100MB    # 整个请求最大大小
+  # AI大模型配置
+  ai:
+    # 阿里百炼api
+    dashscope:
+      api-key: ${smart.enjoy.suiyuan.ai.dashscope.api-key}
+      chat:
+        options:
+          # 模型名称
+          model: ${smart.enjoy.suiyuan.ai.dashscope.chat.model}
+          # 模型参数
+          temperature: ${smart.enjoy.suiyuan.ai.dashscope.chat.temperature}
+          top-p: ${smart.enjoy.suiyuan.ai.dashscope.chat.top-p}
+       # 向量模型配置
+      embedding:
+        options:
+          model: ${smart.enjoy.suiyuan.ai.embedding.options.model}
+    # 向量数据库配置
+    vectorstore:
+      redis:
+        initialize-schema: true
+        index-name: smart-learning-academy-index
+        prefix: vector-redis
+  # MySQL数据库配置
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: ${smart.enjoy.suiyuan.datasource.driver-class-name}
+    url: ${smart.enjoy.suiyuan.datasource.url}
+    username: ${smart.enjoy.suiyuan.datasource.username}
+    password: ${smart.enjoy.suiyuan.datasource.password}
+    druid:
+      # 初始化连接大小
+      initial-size: 10
+      # 最小空闲连接数
+      min-idle: 10
+      # 最大连接数
+      max-active: 200
+      # 配置获取连接等待超时的时间(毫秒)
+      max-wait: 30000
+      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+      time-between-eviction-runs-millis: 60000
+      # 配置一个连接在池中最小生存的时间，单位是毫秒
+      min-evictable-idle-time-millis: 300000
+      # 验证连接是否有效的SQL
+      validation-query: SELECT 1
+      # 开启监控统计功能：stat用于监控，wall用于防火墙防SQL注入
+      filters: stat,wall
+  data:
+    # Redis数据库配置
+    redis:
+      host: ${smart.enjoy.suiyuan.data.redis.host}
+      port: ${smart.enjoy.suiyuan.data.redis.port}
+      password: ${smart.enjoy.suiyuan.data.redis.password}
+      connect-timeout: 5000
+      lettuce:
+        pool:
+          enabled: true         # 启用连接池
+          max-active: 8         # 最大连接数
+          max-idle: 4           # 最大空闲连接
+          min-idle: 2           # 最小空闲连接
+          max-wait: 5000        # 获取连接最大等待时间
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml # 扫描mapper文件
+  type-aliases-package: com.shxy.suiyuanentity.entity # 扫描实体类
+  configuration:
+    map-underscore-to-camel-case: true # 开启驼峰命名
+# 日志配置
+logging:
+  config: classpath:logback-spring.xml
+# 腾讯云存储配置
+smart:
+  enjoy:
+    suiyuan:
+      tencent:
+        secret-id: ${smart.enjoy.suiyuan.tencent.cos.secret-id}
+        secret-key: ${smart.enjoy.suiyuan.tencent.cos.secret-key}
+        region: ${smart.enjoy.suiyuan.tencent.cos.region}
+        bucket-name: ${smart.enjoy.suiyuan.tencent.cos.bucket-name}
+        avatar-dir: ${smart.enjoy.suiyuan.tencent.cos.avatar-dir}
+        image-dir: ${smart.enjoy.suiyuan.tencent.cos.image-dir}
+
+# springdoc-openapi项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.xiaominfo.knife4j.demo.web
+# knife4j的增强配置，不需要增强可以不配
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
