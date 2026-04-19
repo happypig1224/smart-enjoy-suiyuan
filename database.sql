@@ -2,10 +2,10 @@
 -- 数据库初始化: 智享学堂 (Smart Learning Academy)
 -- 描述: 包含用户管理、资源共享、失物招领、社区互动及AI聊天功能的校园综合平台
 -- =====================================================
-CREATE DATABASE IF NOT EXISTS `smart_learning_academy`
+CREATE DATABASE IF NOT EXISTS `smart_enjoy_suiyuan`
     DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE `smart_learning_academy`;
+USE `smart_enjoy_suiyuan`;
 
 -- =====================================================
 -- 1. 用户表 (User Management)

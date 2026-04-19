@@ -30,7 +30,7 @@ spring:
     vectorstore:
       redis:
         initialize-schema: true
-        index-name: smart-learning-academy-index
+        index-name: smart-enjoy-suiyuan-index
         prefix: vector-redis
   # MySQL数据库配置
   datasource:

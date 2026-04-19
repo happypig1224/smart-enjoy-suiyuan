@@ -13,7 +13,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>smart-learning-academy</name>
-    <description>smart-learning-academy</description>
+    <description>smart-enjoy-suiyuan</description>
     <modules>
         <module>smart-enjoy-suiyuan-common</module>
         <module>smart-enjoy-suiyuan-entity</module>
