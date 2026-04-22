@@ -26,8 +26,8 @@ smart:
           secret-id: ${TENCENT_COS_SECRET_ID}
           secret-key: ${TENCENT_COS_SECRET_KEY}
           region: ap-guangzhou
-          bucket-name: smart_enjoy_suiyuan-1383957992
-          avatar-dir: smart_enjoy_suiyuan/
+          bucket-name: smart-enjoy-suiyuan-1383957992
+          avatar-dir: smart-enjoy-suiyuan/
           image-dir: images/
       jwt:
         # 加密使用的密钥(至少32字符)

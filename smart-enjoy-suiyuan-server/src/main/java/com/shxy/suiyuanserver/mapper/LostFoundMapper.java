@@ -3,6 +3,8 @@ package com.shxy.suiyuanserver.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shxy.suiyuanentity.dto.LostFoundDTO;
 import com.shxy.suiyuanentity.entity.LostFound;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 /**
 * @author huang qi long
@@ -15,6 +17,9 @@ public interface LostFoundMapper extends BaseMapper<LostFound> {
     Integer updateLostFound(LostFoundDTO lostFoundDTO);
 
     Integer updateLostFoundStatus(Long id, Integer status);
+
+    @Update("UPDATE lost_found SET view_count = view_count + 1 WHERE id = #{id}")
+    Integer incrementViewCount(@Param("id") Long id);
 }
 
 

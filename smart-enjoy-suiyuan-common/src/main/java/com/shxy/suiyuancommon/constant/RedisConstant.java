@@ -70,6 +70,11 @@ public class RedisConstant {
      * 帖子点赞数缓存：post:like:count:{postId}
      */
     public static final String POST_LIKE_COUNT_KEY_PREFIX = "post:like:count:";
+    
+    /**
+     * 帖子点赞锁：post:like:lock:{postId}
+     */
+    public static final String POST_LIKE_LOCK_KEY_PREFIX = "post:like:lock:";
 
     // ==================== 失物招领模块 ====================
     /**

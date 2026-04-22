@@ -82,19 +82,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * @return
      */
     public Result<Map<String, Object>> login(UserDTO userLoginRequestDTO) {
+        String username = userLoginRequestDTO.getUserName();
+        log.info("用户尝试登录: username={}", username);
+
         LambdaQueryWrapper<User> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(User::getUserName, userLoginRequestDTO.getUserName());
+        lambdaQueryWrapper.eq(User::getUserName, username);
         //User user = this.getOne(lambdaQueryWrapper);
         User user = userMapper.selectOne(lambdaQueryWrapper);
         if (user == null) {
+            log.warn("登录失败: 用户名不存在, username={}", username);
             throw new AccountNotFoundException();
         }
         if (!passwordEncoder.matches(userLoginRequestDTO.getUserPassword(), user.getUserPassword())) {
+            log.warn("登录失败: 密码错误, userId={}", user.getId());
             throw new PasswordErrorException();
         }
         if (user.getStatus() == 0) {
+            log.warn("登录失败: 账户已被锁定, userId={}", user.getId());
             throw new AccountLockedException();
         }
+        
+        log.info("用户登录验证通过: userId={}, username={}", user.getId(), username);
+        
         //生成对应的token令牌
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
@@ -108,14 +117,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         //登录成功token存入redis
         String tokenKey = USER_TOKEN_KEY_PREFIX + user.getId();
         redisTemplate.opsForValue().set(tokenKey, token, jwtProperties.getUserTtl(), TimeUnit.MILLISECONDS);
-
-        //登录成功将用户信息存入redis
-        String userInfoKey = USER_INFO_KEY_PREFIX + user.getId();
-        try {
-            redisTemplate.opsForValue().set(userInfoKey, objectMapper.writeValueAsString(userVO), jwtProperties.getUserTtl(), TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            log.error("用户信息序列化失败", e);
-        }
+        
+        log.info("用户登录成功: userId={}, username={}", user.getId(), username);
         return Result.success(data);
     }
 
@@ -189,6 +192,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return Result.success("验证码发送成功");
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> uploadAvatar(MultipartFile file) {
         Long userId = BaseContext.getCurrentUserId();
         
@@ -197,31 +201,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         RateLimitUtil.checkRateLimit(redisTemplate, rateLimitKey,
             RateLimitConstant.UPLOAD_TIME_WINDOW, RateLimitConstant.UPLOAD_MAX_REQUESTS);
         
-        log.info("用户{}上传头像", userId);
-        String avatarUrl = tencentCOSAvatarUtil.uploadAvatar(file);
-        return Result.success(avatarUrl);
+        log.info("用户{}开始上传头像, 文件名: {}, 文件大小: {} bytes", userId, file.getOriginalFilename(), file.getSize());
+        try {
+            String avatarUrl = tencentCOSAvatarUtil.uploadAvatar(file);
+            userMapper.updateAvatar(userId, avatarUrl);
+            // 缓存失效
+            redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
+            log.info("用户{}上传头像成功, 头像地址: {}", userId, avatarUrl);
+            return Result.success(avatarUrl);
+        } catch (Exception e) {
+            log.error("用户{}上传头像失败", userId, e);
+            return Result.fail("上传头像失败: " + e.getMessage());
+        }
     }
 
     public Result<String> resetPassword(UserDTO userResetPasswordDTO) {
         Long userId = BaseContext.getCurrentUserId();
-        log.info("用户{}开始重置密码, IP: {}", userId, getClientIp());
+        String phone = userResetPasswordDTO.getPhone();
+        log.info("用户{}开始重置密码, 手机号: {}, IP: {}", userId, phone, getClientIp());
 
-        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(userResetPasswordDTO.getPhone(), userResetPasswordDTO.getCode());
+        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(phone, userResetPasswordDTO.getCode());
         if (checked.getCode() != 200) {
-            log.warn("用户{}密码重置失败: 验证码错误", userId);
+            log.warn("用户{}密码重置失败: 验证码错误, 手机号: {}", userId, phone);
             return Result.fail("验证码错误!");
         }
 
         String newPassword = passwordEncoder.encode(userResetPasswordDTO.getNewPassword());
         int result = userMapper.updatePassword(userId, newPassword);
         if (result == 0) {
-            log.warn("用户{}密码重置失败: 数据库更新失败", userId);
+            log.warn("用户{}密码重置失败: 数据库更新失败, 手机号: {}", userId, phone);
             return Result.fail("修改密码失败!");
         }
 
         // 清除用户token,强制重新登录
         redisTemplate.delete(USER_TOKEN_KEY_PREFIX + userId);
-        log.info("用户{}密码重置成功, 已清除会话", userId);
+        log.info("用户{}密码重置成功, 已清除会话, 手机号: {}", userId, phone);
         return Result.success("修改密码成功!");
     }
 
@@ -261,7 +275,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         // 记录变更内容
         StringBuilder changes = new StringBuilder();
-        if (!oldNickName.equals(nickName)) {
+        if (!Objects.equals(oldNickName, nickName)) {
             changes.append(String.format("昵称[%s->%s] ", oldNickName, nickName));
         }
         if (!Objects.equals(oldGender, userGender)) {
@@ -274,7 +288,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             changes.append(String.format("年级[%s->%s] ", oldGrade, userGrade));
         }
 
-        log.info("用户{}修改信息成功: {}", userId, changes.toString());
+        log.info("用户{}修改信息成功: {}", userId, changes.toString().trim());
 
         // 清除用户信息缓存
         redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
@@ -307,7 +321,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public Result<UserVO> getUserInfo() {
         Long userId = BaseContext.getCurrentUserId();
         String cacheKey = USER_INFO_KEY_PREFIX + userId;
-        
+
+        log.info("用户{}开始获取信息", userId);
+
         // 使用工具类解决缓存穿透+击穿+雪崩
         UserVO userVO = redisCacheUtil.queryWithMutex(
                 cacheKey,
@@ -315,6 +331,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 key -> {
                     User user = userMapper.getUserInfo(userId);
                     if (user == null) {
+                        log.warn("用户{}信息不存在", userId);
                         return null;
                     }
                     UserVO vo = new UserVO();
@@ -326,8 +343,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         );
 
         if (userVO == null) {
+            log.warn("用户{}获取信息失败，用户不存在", userId);
             return Result.fail("用户不存在");
         }
+        log.info("用户{}获取信息成功", userId);
         return Result.success(userVO);
     }
 }

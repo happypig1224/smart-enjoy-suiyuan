@@ -5,6 +5,7 @@ import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.dto.LostFoundDTO;
 import com.shxy.suiyuanentity.entity.LostFound;
+import com.shxy.suiyuanentity.vo.LostFoundVO;
 
 import java.util.Map;
 
@@ -17,9 +18,9 @@ public interface LostFoundService extends IService<LostFound> {
 
     Result<LostFound> createLostFound(LostFoundDTO lostFoundDTO);
 
-    Result<PageResult> listLostFound(Integer page, Integer pageSize, String type, String status, String urgent);
+    Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent);
 
-    Result<LostFound> detailLostFound(Long id);
+    Result<LostFoundVO> detailLostFound(Long id);
 
     Result<String> deleteLostFound(Long id);
 

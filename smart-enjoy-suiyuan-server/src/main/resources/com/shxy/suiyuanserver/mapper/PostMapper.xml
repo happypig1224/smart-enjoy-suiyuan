@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -59,7 +59,7 @@
         WHERE p.id = #{postId}
     </select>
 
-    <select id="selectPostListWithUser" resultMap="PostVOResultMap">
+    <select id="selectPostListWithUser" parameterType="map" resultMap="PostVOResultMap">
         SELECT
         p.id as post_id,
         p.user_id,
@@ -81,16 +81,12 @@
                 AND p.type = #{type}
             </if>
         </where>
+        ORDER BY
         <choose>
-            <when test="orderBy == 'hottest'">
-                ORDER BY p.view_count DESC
-            </when>
-            <when test="orderBy == 'mostLiked'">
-                ORDER BY p.like_count DESC
-            </when>
-            <otherwise>
-                ORDER BY p.create_time DESC
-            </otherwise>
+            <when test="orderBy == 'hottest'">p.view_count DESC</when>
+            <when test="orderBy == 'mostLiked'">p.like_count DESC</when>
+            <when test="orderBy == 'newest'">p.create_time DESC</when>
+            <otherwise>p.create_time DESC</otherwise>
         </choose>
         LIMIT #{offset}, #{size}
     </select>
@@ -104,5 +100,19 @@
             </if>
         </where>
     </select>
+
+    <update id="incrementCommentCount">
+        UPDATE post 
+        SET comment_count = comment_count + 1, 
+            update_time = CURRENT_TIMESTAMP 
+        WHERE id = #{postId}
+    </update>
+
+    <update id="decrementCommentCount">
+        UPDATE post 
+        SET comment_count = GREATEST(comment_count - 1, 0), 
+            update_time = CURRENT_TIMESTAMP 
+        WHERE id = #{postId}
+    </update>
 
 </mapper>

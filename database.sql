@@ -130,22 +130,24 @@ CREATE TABLE comment
     content      TEXT   NOT NULL COMMENT '评论内容',
     post_id      BIGINT NULL COMMENT '关联帖子ID，回复帖子时使用',
     lost_item_id BIGINT NULL COMMENT '关联失物招领ID，回复招领时使用',
+    resource_id  BIGINT NULL COMMENT '关联资源ID，回复资源时使用',
     parent_id    BIGINT   DEFAULT 0 COMMENT '父级评论ID，用于实现二级回复',
     like_count   INT      DEFAULT 0 COMMENT '点赞数',
     status       TINYINT  DEFAULT 1 COMMENT '状态: 1-正常显示, -1-逻辑删除',
     create_time  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
     update_time  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted   TINYINT  DEFAULT 0 COMMENT '逻辑删除标记',
-    FOREIGN KEY (user_id) REFERENCES user (id),
-    FOREIGN KEY (post_id) REFERENCES post (id),
-    FOREIGN KEY (lost_item_id) REFERENCES lost_found (id),
     INDEX idx_user (user_id),
     INDEX idx_post (post_id),
     INDEX idx_lost_item (lost_item_id),
+    INDEX idx_resource (resource_id),
     INDEX idx_parent (parent_id),
     INDEX idx_create_time (create_time),
     INDEX idx_post_time (post_id, create_time),
-    INDEX idx_lost_time (lost_item_id, create_time)
+    -- 新增复合索引以优化查询性能
+    INDEX idx_comment_target_status (post_id, lost_item_id, resource_id, is_deleted, status),
+    INDEX idx_comment_order (is_deleted, status, create_time DESC),
+    INDEX idx_comment_hot (is_deleted, status, like_count DESC)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='评论回复表';

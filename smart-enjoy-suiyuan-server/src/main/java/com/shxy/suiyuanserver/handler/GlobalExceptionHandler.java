@@ -48,7 +48,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler
     public Result<Object> handleException(Exception e) {
-        log.error("未知异常：{}", e.getMessage());
+        log.error("未知异常：{}，异常类：{}", e.getMessage(), e.getClass().getName());
+        // 不返回具体的异常信息给前端，防止敏感信息泄露
         return Result.fail(MessageConstant.UNKNOWN_ERROR);
     }
 }

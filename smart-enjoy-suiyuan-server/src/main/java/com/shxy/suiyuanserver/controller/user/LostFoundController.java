@@ -4,6 +4,7 @@ import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.dto.LostFoundDTO;
 import com.shxy.suiyuanentity.entity.LostFound;
+import com.shxy.suiyuanentity.vo.LostFoundVO;
 import com.shxy.suiyuanserver.service.LostFoundService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +34,7 @@ public class LostFoundController {
     private LostFoundService lostFoundService;
 
 
-    @PostMapping("create")
+    @PostMapping("publish")
     @Operation(summary = "发布失物招领", description = "用户发布失物或招领信息")
     public Result<LostFound> createLostFound(@Valid @RequestBody LostFoundDTO lostFoundDTO) {
         return lostFoundService.createLostFound(lostFoundDTO);
@@ -43,20 +44,20 @@ public class LostFoundController {
     @Operation(summary = "获取失物招领列表", description = "分页获取失物招领信息，支持类型、状态和紧急程度筛选")
     public Result<PageResult> listLostFound(@RequestParam(value = "page", defaultValue = "1") @Min(1) Integer page,
                                             @RequestParam(value = "pageSize", defaultValue = "10") @Min(1) @Max(50) Integer pageSize,
-                                            @RequestParam(value = "type", required = false) String type,
-                                            @RequestParam(value = "status", required = false) String status,
-                                            @RequestParam(value = "urgent", defaultValue = "desc") String urgent) {
+                                            @RequestParam(value = "type", required = false) Integer type,
+                                            @RequestParam(value = "status", required = false) Integer status,
+                                            @RequestParam(value = "urgent",  required = false) Integer urgent) {
         return lostFoundService.listLostFound(page, pageSize, type, status, urgent);
     }
 
 
     @GetMapping("detail/{id}")
     @Operation(summary = "获取失物招领详情", description = "根据ID获取失物招领的详细信息")
-    public Result<LostFound> detailLostFound(@PathVariable("id") Long id) {
+    public Result<LostFoundVO> detailLostFound(@PathVariable("id") Long id) {
         return lostFoundService.detailLostFound(id);
     }
 
-    @DeleteMapping("delete/{id}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "删除失物招领", description = "删除指定的失物招领信息")
     public Result<String> deleteLostFound(@PathVariable("id") Long id) {
         return lostFoundService.deleteLostFound(id);

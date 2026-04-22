@@ -55,7 +55,10 @@ public class UserController {
 
     @PostMapping("/avatar/upload")
     @Operation(summary = "上传头像", description = "用户上传或更新个人头像")
-    public Result<String> uploadAvatar(@RequestParam("avatar") MultipartFile file) {
+    public Result<String> uploadAvatar(@RequestParam(value = "file", required = false) MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return Result.fail("请选择要上传的头像文件");
+        }
         return userService.uploadAvatar(file);
     }
 

@@ -9,7 +9,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shxy.suiyuancommon.constant.RedisConstant;
-import com.shxy.suiyuancommon.enums.PostTypeEnum;
 import com.shxy.suiyuancommon.exception.AccountExistsException;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.exception.FileUploadException;
@@ -19,23 +18,22 @@ import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
 import com.shxy.suiyuanentity.dto.LostFoundDTO;
 import com.shxy.suiyuanentity.entity.LostFound;
-import com.shxy.suiyuanentity.entity.Resource;
+import com.shxy.suiyuanentity.entity.User;
+import com.shxy.suiyuanentity.vo.LostFoundVO;
 import com.shxy.suiyuanserver.service.LostFoundService;
+import com.shxy.suiyuanserver.service.UserService;
 import com.shxy.suiyuanserver.mapper.LostFoundMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
-import static com.shxy.suiyuancommon.enums.PostTypeEnum.LOST;
+import java.util.stream.Collectors;
 
 /**
  * @author Wu, Hui Ming
@@ -48,22 +46,33 @@ import static com.shxy.suiyuancommon.enums.PostTypeEnum.LOST;
 public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound>
         implements LostFoundService {
 
-    @Autowired
-    private LostFoundMapper lostFoundMapper;
+    private final LostFoundMapper lostFoundMapper;
+    private final ObjectMapper objectMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisCacheUtil redisCacheUtil;
+    private final UserService userService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    public LostFoundServiceImpl(LostFoundMapper lostFoundMapper, 
+                               ObjectMapper objectMapper, 
+                               RedisTemplate<String, Object> redisTemplate, 
+                               RedisCacheUtil redisCacheUtil, 
+                               UserService userService) {
+        this.lostFoundMapper = lostFoundMapper;
+        this.objectMapper = objectMapper;
+        this.redisTemplate = redisTemplate;
+        this.redisCacheUtil = redisCacheUtil;
+        this.userService = userService;
+    }
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
-    @Autowired
-    private RedisCacheUtil redisCacheUtil;
-
-
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<LostFound> createLostFound(LostFoundDTO lostFoundDTO) {
         Long userId = BaseContext.getCurrentUserId();
+        if (userId == null || userId <= 0) {
+            throw new BaseException("用户ID不合法");
+        }
+
+        log.info("用户{}开始发布失物招领，类型：{}，标题：{}", userId, lostFoundDTO.getType(), lostFoundDTO.getTitle());
 
         LostFound lostFound = LostFound.builder()
                 .userId(userId)
@@ -74,7 +83,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 .location(lostFoundDTO.getLocation())
                 .phoneContact(lostFoundDTO.getPhoneContact())
                 .wechatContact(lostFoundDTO.getWechatContact())
-                .status(lostFoundDTO.getType() == 1 ? LOST.getCode() : PostTypeEnum.FOUND.getCode())
+                .status(0)
                 .viewCount(0)
                 .createTime(new Date())
                 .updateTime(new Date())
@@ -85,21 +94,23 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 String imagesJson = objectMapper.writeValueAsString(lostFoundDTO.getImages());
                 lostFound.setImages(imagesJson);
             } catch (JsonProcessingException e) {
+                log.error("图片JSON序列化失败", e);
                 throw new FileUploadException("图片上传失败");
             }
         }
 
         int count = lostFoundMapper.insert(lostFound);
-        if (count < 0) {
+        if (count <= 0) {
+            log.warn("失物招领创建失败，用户ID：{}", userId);
             return Result.fail("创建失物招领失败!");
         }
 
         clearLostFoundListCache();
-
+        log.info("失物招领创建成功，ID：{}，用户ID：{}", lostFound.getId(), userId);
         return Result.success(lostFound);
     }
 
-    public Result<PageResult> listLostFound(Integer page, Integer pageSize, String type, String status, String urgent) {
+    public Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent) {
         if (page == null || page < 1) page = 1;
         if (pageSize == null || pageSize < 1 || pageSize > 50) pageSize = 10;
         
@@ -108,9 +119,12 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         final int finalPageSize = pageSize;
         
         String cacheKey = RedisConstant.LOSTFOUND_LIST_KEY_PREFIX +
-                finalPage + ":" + finalPageSize + (type != null ? type : "all") + ":" +
-                (status != null ? status : "all") + ":" +
-                (urgent != null ? urgent : "all");
+                "page:" + finalPage + ":size:" + finalPageSize + 
+                ":type:" + (type != null ? type : "all") + 
+                ":status:" + (status != null ? status : "all") + 
+                ":urgent:" + (urgent != null ? urgent : "all");
+
+        log.info("查询失物招领列表，页码：{}，每页数量：{}，类型：{}，状态：{}，紧急程度：{}", finalPage, finalPageSize, type, status, urgent);
 
         // 使用工具类解决缓存雪崩(随机过期时间)
         PageResult pageResult = redisCacheUtil.queryWithPassThrough(
@@ -118,34 +132,23 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 PageResult.class,
                 key -> {
                     LambdaQueryWrapper<LostFound> queryWrapper = new LambdaQueryWrapper<>();
-                    if (type != null && !type.isEmpty()) {
-                        try {
-                            queryWrapper.eq(LostFound::getType, Integer.parseInt(type));
-                        } catch (NumberFormatException e) {
-                            throw new BaseException("类型参数格式错误");
-                        }
+                    if (type != null) {
+                        queryWrapper.eq(LostFound::getType, type);
                     }
-                    if (status != null && !status.isEmpty()) {
-                        try {
-                            queryWrapper.eq(LostFound::getStatus, Integer.parseInt(status));
-                        } catch (NumberFormatException e) {
-                            throw new BaseException("状态参数格式错误");
-                        }
+                    if (status != null) {
+                        queryWrapper.eq(LostFound::getStatus, status);
                     }
-                    if (urgent != null && !urgent.isEmpty()) {
-                        try {
-                            queryWrapper.eq(LostFound::getUrgent, Integer.parseInt(urgent));
-                        } catch (NumberFormatException e) {
-                            throw new BaseException("紧急程度参数格式错误");
-                        }
+                    if (urgent != null) {
+                        queryWrapper.eq(LostFound::getUrgent, urgent);
                     }
                     queryWrapper.orderByDesc(LostFound::getCreateTime);
                     Page<LostFound> pageInfo = new Page<>(finalPage, finalPageSize);
                     Page<LostFound> result = lostFoundMapper.selectPage(pageInfo, queryWrapper);
-                    List<Object> records = Arrays.asList(result.getRecords().toArray());
+                    
+                    List<LostFoundVO> voList = convertToVO(result.getRecords());
                     return PageResult.builder()
                             .total(result.getTotal())
-                            .records(records)
+                            .records(voList)
                             .page(result.getCurrent())
                             .size(result.getSize())
                             .build();
@@ -155,17 +158,24 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         );
 
         if (pageResult == null) {
+            log.warn("获取失物招领列表失败");
             return Result.fail("获取失物招领列表失败");
         }
+        log.info("获取失物招领列表成功，总数：{}", pageResult.getTotal());
         return Result.success(pageResult);
     }
 
-    public Result<LostFound> detailLostFound(Long id) {
+    public Result<LostFoundVO> detailLostFound(Long id) {
         if (id == null || id <= 0) {
+            log.warn("查询失物招领详情失败，ID不合法：{}", id);
             return Result.fail("ID不合法");
         }
+        
+        Long currentUserId = BaseContext.getCurrentUserId();
         String cacheKey = RedisConstant.LOSTFOUND_DETAIL_KEY_PREFIX + id;
         
+        log.info("用户{}开始查询失物招领详情，ID：{}", currentUserId, id);
+
         // 使用工具类解决缓存穿透+击穿
         LostFound lostFound = redisCacheUtil.queryWithMutex(
                 cacheKey,
@@ -176,9 +186,22 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         );
 
         if (lostFound == null) {
+            log.warn("失物招领不存在，ID：{}", id);
             return Result.fail("失物招领不存在");
         }
-        return Result.success(lostFound);
+        
+        // 异步增加浏览量，避免影响主要流程
+        CompletableFuture.runAsync(() -> {
+            try {
+                lostFoundMapper.incrementViewCount(id);
+            } catch (Exception e) {
+                log.error("异步更新浏览量失败，ID：{}", id, e);
+            }
+        });
+        
+        LostFoundVO vo = convertToVO(Collections.singletonList(lostFound)).get(0);
+        log.info("失物招领详情查询成功，ID：{}，浏览量：{}", id, lostFound.getViewCount());
+        return Result.success(vo);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -200,29 +223,56 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         if (!lostFound.getUserId().equals(userId)) {
             throw new BaseException("只能删除自己发布的失物");
         }
-        Integer count = lostFoundMapper.delete(new LambdaQueryWrapper<>(LostFound.class).eq(LostFound::getId, id));
-        if (count < 0) {
+        
+        Integer count = lostFoundMapper.deleteById(id);
+        if (count <= 0) {
+            log.warn("失物删除失败，ID：{}，用户ID：{}", id, userId);
             return Result.fail("删除失败!");
         }
+        
         String detailKey = RedisConstant.LOSTFOUND_DETAIL_KEY_PREFIX + id;
         redisTemplate.delete(detailKey);
         clearLostFoundListCache();
+        log.info("失物删除成功，ID：{}，用户ID：{}", id, userId);
         return Result.success("删除成功!");
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> updateLostFound(LostFoundDTO lostFoundDTO) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null || userId <= 0) {
+            throw new BaseException("用户ID不合法");
+        }
+        
+        if (lostFoundDTO.getId() == null || lostFoundDTO.getId() <= 0) {
+            throw new BaseException("失物ID不合法");
+        }
+        
+        LostFound existingLostFound = lostFoundMapper.selectById(lostFoundDTO.getId());
+        if (existingLostFound == null) {
+            throw new BaseException("失物不存在");
+        }
+        
+        if (!existingLostFound.getUserId().equals(userId)) {
+            throw new BaseException("只能修改自己发布的失物");
+        }
+        
         Integer count = lostFoundMapper.updateLostFound(lostFoundDTO);
-        if (count < 0) {
+        if (count <= 0) {
+            log.warn("失物修改失败，ID：{}，用户ID：{}", lostFoundDTO.getId(), userId);
             return Result.fail("修改失败!");
         }
+        
         if (lostFoundDTO.getId() != null) {
             String detailKey = RedisConstant.LOSTFOUND_DETAIL_KEY_PREFIX + lostFoundDTO.getId();
             redisTemplate.delete(detailKey);
         }
         clearLostFoundListCache();
+        log.info("失物修改成功，ID：{}，用户ID：{}", lostFoundDTO.getId(), userId);
         return Result.success("修改成功!");
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> updateLostFoundStatus(Long id, Integer status) {
         Integer count = lostFoundMapper.updateLostFoundStatus(id, status);
         if (count < 0) {
@@ -235,8 +285,87 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
     }
 
     private void clearLostFoundListCache() {
-        redisTemplate.delete(RedisConstant.LOSTFOUND_LIST_KEY_PREFIX + "*");
-        log.info("清除失物招领列表缓存");
+        Set<String> keys = redisTemplate.keys(RedisConstant.LOSTFOUND_LIST_KEY_PREFIX + "*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+        log.info("清除失物招领列表缓存, 删除 {} 个key", keys != null ? keys.size() : 0);
+    }
+
+    /**
+     * 将 LostFound 转换为 LostFoundVO
+     */
+    private List<LostFoundVO> convertToVO(List<LostFound> lostFounds) {
+        if (lostFounds == null || lostFounds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 批量查询用户信息
+        List<Long> userIds = lostFounds.stream()
+                .map(LostFound::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, User> userMap = userService.listByIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (k1, k2) -> k1));
+
+        // 转换为 VO
+        return lostFounds.stream().map(lostFound -> {
+            LostFoundVO vo = LostFoundVO.builder()
+                    .id(lostFound.getId())
+                    .userId(lostFound.getUserId())
+                    .type(lostFound.getType())
+                    .status(lostFound.getStatus())
+                    .title(lostFound.getTitle())
+                    .description(lostFound.getDescription())
+                    .urgent(lostFound.getUrgent())
+                    .location(lostFound.getLocation())
+                    .phoneContact(lostFound.getPhoneContact())
+                    .wechatContact(lostFound.getWechatContact())
+                    .viewCount(lostFound.getViewCount())
+                    .createTime(lostFound.getCreateTime())
+                    .updateTime(lostFound.getUpdateTime())
+                    .build();
+
+            // 设置类型名称和状态名称
+            if (Integer.valueOf(0).equals(lostFound.getType())) {
+                vo.setTypeName("寻物启事");
+            } else {
+                vo.setTypeName("招领启事");
+            }
+            
+            if (Integer.valueOf(0).equals(lostFound.getStatus())) {
+                vo.setStatusName("进行中");
+            } else {
+                vo.setStatusName("已完成");
+            }
+
+            // 解析图片JSON
+            if (lostFound.getImages() instanceof String) {
+                try {
+                    List<String> images = objectMapper.readValue(
+                            (String) lostFound.getImages(), 
+                            new TypeReference<List<String>>() {}
+                    );
+                    vo.setImages(images);
+                } catch (JsonProcessingException e) {
+                    log.warn("图片JSON解析失败，ID：{}", lostFound.getId());
+                    vo.setImages(Collections.emptyList());
+                }
+            } else if (lostFound.getImages() instanceof List) {
+                vo.setImages((List<String>) lostFound.getImages());
+            }
+
+            // 设置用户信息
+            User user = userMap.get(lostFound.getUserId());
+            if (user != null) {
+                vo.setUserNickName(user.getNickName());
+                vo.setUserAvatar(user.getAvatar());
+            }
+
+            return vo;
+        }).collect(Collectors.toList());
     }
 
 }

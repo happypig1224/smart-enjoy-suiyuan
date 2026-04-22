@@ -66,7 +66,7 @@ public class Post {
     /**
      * 配图列表，存储URL数组
      */
-    private Object images;
+    private String images;
 
     /**
      * 发布时间

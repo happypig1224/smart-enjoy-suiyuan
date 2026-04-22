@@ -48,6 +48,11 @@ public class Comment {
     private Long lostItemId;
 
     /**
+     * 关联资源ID，回复资源时使用
+     */
+    private Long resourceId;
+
+    /**
      * 父级评论ID，用于实现二级回复
      */
     private Long parentId;

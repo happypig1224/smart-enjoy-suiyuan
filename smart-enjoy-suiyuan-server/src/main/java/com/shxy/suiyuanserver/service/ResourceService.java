@@ -26,7 +26,7 @@ public interface ResourceService extends IService<Resource> {
      * @param order 排序方式
      * @return 分页结果
      */
-    Result<PageResult> queryList(Integer page, Integer pageSize, String type, String sort, String order);
+    Result<PageResult> queryList(Integer page, Integer pageSize, String type, String sort);
 
     /**
      * 上传资源
@@ -75,4 +75,11 @@ public interface ResourceService extends IService<Resource> {
      * @return 资源详情
      */
     Result<ResourceVO> getResourceDetail(Long id, Long userId);
+
+    /**
+     * 上传图片（通用）
+     * @param file 图片文件
+     * @return 图片URL
+     */
+    String uploadImage(MultipartFile file);
 }

@@ -19,13 +19,27 @@ public class WebMVCConfig implements WebMvcConfigurer {
     private LoginAdminInterceptor loginAdminInterceptor;
     @Autowired
     private LoginUserInterceptor loginUserInterceptor;
+    
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-            registry.addInterceptor(loginAdminInterceptor)
-                    .addPathPatterns("/api/admin/**")
-                    .excludePathPatterns("/api/admin/login","/api/admin/register");
-            registry.addInterceptor(loginUserInterceptor)
-                    .addPathPatterns("/user/**")
-                    .excludePathPatterns("/user/user/login","/user/user/register","/user/user/captcha/send");
+        registry.addInterceptor(loginAdminInterceptor)
+                .addPathPatterns("/api/admin/**")
+                .excludePathPatterns("/api/admin/login", "/api/admin/register");
+                
+        registry.addInterceptor(loginUserInterceptor)
+                .addPathPatterns("/user/**")
+                .excludePathPatterns(
+                    "/user/user/login", 
+                    "/user/user/register", 
+                    "/user/user/captcha/send",
+                    // 论坛公共接口
+                    "/user/forum/post/list",
+                    "/user/forum/post/detail/**",
+                    "/user/forum/comment/list",
+                    // 资源公共接口
+                    "/user/resource/list",
+                    "/user/resource/{id}",
+                    "/user/resource/detail/**"
+                );
     }
 }

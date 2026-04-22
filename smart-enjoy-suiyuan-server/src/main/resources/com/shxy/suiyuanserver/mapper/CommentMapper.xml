@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -10,6 +10,7 @@
         <result property="content" column="content" />
         <result property="postId" column="post_id" />
         <result property="lostItemId" column="lost_item_id" />
+        <result property="resourceId" column="resource_id" />
         <result property="parentId" column="parent_id" />
         <result property="likeCount" column="like_count" />
         <result property="status" column="status" />
@@ -26,13 +27,14 @@
         <result property="content" column="content" />
         <result property="postId" column="post_id" />
         <result property="lostItemId" column="lost_item_id" />
+        <result property="resourceId" column="resource_id" />
         <result property="parentId" column="parent_id" />
         <result property="likeCount" column="like_count" />
         <result property="createTime" column="create_time" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,content,post_id,lost_item_id,parent_id,
+        id,user_id,content,post_id,lost_item_id,resource_id,parent_id,
         like_count,status,create_time,update_time,is_deleted
     </sql>
 
@@ -47,6 +49,7 @@
         c.content,
         c.post_id,
         c.lost_item_id,
+        c.resource_id,
         c.parent_id,
         c.like_count,
         c.create_time,
@@ -62,6 +65,9 @@
             </if>
             <if test="lostItemId != null">
                 AND c.lost_item_id = #{lostItemId}
+            </if>
+            <if test="resourceId != null">
+                AND c.resource_id = #{resourceId}
             </if>
         </where>
         <choose>
@@ -86,6 +92,9 @@
             </if>
             <if test="lostItemId != null">
                 AND lost_item_id = #{lostItemId}
+            </if>
+            <if test="resourceId != null">
+                AND resource_id = #{resourceId}
             </if>
         </where>
     </select>

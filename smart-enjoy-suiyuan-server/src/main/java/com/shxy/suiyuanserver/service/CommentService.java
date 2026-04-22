@@ -19,5 +19,5 @@ public interface CommentService extends IService<Comment> {
 
     Result<String> deleteComment(Long id);
 
-    Result<PageResult> listComment(Integer page, Integer size, String sort, Long postId, Long lostItemId);
+    Result<PageResult> listComment(Integer page, Integer size, String sort, Long postId, Long lostItemId, Long resourceId);
 }

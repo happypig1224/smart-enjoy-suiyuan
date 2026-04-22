@@ -105,10 +105,8 @@ public class LoginUserInterceptor implements HandlerInterceptor {
             log.warn("token解析失败: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token无效或者已经过期")));
+            response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token无效或者过期")));
             return false;
-        } finally {
-            BaseContext.remove();
         }
         return true;
     }
@@ -120,7 +118,6 @@ public class LoginUserInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        // 移除线程变量
         BaseContext.remove();
     }
 }

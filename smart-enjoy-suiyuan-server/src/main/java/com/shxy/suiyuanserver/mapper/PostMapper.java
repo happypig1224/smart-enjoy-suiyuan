@@ -22,6 +22,16 @@ public interface PostMapper extends BaseMapper<Post> {
                                         @Param("orderBy") String orderBy);
 
     Long selectPostCount(@Param("type") Integer type);
+    
+    /**
+     * 增加帖子评论数
+     */
+    int incrementCommentCount(@Param("postId") Long postId);
+    
+    /**
+     * 减少帖子评论数，确保不低于0
+     */
+    int decrementCommentCount(@Param("postId") Long postId);
 }
 
 

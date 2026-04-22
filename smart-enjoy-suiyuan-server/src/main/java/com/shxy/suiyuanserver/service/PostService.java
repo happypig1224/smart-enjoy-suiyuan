@@ -24,4 +24,6 @@ public interface PostService extends IService<Post> {
     Result<PostVO> getPostDetail(Long id);
 
     Result<Post> likePost(Long id);
+
+    Result<Post> cancelLikePost(Long id);
 }

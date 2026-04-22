@@ -35,6 +35,9 @@ public class CommentVO {
     
     @Schema(description = "失物ID")
     private Long lostItemId;
+
+    @Schema(description = "资源ID")
+    private Long resourceId;
     
     @Schema(description = "父评论ID")
     private Long parentId;
@@ -44,4 +47,7 @@ public class CommentVO {
     
     @Schema(description = "创建时间")
     private Date createTime;
+
+    @Schema(description = "是否是当前用户的评论")
+    private Boolean isOwner;
 }

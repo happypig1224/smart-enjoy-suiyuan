@@ -1,5 +1,6 @@
 package com.shxy.suiyuanentity.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CommentCreateDTO {
 
+    @Min(value = 1, message = "父评论ID必须大于0")
     private Long parentId;
     
     @NotBlank(message = "评论内容不能为空")
@@ -22,7 +24,12 @@ public class CommentCreateDTO {
 
     private Integer type;
 
+    @Min(value = 1, message = "帖子ID必须大于0")
     private Long postId;
 
+    @Min(value = 1, message = "失物招领ID必须大于0")
     private Long lostItemId;
+
+    @Min(value = 1, message = "资源ID必须大于0")
+    private Long resourceId;
 }

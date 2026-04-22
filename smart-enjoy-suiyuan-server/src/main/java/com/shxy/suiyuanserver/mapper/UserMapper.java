@@ -21,6 +21,10 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Select("select * from user where id = #{userId}")
     User getUserInfo(Long userId);
+
+    @Update("update user set avatar = #{avatarUrl} where id = #{userId}")
+    void updateAvatar(Long userId, String avatarUrl);
+
 }
 
 
