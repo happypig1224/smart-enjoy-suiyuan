@@ -2,9 +2,8 @@ package com.shxy.suiyuanserver;
 
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
-import com.shxy.suiyuanentity.dto.ResourceCreateDTO;
+import com.shxy.suiyuanentity.dto.ResourceDTO;
 import com.shxy.suiyuanentity.entity.Resource;
-import com.shxy.suiyuanentity.entity.ResourceFavorite;
 import com.shxy.suiyuanentity.vo.ResourceVO;
 import com.shxy.suiyuanserver.mapper.ResourceFavoriteMapper;
 import com.shxy.suiyuanserver.mapper.ResourceMapper;
@@ -182,7 +181,7 @@ public class ResourceServiceTest {
                 "test content".getBytes()
         );
         
-        ResourceCreateDTO dto = ResourceCreateDTO.builder()
+        ResourceDTO dto = ResourceDTO.builder()
                 .type("pdf")
                 .subject(1)
                 .description("测试资源")

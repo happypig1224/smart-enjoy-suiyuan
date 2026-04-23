@@ -14,7 +14,7 @@ import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuancommon.utils.RateLimitUtil;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
 import com.shxy.suiyuancommon.utils.TencentCOSAvatarUtil;
-import com.shxy.suiyuanentity.dto.ResourceCreateDTO;
+import com.shxy.suiyuanentity.dto.ResourceDTO;
 import com.shxy.suiyuanentity.entity.Resource;
 import com.shxy.suiyuanentity.entity.User;
 import com.shxy.suiyuanentity.vo.ResourceVO;
@@ -24,7 +24,6 @@ import com.shxy.suiyuanserver.service.ResourceService;
 import com.shxy.suiyuanserver.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
@@ -32,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -92,10 +90,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
     }
 
     public Result<PageResult> queryList(Integer page, Integer pageSize, String type, String sort) {
-        // 对参数进行清理和验证，防止缓存污染
         String cleanType = type != null ? type.replaceAll("[^a-zA-Z0-9_-]", "") : "all";
         String cleanSort = sort != null ? sort.replaceAll("[^a-zA-Z0-9_-]", "") : "newest";
-        
+
         // 验证参数的有效性
         if (!isValidSort(cleanSort)) {
             cleanSort = "newest";
@@ -154,7 +151,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public Result<Long> uploadResource(MultipartFile file, ResourceCreateDTO resourceCreateDTO) {
+    public Result<Long> uploadResource(MultipartFile file, ResourceDTO resourceDTO) {
         Long userId = BaseContext.getCurrentUserId();
         
         if (userId == null || userId <= 0) {
@@ -165,7 +162,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             throw new BaseException("上传文件不能为空");
         }
 
-        if (resourceCreateDTO == null || resourceCreateDTO.getType() == null) {
+        if (resourceDTO == null || resourceDTO.getType() == null) {
             throw new BaseException("资源类型不能为空");
         }
 
@@ -184,12 +181,12 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
         Resource resource = Resource.builder()
                 .userId(userId)
-                .type(resourceCreateDTO.getType())
-                .subject(resourceCreateDTO.getSubject())
+                .type(resourceDTO.getType())
+                .subject(resourceDTO.getSubject())
                 .resourceUrl(resourceUrl)
                 .fileName(sanitizedFileName)
                 .fileSize(file.getSize())
-                .description(resourceCreateDTO.getDescription())
+                .description(resourceDTO.getDescription())
                 .downloadCount(0)
                 .createTime(new Date())
                 .updateTime(new Date())

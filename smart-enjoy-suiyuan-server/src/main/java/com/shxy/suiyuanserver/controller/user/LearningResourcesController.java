@@ -3,11 +3,10 @@ package com.shxy.suiyuanserver.controller.user;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
-import com.shxy.suiyuanentity.dto.ResourceCreateDTO;
+import com.shxy.suiyuanentity.dto.ResourceDTO;
 import com.shxy.suiyuanentity.vo.ResourceVO;
 import com.shxy.suiyuanserver.service.ResourceService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -56,22 +55,22 @@ public class LearningResourcesController {
     @Operation(summary = "学习资源列表", description = "分页获取学习资源列表，支持类型筛选和排序")
     public Result<PageResult> list(@RequestParam(value = "page", defaultValue = "1") @Min(value = 1, message = "页码最小值为1") Integer page,
                                    @RequestParam(value = "pageSize", defaultValue = "10") @Min(value = 1, message = "每页数量最小值为1") @Max(value = 50, message = "每页数量最大值为50") Integer pageSize,
-                                   @RequestParam(value = "type", required = false) @Pattern(regexp = "^(pdf|doc|docx|txt|md|image|all)?$", message = "类型参数格式不正确") String type,
-                                   @RequestParam(value = "sort", required = false) @Pattern(regexp = "^(newest|hottest)?$", message = "排序参数格式不正确") String sort) {
+                                   @RequestParam(value = "type", required = false)  String type,
+                                   @RequestParam(value = "sort", required = false)  String sort) {
         return resourceService.queryList(page, pageSize, type, sort);
     }
 
     /**
      * 文件上传接口
      * @param file 文件
-     * @param resourceCreateDTO 资源创建信息
+     * @param resourceDTO 资源创建信息
      * @return 资源 ID
      */
     @PostMapping("/upload")
     @Operation(summary = "上传学习资源", description = "用户上传学习资源文件及元数据")
     public Result<Long> upload(@RequestParam("file") @NotNull(message = "上传文件不能为空") MultipartFile file,
-                               @Valid ResourceCreateDTO resourceCreateDTO) {
-        return resourceService.uploadResource(file, resourceCreateDTO);
+                               @Valid ResourceDTO resourceDTO) {
+        return resourceService.uploadResource(file, resourceDTO);
     }
 
     /**

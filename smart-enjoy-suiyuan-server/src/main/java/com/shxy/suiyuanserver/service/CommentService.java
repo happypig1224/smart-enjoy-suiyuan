@@ -3,10 +3,8 @@ package com.shxy.suiyuanserver.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
-import com.shxy.suiyuanentity.dto.CommentCreateDTO;
+import com.shxy.suiyuanentity.dto.CommentDTO;
 import com.shxy.suiyuanentity.entity.Comment;
-
-import java.util.Map;
 
 /**
 * @author huang qi long
@@ -15,7 +13,7 @@ import java.util.Map;
 */
 public interface CommentService extends IService<Comment> {
 
-    Result<Comment> publishComment(CommentCreateDTO commentCreateDTO);
+    Result<Comment> publishComment(CommentDTO commentDTO);
 
     Result<String> deleteComment(Long id);
 

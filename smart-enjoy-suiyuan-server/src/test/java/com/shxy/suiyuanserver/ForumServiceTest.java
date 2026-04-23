@@ -1,19 +1,9 @@
 package com.shxy.suiyuanserver;
 
-import com.shxy.suiyuancommon.result.PageResult;
-import com.shxy.suiyuancommon.result.Result;
-import com.shxy.suiyuanentity.dto.PostCreateDTO;
-import com.shxy.suiyuanentity.entity.Post;
-import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.service.PostService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.util.Arrays;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Slf4j

@@ -3,11 +3,9 @@ package com.shxy.suiyuanserver.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
-import com.shxy.suiyuanentity.dto.PostCreateDTO;
+import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.vo.PostVO;
-
-import java.util.Map;
 
 /**
 * @author huang qi long
@@ -19,7 +17,7 @@ public interface PostService extends IService<Post> {
 
     Result<PageResult> listPost(Integer page, Integer size, String sort, Integer type);
 
-    Result<Post> publishPost(PostCreateDTO postCreateDTO);
+    Result<Post> publishPost(PostDTO postDTO);
 
     Result<PostVO> getPostDetail(Long id);
 

@@ -1,26 +1,20 @@
 package com.shxy.suiyuanserver.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
-import com.shxy.suiyuancommon.utils.InputSanitizerUtil;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
-import com.shxy.suiyuancommon.utils.SensitiveWordFilter;
-import com.shxy.suiyuanentity.dto.CommentCreateDTO;
+import com.shxy.suiyuanentity.dto.CommentDTO;
 import com.shxy.suiyuanentity.entity.Comment;
-import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.vo.CommentVO;
 import com.shxy.suiyuanserver.service.CommentService;
 import com.shxy.suiyuanserver.mapper.CommentMapper;
 import com.shxy.suiyuanserver.mapper.PostMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
@@ -40,36 +34,30 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
     private final PostMapper postMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final RedisCacheUtil redisCacheUtil;
-    private final SensitiveWordFilter sensitiveWordFilter;
 
-    public CommentServiceImpl(CommentMapper commentMapper, 
-                             PostMapper postMapper, 
-                             RedisTemplate<String, Object> redisTemplate, 
-                             RedisCacheUtil redisCacheUtil,
-                             SensitiveWordFilter sensitiveWordFilter) {
+    public CommentServiceImpl(CommentMapper commentMapper, PostMapper postMapper, RedisTemplate<String, Object> redisTemplate, RedisCacheUtil redisCacheUtil) {
         this.commentMapper = commentMapper;
         this.postMapper = postMapper;
         this.redisTemplate = redisTemplate;
         this.redisCacheUtil = redisCacheUtil;
-        this.sensitiveWordFilter = sensitiveWordFilter;
     }
 
     @Override
-    public Result<Comment> publishComment(CommentCreateDTO commentCreateDTO) {
+    public Result<Comment> publishComment(CommentDTO commentDTO) {
         Long userId = BaseContext.getCurrentUserId();
 
-        if (commentCreateDTO == null) {
+        if (commentDTO == null) {
             throw new BaseException("评论信息不能为空");
         }
-        if (commentCreateDTO.getContent() == null || commentCreateDTO.getContent().trim().isEmpty()) {
+        if (commentDTO.getContent() == null || commentDTO.getContent().trim().isEmpty()) {
             throw new BaseException("评论内容不能为空");
         }
-        if (commentCreateDTO.getPostId() == null && commentCreateDTO.getLostItemId() == null && commentCreateDTO.getResourceId() == null) {
+        if (commentDTO.getPostId() == null && commentDTO.getLostItemId() == null && commentDTO.getResourceId() == null) {
             throw new BaseException("帖子ID、失物招领ID或资源ID至少提供一个");
         }
         
         // 验证评论内容长度
-        if (commentCreateDTO.getContent().length() > 1000) {
+        if (commentDTO.getContent().length() > 1000) {
             throw new BaseException("评论内容长度不能超过1000个字符");
         }
         
@@ -77,25 +65,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         if (!checkCommentRateLimit(userId)) {
             return Result.fail("评论频率过高，请稍后再试");
         }
-        
-        // 净化输入内容，防止XSS攻击
-        String content = InputSanitizerUtil.sanitizeHtml(commentCreateDTO.getContent());
-        
-        // 检查敏感词
-        if (sensitiveWordFilter.containsSensitiveWords(content)) {
-            return Result.fail("评论内容包含敏感词汇，请修改后重新提交");
-        }
-        
-        // 过滤敏感词（如果需要）
-        content = sensitiveWordFilter.filterSensitiveWords(content);
+
         
         Comment comment = Comment.builder()
                 .userId(userId)
-                .content(content)
-                .postId(commentCreateDTO.getPostId())
-                .lostItemId(commentCreateDTO.getLostItemId())
-                .resourceId(commentCreateDTO.getResourceId())
-                .parentId(commentCreateDTO.getParentId())
+                .content(commentDTO.getContent())
+                .postId(commentDTO.getPostId())
+                .lostItemId(commentDTO.getLostItemId())
+                .resourceId(commentDTO.getResourceId())
+                .parentId(commentDTO.getParentId())
                 .likeCount(0)
                 .status(1)
                 .createTime(new Date())
@@ -108,11 +86,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             return Result.fail("发布评论失败");
         }
 
-        if (commentCreateDTO.getPostId() != null) {
-            postMapper.incrementCommentCount(commentCreateDTO.getPostId());
+        if (commentDTO.getPostId() != null) {
+            postMapper.incrementCommentCount(commentDTO.getPostId());
         }
 
-        clearCommentListCache(commentCreateDTO.getPostId(), commentCreateDTO.getLostItemId(), commentCreateDTO.getResourceId());
+        clearCommentListCache(commentDTO.getPostId(), commentDTO.getLostItemId(), commentDTO.getResourceId());
 
         return Result.success(comment);
     }

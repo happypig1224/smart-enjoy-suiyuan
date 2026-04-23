@@ -10,7 +10,7 @@ import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
-import com.shxy.suiyuanentity.dto.PostCreateDTO;
+import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.service.PostService;
@@ -97,15 +97,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public Result<Post> publishPost(PostCreateDTO postCreateDTO) {
+    public Result<Post> publishPost(PostDTO postDTO) {
         // 验证输入数据
-        validatePostData(postCreateDTO);
+        validatePostData(postDTO);
         
         Long currentUserId = BaseContext.getCurrentUserId();
         String imagesJson = null;
-        if (postCreateDTO.getImages() != null && !postCreateDTO.getImages().isEmpty()) {
+        if (postDTO.getImages() != null && !postDTO.getImages().isEmpty()) {
             try {
-                imagesJson = objectMapper.writeValueAsString(postCreateDTO.getImages());
+                imagesJson = objectMapper.writeValueAsString(postDTO.getImages());
             } catch (JsonProcessingException e) {
                 log.error("图片列表序列化失败", e);
                 throw new BaseException("图片数据格式错误");
@@ -114,9 +114,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
 
         Post post = Post.builder()
                 .userId(currentUserId)
-                .title(postCreateDTO.getTitle())
-                .content(postCreateDTO.getContent())
-                .type(postCreateDTO.getType())
+                .title(postDTO.getTitle())
+                .content(postDTO.getContent())
+                .type(postDTO.getType())
                 .likeCount(0)
                 .commentCount(0)
                 .viewCount(0)
@@ -138,24 +138,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     /**
      * 验证帖子数据的有效性
      */
-    private void validatePostData(PostCreateDTO postCreateDTO) {
-        if (postCreateDTO.getTitle() == null || postCreateDTO.getTitle().trim().length() == 0) {
+    private void validatePostData(PostDTO postDTO) {
+        if (postDTO.getTitle() == null || postDTO.getTitle().trim().length() == 0) {
             throw new BaseException("帖子标题不能为空");
         }
-        if (postCreateDTO.getTitle().length() > 100) {
+        if (postDTO.getTitle().length() > 100) {
             throw new BaseException("帖子标题长度不能超过100个字符");
         }
-        if (postCreateDTO.getContent() == null || postCreateDTO.getContent().trim().length() == 0) {
+        if (postDTO.getContent() == null || postDTO.getContent().trim().length() == 0) {
             throw new BaseException("帖子内容不能为空");
         }
-        if (postCreateDTO.getContent().length() > 5000) {
+        if (postDTO.getContent().length() > 5000) {
             throw new BaseException("帖子内容长度不能超过5000个字符");
         }
-        if (postCreateDTO.getImages() != null && postCreateDTO.getImages().size() > 10) {
+        if (postDTO.getImages() != null && postDTO.getImages().size() > 10) {
             throw new BaseException("最多只能上传10张图片");
         }
         // 验证类型是否在有效范围内
-        if (postCreateDTO.getType() != null && (postCreateDTO.getType() < 1 || postCreateDTO.getType() > 10)) {
+        if (postDTO.getType() != null && (postDTO.getType() < 1 || postDTO.getType() > 10)) {
             throw new BaseException("帖子类型不合法");
         }
     }

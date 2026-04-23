@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "帖子创建数据传输对象")
-public class PostCreateDTO {
+public class PostDTO {
     
     @NotBlank(message = "帖子标题不能为空")
     @Size(min = 1, max = 100, message = "帖子标题长度必须在1-100个字符之间")

@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_TOKEN_KEY_PREFIX;
 
 /**
- * @author huang qi long
+ * @author Wu, Hui Ming
  * @version 1.0
  * @School Suihua University
  * @since 2026/4/7 12:47

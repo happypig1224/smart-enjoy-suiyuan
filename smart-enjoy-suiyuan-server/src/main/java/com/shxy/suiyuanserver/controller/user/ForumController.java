@@ -3,8 +3,8 @@ package com.shxy.suiyuanserver.controller.user;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
-import com.shxy.suiyuanentity.dto.CommentCreateDTO;
-import com.shxy.suiyuanentity.dto.PostCreateDTO;
+import com.shxy.suiyuanentity.dto.CommentDTO;
+import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.entity.Comment;
 import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.vo.PostVO;
@@ -17,10 +17,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * @author huang qi long
@@ -58,14 +55,13 @@ public class ForumController {
     }
 
     @PostMapping("post/publish")
-    @PreAuthorize("hasRole('USER')")
     @Operation(summary = "发布帖子", description = "用户发布新的论坛帖子")
-    public Result<Post> publishPost(@Valid @RequestBody PostCreateDTO postCreateDTO) {
+    public Result<Post> publishPost(@Valid @RequestBody PostDTO postDTO) {
         // 验证用户是否已登录
         if (BaseContext.getCurrentUserId() == null) {
             return Result.fail("用户未登录");
         }
-        return postService.publishPost(postCreateDTO);
+        return postService.publishPost(postDTO);
     }
 
     @GetMapping("post/detail/{id}")
@@ -78,7 +74,6 @@ public class ForumController {
     }
 
     @PostMapping("post/like/{id}")
-    @PreAuthorize("hasRole('USER')")
     @Operation(summary = "点赞帖子", description = "用户对帖子进行点赞操作")
     public Result<Post> likePost(@PathVariable @NotNull Long id) {
         if (id <= 0) {
@@ -91,7 +86,6 @@ public class ForumController {
     }
 
     @DeleteMapping("post/like/{id}")
-    @PreAuthorize("hasRole('USER')")
     @Operation(summary = "取消点赞", description = "用户取消对帖子的点赞")
     public Result<Post> cancelLikePost(@PathVariable @NotNull Long id) {
         if (id <= 0) {
@@ -104,13 +98,12 @@ public class ForumController {
     }
 
     @PostMapping("comment/publish")
-    @PreAuthorize("hasRole('USER')")
     @Operation(summary = "发布评论", description = "用户对帖子或失物招领发布评论")
-    public Result<Comment> publishComment(@Valid @RequestBody CommentCreateDTO commentCreateDTO) {
+    public Result<Comment> publishComment(@Valid @RequestBody CommentDTO commentDTO) {
         if (BaseContext.getCurrentUserId() == null) {
             return Result.fail("用户未登录");
         }
-        return commentService.publishComment(commentCreateDTO);
+        return commentService.publishComment(commentDTO);
     }
 
     @GetMapping("comment/list")
@@ -132,7 +125,6 @@ public class ForumController {
 
 
     @DeleteMapping("comment/delete/{id}")
-    @PreAuthorize("hasRole('USER')")
     @Operation(summary = "删除评论", description = "删除指定的评论")
     public Result<String> deleteComment(@PathVariable @NotNull Long id) {
         if (id <= 0) {

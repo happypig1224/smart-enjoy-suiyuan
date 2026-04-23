@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "资源创建数据传输对象")
-public class ResourceCreateDTO {
+public class ResourceDTO {
     
     /**
      * 资源类型：image, pdf, doc, txt, md

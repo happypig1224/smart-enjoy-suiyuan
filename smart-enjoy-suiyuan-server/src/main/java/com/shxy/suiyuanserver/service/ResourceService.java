@@ -3,7 +3,7 @@ package com.shxy.suiyuanserver.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
-import com.shxy.suiyuanentity.dto.ResourceCreateDTO;
+import com.shxy.suiyuanentity.dto.ResourceDTO;
 import com.shxy.suiyuanentity.entity.Resource;
 import com.shxy.suiyuanentity.vo.ResourceVO;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,10 +32,10 @@ public interface ResourceService extends IService<Resource> {
      * 上传资源
      * @param userId 用户 ID
      * @param file 文件
-     * @param resourceCreateDTO 资源信息
+     * @param resourceDTO 资源信息
      * @return 资源 ID
      */
-    Result<Long> uploadResource(MultipartFile file, ResourceCreateDTO resourceCreateDTO);
+    Result<Long> uploadResource(MultipartFile file, ResourceDTO resourceDTO);
 
     /**
      * 删除资源

@@ -1,18 +1,11 @@
 package com.shxy.suiyuanserver;
 
-import com.shxy.suiyuancommon.result.PageResult;
-import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.dto.LostFoundCreateDTO;
-import com.shxy.suiyuanentity.entity.LostFound;
-import com.shxy.suiyuanentity.vo.LostFoundVO;
 import com.shxy.suiyuanserver.mapper.LostFoundMapper;
 import com.shxy.suiyuanserver.service.LostFoundService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Slf4j
