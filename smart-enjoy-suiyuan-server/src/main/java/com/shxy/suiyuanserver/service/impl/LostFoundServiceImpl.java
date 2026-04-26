@@ -88,10 +88,16 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 .updateTime(new Date())
                 .build();
 
-        if (lostFoundDTO.getImages() != null && !lostFoundDTO.getImages().trim().isEmpty()) {
-            // images 已经是 JSON 字符串，直接使用
-            lostFound.setImages(lostFoundDTO.getImages());
-            log.info("设置图片JSON：{}", lostFoundDTO.getImages());
+        if (lostFoundDTO.getImages() != null && !lostFoundDTO.getImages().isEmpty()) {
+            // 将 List<String> 转换为 JSON 字符串存储
+            try {
+                String imagesJson = objectMapper.writeValueAsString(lostFoundDTO.getImages());
+                lostFound.setImages(imagesJson);
+                log.info("设置图片JSON：{}", imagesJson);
+            } catch (Exception e) {
+                log.error("图片列表转JSON失败", e);
+                throw new BaseException("图片数据处理失败");
+            }
         } else {
             log.info("未上传图片或图片为空");
         }
@@ -267,7 +273,30 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
             throw new BaseException("只能修改自己发布的失物");
         }
         
-        Integer count = lostFoundMapper.updateLostFound(lostFoundDTO);
+        // 处理图片字段：将 List<String> 转换为 JSON 字符串
+        String imagesJson = null;
+        if (lostFoundDTO.getImages() != null && !lostFoundDTO.getImages().isEmpty()) {
+            try {
+                imagesJson = objectMapper.writeValueAsString(lostFoundDTO.getImages());
+            } catch (Exception e) {
+                log.error("图片列表转JSON失败", e);
+                throw new BaseException("图片数据处理失败");
+            }
+        }
+        
+        // 构建更新实体
+        LostFound updateEntity = LostFound.builder()
+                .id(lostFoundDTO.getId())
+                .title(lostFoundDTO.getTitle())
+                .description(lostFoundDTO.getDescription())
+                .urgent(lostFoundDTO.getUrgent())
+                .location(lostFoundDTO.getLocation())
+                .phoneContact(lostFoundDTO.getPhoneContact())
+                .wechatContact(lostFoundDTO.getWechatContact())
+                .images(imagesJson)
+                .build();
+        
+        Integer count = lostFoundMapper.updateById(updateEntity);
         if (count <= 0) {
             log.warn("失物修改失败，ID：{}，用户ID：{}", lostFoundDTO.getId(), userId);
             return Result.fail("修改失败!");

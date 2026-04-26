@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 寻物启事 DTO
  * @author huang qi long
@@ -22,7 +24,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LostFoundDTO {
     
-    private Integer id;
+    private Long id;
 
     @NotNull(message = "类型不能为空")
     private Integer type;
@@ -46,5 +48,5 @@ public class LostFoundDTO {
     @Pattern(regexp = "^$|^[a-zA-Z][a-zA-Z0-9_-]{5,19}$", message = "微信号格式不正确")
     private String wechatContact;
 
-    private String images;
+    private List<String> images;
 }
