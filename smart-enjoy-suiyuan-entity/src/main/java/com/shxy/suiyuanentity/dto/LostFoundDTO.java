@@ -45,7 +45,7 @@ public class LostFoundDTO {
     @Pattern(regexp = "^$|^1[3-9]\\d{9}$", message = "联系电话格式不正确")
     private String phoneContact;
 
-    @Pattern(regexp = "^$|^[a-zA-Z][a-zA-Z0-9_-]{5,19}$", message = "微信号格式不正确")
+    @Pattern(regexp = "^$|^(1[3-9]\\d{9})|([a-zA-Z][a-zA-Z0-9_-]{5,19})$", message = "请输入正确的微信号或手机号")
     private String wechatContact;
 
     private List<String> images;

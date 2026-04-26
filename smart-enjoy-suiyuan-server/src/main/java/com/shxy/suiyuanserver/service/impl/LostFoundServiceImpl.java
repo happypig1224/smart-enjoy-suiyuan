@@ -109,6 +109,8 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         }
 
         clearLostFoundListCache();
+        String myCacheKey = RedisConstant.USER_LOSTFOUND_LIST_KEY_PREFIX + userId;
+        redisTemplate.delete(myCacheKey);
         log.info("失物招领创建成功，ID：{}，用户ID：{}", lostFound.getId(), userId);
         return Result.success(lostFound);
     }
