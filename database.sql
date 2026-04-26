@@ -94,7 +94,7 @@ CREATE TABLE lost_found
 -- =====================================================
 -- 4. 帖子表 (Community Posts)
 -- 描述: 校园社区论坛，支持技术讨论、生活分享等
--- =====================================================
+-- 4. 帖子表 (Community Posts)
 CREATE TABLE post
 (
     id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -108,52 +108,54 @@ CREATE TABLE post
     images        JSON COMMENT '配图列表，存储URL数组',
     create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_user (user_id),
-    INDEX idx_type (type),
-    INDEX idx_like_count (like_count),
-    INDEX idx_create_time (create_time),
-    INDEX idx_type_time (type, create_time),
-    INDEX idx_type_like (type, like_count),
-    INDEX idx_id_user (id, user_id)
+    INDEX idx_user_type_time (user_id, type, create_time),
+    INDEX idx_type_like (type, like_count)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='社区帖子表';
 
 -- =====================================================
 -- 5. 评论表 (Comments)
--- 描述: 支持对帖子和失物招领进行评论及回复
--- =====================================================
+-- 描述: 支持对帖子和资源进行评论及回复
+-- 5. 评论表 (Comments)
 CREATE TABLE comment
 (
     id           BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id      BIGINT NOT NULL COMMENT '评论者ID，关联user.id',
     content      TEXT   NOT NULL COMMENT '评论内容',
     post_id      BIGINT NULL COMMENT '关联帖子ID，回复帖子时使用',
-    lost_item_id BIGINT NULL COMMENT '关联失物招领ID，回复招领时使用',
     resource_id  BIGINT NULL COMMENT '关联资源ID，回复资源时使用',
     parent_id    BIGINT   DEFAULT 0 COMMENT '父级评论ID，用于实现二级回复',
-    like_count   INT      DEFAULT 0 COMMENT '点赞数',
-    status       TINYINT  DEFAULT 1 COMMENT '状态: 1-正常显示, -1-逻辑删除',
     create_time  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
     update_time  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted   TINYINT  DEFAULT 0 COMMENT '逻辑删除标记',
+    is_deleted   TINYINT  DEFAULT 0 COMMENT '逻辑删除标记: 0-未删除, 1-已删除',
     INDEX idx_user (user_id),
-    INDEX idx_post (post_id),
-    INDEX idx_lost_item (lost_item_id),
-    INDEX idx_resource (resource_id),
-    INDEX idx_parent (parent_id),
+    INDEX idx_post_parent (post_id, parent_id, is_deleted),
     INDEX idx_create_time (create_time),
-    INDEX idx_post_time (post_id, create_time),
-    -- 新增复合索引以优化查询性能
-    INDEX idx_comment_target_status (post_id, lost_item_id, resource_id, is_deleted, status),
-    INDEX idx_comment_order (is_deleted, status, create_time DESC),
-    INDEX idx_comment_hot (is_deleted, status, like_count DESC)
+    INDEX idx_resource_time (resource_id, create_time)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='评论回复表';
 
 -- =====================================================
--- 6. 聊天消息表 (AI Chat History)
+-- 6. 帖子点赞表 (Post Like)
+-- 描述: 记录用户对帖子的点赞关系，用于点赞状态持久化
+-- =====================================================
+CREATE TABLE post_like
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    post_id     BIGINT NOT NULL COMMENT '帖子ID，关联post.id',
+    user_id     BIGINT NOT NULL COMMENT '用户ID，关联user.id',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
+    UNIQUE KEY uk_post_user (post_id, user_id) COMMENT '同一用户对同一帖子只能点赞一次',
+    INDEX idx_user (user_id),
+    INDEX idx_post (post_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='帖子点赞记录表';
+
+-- =====================================================
+-- 7. 聊天消息表 (AI Chat History)
 -- 描述: 存储用户与AI智能助手的对话历史记录
 -- =====================================================
 CREATE TABLE chat_message
@@ -172,25 +174,25 @@ CREATE TABLE chat_message
   COLLATE = utf8mb4_unicode_ci COMMENT ='AI聊天记录表';
 
 -- =====================================================
--- 7. 资源收藏表(Resource Favorite)
+-- 8. 资源收藏表(Resource Favorite)
 -- 描述: 管理用户收藏的资源
--- =====================================================
+-- 7. 资源收藏表(Resource Favorite)
 CREATE TABLE resource_favorite
 (
     id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id       BIGINT                                  NOT NULL COMMENT '用户ID，关联user.id',
     resource_id   BIGINT                                  NOT NULL COMMENT '资源ID，关联资源表',
-    resource_type ENUM ('post','lost_item','kb_document') NOT NULL COMMENT '资源类型: post(帖子), lost_item(失物招领), kb_document(知识库文档)',
+    resource_type VARCHAR(20) NOT NULL DEFAULT 'resource' COMMENT '资源类型: resource(学习资源), post(帖子), kb_document(知识库文档)',
     create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
     update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_user (user_id),
+    UNIQUE KEY uk_user_resource_type (user_id, resource_id, resource_type) COMMENT '同一用户同一资源类型只能收藏一次',
     INDEX idx_resource_type (resource_type)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='资源收藏表';
 
 -- =====================================================
--- 8. AI会话管理表 (AI Session Management)
+-- 9. AI会话管理表 (AI Session Management)
 -- 描述: 管理用户与AI的会话会话，支持多轮对话、上下文记忆
 -- =====================================================
 CREATE TABLE ai_session
@@ -212,7 +214,7 @@ CREATE TABLE ai_session
   COLLATE = utf8mb4_unicode_ci COMMENT ='AI会话管理表';
 
 -- =====================================================
--- 9. 知识库表 (Knowledge Base)
+-- 10. 知识库表 (Knowledge Base)
 -- 描述: AI RAG增强检索所需的知识库集合
 -- =====================================================
 CREATE TABLE kb_info
@@ -235,7 +237,7 @@ CREATE TABLE kb_info
   COLLATE = utf8mb4_unicode_ci COMMENT ='知识库信息表';
 
 -- =====================================================
--- 10. 知识库文档表 (Knowledge Base Document)
+-- 11. 知识库文档表 (Knowledge Base Document)
 -- 描述: 存储知识库中的具体文档内容
 -- =====================================================
 CREATE TABLE kb_document

@@ -3,6 +3,9 @@ package com.shxy.suiyuanserver.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.entity.ResourceFavorite;
+import com.shxy.suiyuanentity.vo.ResourceVO;
+
+import java.util.List;
 
 /**
  * 资源收藏 Service
@@ -34,4 +37,6 @@ public interface ResourceFavoriteService extends IService<ResourceFavorite> {
      * @return true-已收藏，false-未收藏
      */
     boolean isFavorite(Long userId, Long resourceId);
+
+    Result<List<ResourceVO>> getUserFavoriteResources(Long userId);
 }

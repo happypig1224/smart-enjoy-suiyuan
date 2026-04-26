@@ -32,6 +32,8 @@ public class RedisCacheUtil {
 
     // 默认空值缓存时间(分钟)
     private static final long DEFAULT_NULL_CACHE_MINUTES = 5;
+    // 互斥锁超时时间(秒) - 根据数据库查询耗时合理设置
+    private static final long LOCK_EXPIRE_SECONDS = 10;
     // 默认自旋重试次数
     private static final int DEFAULT_RETRY_COUNT = 10;
     // 默认自旋间隔(毫秒)
@@ -166,7 +168,7 @@ public class RedisCacheUtil {
         // 2. 缓存未命中,尝试获取互斥锁
         T data = null;
         String lockKey = "lock:" + key;
-        String lockValue = tryLock(lockKey, 10);
+        String lockValue = tryLock(lockKey, LOCK_EXPIRE_SECONDS);
 
         try {
             if (lockValue != null) {
@@ -212,8 +214,10 @@ public class RedisCacheUtil {
                         return cachedData;
                     }
                 }
-                log.warn("获取锁超时,返回null, key: {}", key);
-                return null;
+                log.warn("获取锁超时,降级查询数据库, key: {}", key);
+                // 降级策略:直接查询数据库,但不写入缓存(避免并发写)
+                data = dbFunction.apply(key);
+                return data;
             }
         } finally {
             // 4. 释放锁
@@ -285,7 +289,6 @@ public class RedisCacheUtil {
         return value != null ? value.toString() : null;
     }
 
-    // --- 辅助方法：改进的分布式锁实现 ---
 
     /**
      * 尝试获取分布式锁

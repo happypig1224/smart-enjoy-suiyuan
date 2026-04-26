@@ -2,18 +2,8 @@ package com.shxy.suiyuancommon.constant;
 
 /**
  * 限流相关常量
- *
- * 命名规范：
- * 1. 所有字母统一使用小写
- * 2. 格式：模块：类型：标识（使用冒号分隔）
- * 3. 模块划分：rate_limit（限流）
- *
- * 示例：
- * - rate_limit:sms:{userId}       短信验证码限流
- * - rate_limit:upload:{userId}    文件上传限流
- * - rate_limit:api:{userId}       通用 API 限流
- *
  * @author Wu, Hui Ming
+ * @School SuiHua  University
  * @since 2026/4/13
  */
 public class RateLimitConstant {
@@ -52,4 +42,10 @@ public class RateLimitConstant {
      */
     public static final int DEFAULT_TIME_WINDOW = 60;
     public static final int DEFAULT_MAX_REQUESTS = 100;
+
+    /**
+     * 评论限流：60 秒内最多评论 10 次
+     */
+    public static final int COMMENT_TIME_WINDOW = 60;
+    public static final int COMMENT_MAX_REQUESTS = 10;
 }

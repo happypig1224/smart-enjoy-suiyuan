@@ -43,11 +43,6 @@ public class Comment {
     private Long postId;
 
     /**
-     * 关联失物招领ID，回复招领时使用
-     */
-    private Long lostItemId;
-
-    /**
      * 关联资源ID，回复资源时使用
      */
     private Long resourceId;
@@ -56,16 +51,6 @@ public class Comment {
      * 父级评论ID，用于实现二级回复
      */
     private Long parentId;
-
-    /**
-     * 点赞数
-     */
-    private Integer likeCount;
-
-    /**
-     * 状态: 1-正常显示, -1-逻辑删除
-     */
-    private Integer status;
 
     /**
      * 评论时间

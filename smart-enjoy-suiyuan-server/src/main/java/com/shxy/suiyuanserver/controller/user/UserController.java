@@ -15,12 +15,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 /**
+ * 用户模块接口
  * @author Wu, Hui Ming
  * @version 2.0
  * @School Suihua University
  * @since 2026/4/4 20:56
  */
-
 @RequestMapping("/user/user")
 @RestController
 @Tag(name = "用户模块接口")

@@ -8,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
 
 /**
  * 寻物启事 DTO
@@ -47,5 +46,5 @@ public class LostFoundDTO {
     @Pattern(regexp = "^$|^[a-zA-Z][a-zA-Z0-9_-]{5,19}$", message = "微信号格式不正确")
     private String wechatContact;
 
-    private List<String> images;
+    private String images;
 }

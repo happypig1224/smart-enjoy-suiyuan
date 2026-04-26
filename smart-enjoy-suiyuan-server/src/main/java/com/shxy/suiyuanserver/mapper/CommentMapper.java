@@ -18,13 +18,11 @@ public interface CommentMapper extends BaseMapper<Comment> {
     int updateIsDelete(Long id);
 
     List<CommentVO> selectCommentListWithUser(@Param("postId") Long postId,
-                                              @Param("lostItemId") Long lostItemId,
                                               @Param("resourceId") Long resourceId,
                                               @Param("offset") int offset,
                                               @Param("size") int size,
                                               @Param("orderBy") String orderBy);
 
     Long selectCommentCount(@Param("postId") Long postId,
-                            @Param("lostItemId") Long lostItemId,
                             @Param("resourceId") Long resourceId);
 }

@@ -1,6 +1,6 @@
 package com.shxy.suiyuanserver;
 
-import com.shxy.suiyuanentity.dto.LostFoundCreateDTO;
+import com.shxy.suiyuanentity.dto.LostFoundDTO;
 import com.shxy.suiyuanserver.mapper.LostFoundMapper;
 import com.shxy.suiyuanserver.service.LostFoundService;
 import lombok.extern.slf4j.Slf4j;

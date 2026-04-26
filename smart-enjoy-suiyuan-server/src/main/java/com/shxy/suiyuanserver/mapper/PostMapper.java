@@ -32,6 +32,11 @@ public interface PostMapper extends BaseMapper<Post> {
      * 减少帖子评论数，确保不低于0
      */
     int decrementCommentCount(@Param("postId") Long postId);
+
+    /**
+     * 根据用户ID查询帖子列表
+     */
+    List<PostVO> selectPostListByUserId(@Param("userId") Long userId);
 }
 
 

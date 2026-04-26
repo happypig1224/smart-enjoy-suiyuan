@@ -7,6 +7,7 @@ import com.shxy.suiyuanentity.dto.LostFoundDTO;
 import com.shxy.suiyuanentity.entity.LostFound;
 import com.shxy.suiyuanentity.vo.LostFoundVO;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,4 +28,11 @@ public interface LostFoundService extends IService<LostFound> {
     Result<String> updateLostFound(LostFoundDTO lostFoundDTO);
 
     Result<String> updateLostFoundStatus(Long id, Integer status);
+
+    /**
+     * 获取用户发布的失物招领列表
+     * @param userId 用户ID
+     * @return 失物招领列表
+     */
+    Result<List<LostFoundVO>> getUserPublishedLostFound(Long userId);
 }

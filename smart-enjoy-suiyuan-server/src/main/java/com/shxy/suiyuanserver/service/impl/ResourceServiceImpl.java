@@ -1,8 +1,10 @@
 package com.shxy.suiyuanserver.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.constant.RateLimitConstant;
@@ -16,6 +18,7 @@ import com.shxy.suiyuancommon.utils.RedisCacheUtil;
 import com.shxy.suiyuancommon.utils.TencentCOSAvatarUtil;
 import com.shxy.suiyuanentity.dto.ResourceDTO;
 import com.shxy.suiyuanentity.entity.Resource;
+import com.shxy.suiyuanentity.entity.ResourceFavorite;
 import com.shxy.suiyuanentity.entity.User;
 import com.shxy.suiyuanentity.vo.ResourceVO;
 import com.shxy.suiyuanserver.mapper.ResourceMapper;
@@ -27,6 +30,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,6 +55,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
     private final UserService userService;
     private final TencentCOSAvatarUtil tencentCOSAvatarUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
     private final RedisCacheUtil redisCacheUtil;
 
@@ -65,6 +70,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "text/plain",
             "text/markdown",
+            "application/octet-stream",
             "image/jpeg",
             "image/png",
             "image/gif"
@@ -78,6 +84,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                               UserService userService,
                               TencentCOSAvatarUtil tencentCOSAvatarUtil,
                               RedisTemplate<String, Object> redisTemplate,
+                              StringRedisTemplate stringRedisTemplate,
                               ObjectMapper objectMapper,
                               RedisCacheUtil redisCacheUtil) {
         this.resourceMapper = resourceMapper;
@@ -85,11 +92,12 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         this.userService = userService;
         this.tencentCOSAvatarUtil = tencentCOSAvatarUtil;
         this.redisTemplate = redisTemplate;
+        this.stringRedisTemplate = stringRedisTemplate;
         this.objectMapper = objectMapper;
         this.redisCacheUtil = redisCacheUtil;
     }
 
-    public Result<PageResult> queryList(Integer page, Integer pageSize, String type, String sort) {
+    public Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort) {
         String cleanType = type != null ? type.replaceAll("[^a-zA-Z0-9_-]", "") : "all";
         String cleanSort = sort != null ? sort.replaceAll("[^a-zA-Z0-9_-]", "") : "newest";
 
@@ -100,12 +108,13 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         
         // 创建final变量以供lambda表达式使用
         final String finalCleanType = cleanType;
+        final Integer finalSubject = subject;
         final String finalCleanSort = cleanSort;
         final Integer finalPage = page;
         final Integer finalPageSize = pageSize;
         
         String cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX +
-                finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + finalCleanSort;
+                finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort;
 
         // 使用工具类解决缓存雪崩(随机过期时间)
         PageResult pageResult = redisCacheUtil.queryWithPassThrough(
@@ -116,6 +125,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     if (!"all".equals(finalCleanType) && !finalCleanType.isEmpty()) {
                         queryWrapper.eq(Resource::getType, finalCleanType);
                     }
+                    if (finalSubject != null) {
+                        queryWrapper.eq(Resource::getSubject, finalSubject);
+                    }
                     if ("newest".equals(finalCleanSort)) {
                         queryWrapper.orderByDesc(Resource::getCreateTime);
                     } else if ("hottest".equals(finalCleanSort)) {
@@ -125,7 +137,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     }
                     Page<Resource> pageInfo = new Page<>(finalPage, finalPageSize);
                     Page<Resource> result = resourceMapper.selectPage(pageInfo, queryWrapper);
-                    List<ResourceVO> voList = convertToVO(result.getRecords());
+                    List<ResourceVO> voList = convertToVOWithoutFavorite(result.getRecords());
                     return PageResult.builder()
                             .total(result.getTotal())
                             .records(voList)
@@ -138,9 +150,29 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         );
 
         if (pageResult == null) {
+            log.warn("获取资源列表失败：pageResult为null");
             return Result.fail("获取资源列表失败");
         }
-        return Result.success(pageResult);
+
+        log.info("获取资源列表成功，开始填充收藏状态，记录数={}", 
+                pageResult.getRecords() != null ? pageResult.getRecords().size() : 0);
+        
+        // 深拷贝避免污染缓存对象(防止并发用户看到错误的收藏状态)
+        @SuppressWarnings("unchecked")
+        List<ResourceVO> voListCopy = objectMapper.convertValue(pageResult.getRecords(), new TypeReference<List<ResourceVO>>() {});
+        
+        // 填充当前用户的收藏状态（不缓存，每个用户单独查询）
+        fillFavoriteStatus(voListCopy);
+        
+        PageResult resultWithFavoriteStatus = PageResult.builder()
+                .total(pageResult.getTotal())
+                .records(voListCopy)
+                .page(pageResult.getPage())
+                .size(pageResult.getSize())
+                .build();
+        
+        log.info("收藏状态填充完成");
+        return Result.success(resultWithFavoriteStatus);
     }
     
     /**
@@ -171,7 +203,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
         // 文件上传限流: 60秒内最多上传5次
         String rateLimitKey = RateLimitConstant.UPLOAD_RATE_LIMIT_KEY + userId;
-        RateLimitUtil.checkRateLimit(redisTemplate, rateLimitKey,
+        RateLimitUtil.checkRateLimit(stringRedisTemplate, rateLimitKey,
             RateLimitConstant.UPLOAD_TIME_WINDOW, RateLimitConstant.UPLOAD_MAX_REQUESTS);
 
         // 安全处理文件名
@@ -287,12 +319,15 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
         resourceMapper.deleteById(id);
 
+        // 清除资源详情缓存
         String detailKey = RedisConstant.RESOURCE_DETAIL_KEY_PREFIX + id;
         redisTemplate.delete(detailKey);
 
+        // 清除用户发布的资源列表缓存
         String userResourceKey = RedisConstant.USER_RESOURCE_LIST_KEY_PREFIX + userId;
         redisTemplate.delete(userResourceKey);
 
+        // 清除公共列表缓存
         clearResourceListCache();
 
         log.info("用户 {} 删除了资源 {}", userId, id);
@@ -329,15 +364,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         return Result.success(resourceVOList);
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public Result<String> favoriteResource(Long userId, Long id) {
-        return resourceFavoriteService.favorite(userId, id);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public Result<String> cancelFavoriteResource(Long userId, Long id) {
-        return resourceFavoriteService.cancelFavorite(userId, id);
-    }
 
     public Result<ResourceVO> getResourceDetail(Long id, Long userId) {
         if (id == null || id <= 0) {
@@ -387,7 +413,96 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
     }
 
     /**
-     * 将 Resource 转换为 ResourceVO
+     * 将 Resource 转换为 ResourceVO（不包含收藏状态）
+     */
+    private List<ResourceVO> convertToVOWithoutFavorite(List<Resource> resources) {
+        if (resources == null || resources.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 批量查询用户信息
+        List<Long> userIds = resources.stream()
+                .map(Resource::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, User> userMap = userService.listByIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (k1, k2) -> k1));
+
+        // 转换为 VO（isFavorite 设为 false，稍后由 fillFavoriteStatus 填充）
+        return resources.stream().map(resource -> {
+            ResourceVO vo = ResourceVO.builder()
+                    .id(resource.getId())
+                    .userId(resource.getUserId())
+                    .type(resource.getType())
+                    .subject(resource.getSubject())
+                    .resourceUrl(resource.getResourceUrl())
+                    .fileName(resource.getFileName())
+                    .fileSize(resource.getFileSize())
+                    .description(resource.getDescription())
+                    .downloadCount(resource.getDownloadCount())
+                    .createTime(resource.getCreateTime())
+                    .updateTime(resource.getUpdateTime())
+                    .isFavorite(false)
+                    .build();
+
+            User user = userMap.get(resource.getUserId());
+            if (user != null) {
+                vo.setUserNickName(user.getNickName());
+            }
+
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 填充当前用户的收藏状态
+     */
+    @SuppressWarnings("unchecked")
+    private void fillFavoriteStatus(List<ResourceVO> voList) {
+        if (voList == null || voList.isEmpty()) {
+            log.debug("填充收藏状态：资源列表为空，跳过");
+            return;
+        }
+
+        Long currentUserId = BaseContext.getCurrentUserId();
+        if (currentUserId == null || currentUserId <= 0) {
+            log.debug("填充收藏状态：当前用户ID无效，跳过");
+            return;
+        }
+
+        List<Long> resourceIds = voList.stream()
+                .map(ResourceVO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (resourceIds.isEmpty()) {
+            log.debug("填充收藏状态：资源ID列表为空，跳过");
+            return;
+        }
+
+        log.debug("填充收藏状态：用户ID={}，资源数量={}", currentUserId, resourceIds.size());
+
+        // 批量查询当前用户对这些资源的收藏状态
+        LambdaQueryWrapper<ResourceFavorite> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ResourceFavorite::getUserId, currentUserId)
+                .in(ResourceFavorite::getResourceId, resourceIds)
+                .select(ResourceFavorite::getResourceId);
+        List<ResourceFavorite> favorites = resourceFavoriteService.list(queryWrapper);
+        
+        log.debug("填充收藏状态：查询到收藏记录数={}", favorites.size());
+        
+        Map<Long, Boolean> favoriteMap = favorites.stream()
+                .collect(Collectors.toMap(ResourceFavorite::getResourceId, f -> true, (k1, k2) -> k1));
+
+        for (ResourceVO vo : voList) {
+            vo.setIsFavorite(favoriteMap.getOrDefault(vo.getId(), false));
+        }
+    }
+
+    /**
+     * 将 Resource 转换为 ResourceVO（用于其他场景，如用户发布的资源列表）
      */
     private List<ResourceVO> convertToVO(List<Resource> resources) {
         if (resources == null || resources.isEmpty()) {
@@ -464,6 +579,80 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         String imageUrl = tencentCOSAvatarUtil.uploadFile(file);
         log.info("用户 {} 上传了图片：{}", BaseContext.getCurrentUserId(), imageUrl);
         return imageUrl;
+    }
+
+    @Override
+    public Result<String> downloadResource(Long id) {
+        if (id == null || id <= 0) {
+            throw new BaseException("资源ID不合法");
+        }
+
+        Resource resource = resourceMapper.selectById(id);
+        if (resource == null) {
+            throw ResourceException.notFound(String.valueOf(id));
+        }
+
+        // 递增下载次数
+        resourceMapper.update(null, new LambdaUpdateWrapper<>(Resource.class)
+                .eq(Resource::getId, id)
+                .setSql("download_count = download_count + 1"));
+
+        // 清除资源详情缓存
+        String detailKey = RedisConstant.RESOURCE_DETAIL_KEY_PREFIX + id;
+        redisTemplate.delete(detailKey);
+        clearResourceListCache();
+
+        log.info("下载资源{}，下载次数+1",  id);
+        return Result.success(resource.getResourceUrl());
+    }
+
+    @Override
+    public Result<String> updateResource(Long id, Long userId, ResourceDTO resourceDTO) {
+        if (id == null || id <= 0) {
+            throw new BaseException("资源ID不合法");
+        }
+        if (userId == null || userId <= 0) {
+            throw new BaseException("用户ID不合法");
+        }
+
+        Resource resource = resourceMapper.selectById(id);
+        if (resource == null) {
+            throw ResourceException.notFound(String.valueOf(id));
+        }
+
+        if (!resource.getUserId().equals(userId)) {
+            throw ResourceException.unauthorized("update", String.valueOf(id));
+        }
+
+        // 构建更新条件
+        LambdaUpdateWrapper<Resource> updateWrapper = new LambdaUpdateWrapper<>(Resource.class)
+                .eq(Resource::getId, id);
+
+        if (resourceDTO.getType() != null) {
+            updateWrapper.set(Resource::getType, resourceDTO.getType());
+        }
+        if (resourceDTO.getSubject() != null) {
+            updateWrapper.set(Resource::getSubject, resourceDTO.getSubject());
+        }
+        if (resourceDTO.getDescription() != null) {
+            updateWrapper.set(Resource::getDescription, resourceDTO.getDescription());
+        }
+        updateWrapper.set(Resource::getUpdateTime, new Date());
+
+        int update = resourceMapper.update(null, updateWrapper);
+        if (update <= 0) {
+            throw new BaseException("更新资源失败");
+        }
+
+        // 清除缓存
+        String detailKey = RedisConstant.RESOURCE_DETAIL_KEY_PREFIX + id;
+        redisTemplate.delete(detailKey);
+        String userResourceKey = RedisConstant.USER_RESOURCE_LIST_KEY_PREFIX + userId;
+        redisTemplate.delete(userResourceKey);
+        clearResourceListCache();
+
+        log.info("用户{}更新资源{}成功", userId, id);
+        return Result.success("更新成功");
     }
 
 }

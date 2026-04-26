@@ -27,11 +27,11 @@
         <mysql.version>8.0.33</mysql.version>
         <validation.version>3.5.6</validation.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <spring.security.crypto.version>5.8.2</spring.security.crypto.version>
-        <druid>1.1.24</druid>
+        <spring.security.crypto.version>6.2.4</spring.security.crypto.version>
+        <druid>1.2.23</druid>
         <knife4j>4.5.0</knife4j>
         <pagehelper>2.1.0</pagehelper>
-        <commons.lang>2.6</commons.lang>
+        <commons.lang3>3.14.0</commons.lang3>
         <hutool.version>5.8.27</hutool.version>
         <fastjson2.version>2.0.47</fastjson2.version>
         <cos_api.version>5.6.89</cos_api.version>
@@ -97,11 +97,11 @@
                 <version>${jjwt.version}</version>
             </dependency>
 
-            <!-- Common-lang -->
+            <!-- Commons Lang3 -->
             <dependency>
-                <groupId>commons-lang</groupId>
-                <artifactId>commons-lang</artifactId>
-                <version>${commons.lang}</version>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3}</version>
             </dependency>
 
             <!-- Druid -->

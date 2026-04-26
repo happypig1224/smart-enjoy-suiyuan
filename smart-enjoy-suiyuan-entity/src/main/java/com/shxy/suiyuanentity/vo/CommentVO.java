@@ -32,22 +32,22 @@ public class CommentVO {
     
     @Schema(description = "帖子ID")
     private Long postId;
-    
-    @Schema(description = "失物ID")
-    private Long lostItemId;
 
     @Schema(description = "资源ID")
     private Long resourceId;
     
     @Schema(description = "父评论ID")
     private Long parentId;
-    
-    @Schema(description = "点赞数")
-    private Integer likeCount;
-    
+
     @Schema(description = "创建时间")
     private Date createTime;
 
     @Schema(description = "是否是当前用户的评论")
     private Boolean isOwner;
+
+    @Schema(description = "被回复用户的ID（二级回复时使用）")
+    private Long replyToUserId;
+
+    @Schema(description = "被回复用户的昵称（二级回复时使用）")
+    private String replyToUserNickName;
 }

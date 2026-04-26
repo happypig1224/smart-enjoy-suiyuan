@@ -2,6 +2,8 @@ smart:
   enjoy:
     suiyuan:
       ai:
+        mcp:
+          server-url:http://localhost:8000/mcp
         dashscope:
           api-key: ${ALIYUN_DASHSCOPE_API_KEY}
           chat:
@@ -13,7 +15,7 @@ smart:
             model: text-embedding-v3
       datasource:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://${MYSQL_HOST}:3306/smart_enjoy_suiyuan?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true
+        url: jdbc:mysql://${MYSQL_HOST}:3306/smart_enjoy_suiyuan?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=true&cachePrepStmts=true
         username: ${MYSQL_USERNAME}
         password: ${MYSQL_PASSWORD}
       data:
@@ -21,6 +23,14 @@ smart:
           host: ${REDIS_HOST}
           port: 6379
           password: ${REDIS_PASSWORD}
+          timeout: 5000
+          lettuce:
+            pool:
+              max-active: 8
+              max-idle: 8
+              min-idle: 2
+              max-wait: 3000
+            shutdown-timeout: 100
       tencent:
         cos:
           secret-id: ${TENCENT_COS_SECRET_ID}

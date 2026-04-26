@@ -73,9 +73,9 @@ public class LostFound {
     private String wechatContact;
 
     /**
-     * 图片列表，存储URL数组
+     * 图片列表，存储JSON字符串
      */
-    private Object images;
+    private String images;
 
     /**
      * 浏览量/查看次数

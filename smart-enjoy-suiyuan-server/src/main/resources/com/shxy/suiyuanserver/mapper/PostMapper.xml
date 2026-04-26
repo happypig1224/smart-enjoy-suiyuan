@@ -115,4 +115,25 @@
         WHERE id = #{postId}
     </update>
 
+    <select id="selectPostListByUserId" parameterType="long" resultMap="PostVOResultMap">
+        SELECT
+            p.id as post_id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.type,
+            p.like_count,
+            p.comment_count,
+            p.view_count,
+            p.images,
+            p.create_time,
+            p.update_time,
+            u.nick_name,
+            u.avatar
+        FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
 </mapper>

@@ -22,15 +22,14 @@ public interface ResourceService extends IService<Resource> {
      * @param page 页码
      * @param pageSize 每页数量
      * @param type 类型
+     * @param subject 学科分类
      * @param sort 排序字段
-     * @param order 排序方式
      * @return 分页结果
      */
-    Result<PageResult> queryList(Integer page, Integer pageSize, String type, String sort);
+    Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort);
 
     /**
      * 上传资源
-     * @param userId 用户 ID
      * @param file 文件
      * @param resourceDTO 资源信息
      * @return 资源 ID
@@ -52,21 +51,6 @@ public interface ResourceService extends IService<Resource> {
      */
     Result<List<ResourceVO>> getUserPublishedResources(Long userId);
 
-    /**
-     * 收藏资源
-     * @param userId 用户 ID
-     * @param id 资源 ID
-     * @return 操作结果
-     */
-    Result<String> favoriteResource(Long userId, Long id);
-
-    /**
-     * 取消收藏资源
-     * @param userId 用户 ID
-     * @param id 资源 ID
-     * @return 操作结果
-     */
-    Result<String> cancelFavoriteResource(Long userId, Long id);
 
     /**
      * 获取资源详情
@@ -82,4 +66,20 @@ public interface ResourceService extends IService<Resource> {
      * @return 图片URL
      */
     String uploadImage(MultipartFile file);
+
+    /**
+     * 下载资源（递增下载次数并返回资源URL）
+     * @param id 资源 ID
+     * @return 资源下载URL
+     */
+    Result<String> downloadResource(Long id);
+
+    /**
+     * 更新资源信息
+     * @param id 资源 ID
+     * @param userId 用户 ID
+     * @param resourceDTO 资源更新信息
+     * @return 操作结果
+     */
+    Result<String> updateResource(Long id, Long userId, ResourceDTO resourceDTO);
 }

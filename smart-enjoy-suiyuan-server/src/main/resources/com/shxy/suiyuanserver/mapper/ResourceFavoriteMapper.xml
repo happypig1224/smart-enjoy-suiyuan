@@ -8,12 +8,13 @@
             <id property="id" column="id" />
             <result property="userId" column="user_id" />
             <result property="resourceId" column="resource_id" />
+            <result property="resourceType" column="resource_type" />
             <result property="createTime" column="create_time" />
             <result property="updateTime" column="update_time" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,resource_id,create_time,update_time
+        id,user_id,resource_id,resource_type,create_time,update_time
     </sql>
 
     <!-- 检查是否已收藏 -->
@@ -25,8 +26,8 @@
 
     <!-- 添加收藏 -->
     <insert id="addFavorite">
-        INSERT INTO resource_favorite (user_id, resource_id, create_time)
-        VALUES (#{userId}, #{resourceId}, NOW())
+        INSERT INTO resource_favorite (user_id, resource_id, resource_type, create_time)
+        VALUES (#{userId}, #{resourceId}, 'resource', NOW())
     </insert>
 
     <!-- 取消收藏 -->
@@ -38,5 +39,11 @@
     <!-- 判断是否已收藏 -->
     <select id="isFavorite" resultType="boolean">
         SELECT EXISTS(SELECT 1 FROM resource_favorite WHERE user_id = #{userId} AND resource_id = #{resourceId})
+    </select>
+
+    <!-- 获取用户收藏的资源 -->
+    <select id="getUserFavoriteResources" resultType="java.lang.Long">
+        SELECT resource_id FROM resource_favorite
+        WHERE user_id = #{userId}
     </select>
 </mapper>

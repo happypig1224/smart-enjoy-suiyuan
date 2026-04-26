@@ -9,11 +9,8 @@
         <result property="userId" column="user_id" />
         <result property="content" column="content" />
         <result property="postId" column="post_id" />
-        <result property="lostItemId" column="lost_item_id" />
         <result property="resourceId" column="resource_id" />
         <result property="parentId" column="parent_id" />
-        <result property="likeCount" column="like_count" />
-        <result property="status" column="status" />
         <result property="createTime" column="create_time" />
         <result property="updateTime" column="update_time" />
         <result property="isDeleted" column="is_deleted" />
@@ -26,16 +23,16 @@
         <result property="userAvatar" column="avatar" />
         <result property="content" column="content" />
         <result property="postId" column="post_id" />
-        <result property="lostItemId" column="lost_item_id" />
         <result property="resourceId" column="resource_id" />
         <result property="parentId" column="parent_id" />
-        <result property="likeCount" column="like_count" />
         <result property="createTime" column="create_time" />
+        <result property="replyToUserId" column="reply_to_user_id" />
+        <result property="replyToUserNickName" column="reply_to_user_nick_name" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,content,post_id,lost_item_id,resource_id,parent_id,
-        like_count,status,create_time,update_time,is_deleted
+        id,user_id,content,post_id,resource_id,parent_id,
+        create_time,update_time,is_deleted
     </sql>
 
     <update id="updateIsDelete">
@@ -48,36 +45,27 @@
         c.user_id,
         c.content,
         c.post_id,
-        c.lost_item_id,
         c.resource_id,
         c.parent_id,
-        c.like_count,
         c.create_time,
         u.nick_name,
-        u.avatar
+        u.avatar,
+        IF(c.parent_id IS NOT NULL AND c.parent_id > 0, p.user_id, NULL) as reply_to_user_id,
+        IF(c.parent_id IS NOT NULL AND c.parent_id > 0, u2.nick_name, NULL) as reply_to_user_nick_name
         FROM comment c
         LEFT JOIN user u ON c.user_id = u.id
+        LEFT JOIN comment p ON c.parent_id = p.id
+        LEFT JOIN user u2 ON p.user_id = u2.id
         <where>
             c.is_deleted = 0
-            AND c.status = 1
             <if test="postId != null">
                 AND c.post_id = #{postId}
-            </if>
-            <if test="lostItemId != null">
-                AND c.lost_item_id = #{lostItemId}
             </if>
             <if test="resourceId != null">
                 AND c.resource_id = #{resourceId}
             </if>
         </where>
-        <choose>
-            <when test="orderBy == 'likeCount'">
-                ORDER BY c.like_count DESC
-            </when>
-            <otherwise>
-                ORDER BY c.create_time DESC
-            </otherwise>
-        </choose>
+        ORDER BY c.create_time DESC
         LIMIT #{offset}, #{size}
     </select>
 
@@ -86,12 +74,8 @@
         FROM comment
         <where>
             is_deleted = 0
-            AND status = 1
             <if test="postId != null">
                 AND post_id = #{postId}
-            </if>
-            <if test="lostItemId != null">
-                AND lost_item_id = #{lostItemId}
             </if>
             <if test="resourceId != null">
                 AND resource_id = #{resourceId}

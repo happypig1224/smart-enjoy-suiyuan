@@ -25,6 +25,11 @@ public class RedisConstant {
     public static final String USER_RESOURCE_LIST_KEY_PREFIX = "user:resource:list:";
 
     /**
+     * 用户收藏资源列表缓存：user:resource:favorite:list:{userId}
+     */
+    public static final String USER_RESOURCE_FAVORITE_LIST_KEY_PREFIX = "user:resource:favorite:list:";
+
+    /**
      * 用户失物招领列表缓存：user:lostfound:list:{userId}
      */
     public static final String USER_LOSTFOUND_LIST_KEY_PREFIX = "user:lostfound:list:";
@@ -61,21 +66,6 @@ public class RedisConstant {
      */
     public static final String POST_DETAIL_KEY_PREFIX = "post:detail:";
 
-    /**
-     * 帖子点赞用户集合：post:like:users:{postId}
-     */
-    public static final String POST_LIKE_USERS_KEY_PREFIX = "post:like:users:";
-
-    /**
-     * 帖子点赞数缓存：post:like:count:{postId}
-     */
-    public static final String POST_LIKE_COUNT_KEY_PREFIX = "post:like:count:";
-    
-    /**
-     * 帖子点赞锁：post:like:lock:{postId}
-     */
-    public static final String POST_LIKE_LOCK_KEY_PREFIX = "post:like:lock:";
-
     // ==================== 失物招领模块 ====================
     /**
      * 失物招领列表缓存：lostfound:list:{page}:{pageSize}:{type}:{status}:{urgent}
@@ -90,7 +80,7 @@ public class RedisConstant {
     // ==================== 评论模块 ====================
     /**
      * 评论列表缓存：comment:list:{page}:{size}:{targetType}:{targetId}:{sort}
-     * targetType: post(帖子) 或 lost(失物招领)
+     * targetType: post(帖子) 或 resource(资源)
      */
     public static final String COMMENT_LIST_KEY_PREFIX = "comment:list:";
 
@@ -119,11 +109,6 @@ public class RedisConstant {
      * 帖子详情 TTL：15 分钟
      */
     public static final long POST_DETAIL_TTL = 900;
-
-    /**
-     * 帖子点赞数据 TTL：7 天
-     */
-    public static final long POST_LIKE_TTL = 86400 * 7;
 
     /**
      * 失物招领列表 TTL：10 分钟

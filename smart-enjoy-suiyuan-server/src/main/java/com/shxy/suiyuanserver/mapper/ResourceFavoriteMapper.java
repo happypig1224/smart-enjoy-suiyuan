@@ -2,8 +2,11 @@ package com.shxy.suiyuanserver.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shxy.suiyuanentity.entity.ResourceFavorite;
+import com.shxy.suiyuanentity.vo.ResourceVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 资源收藏 Mapper
@@ -44,4 +47,11 @@ public interface ResourceFavoriteMapper extends BaseMapper<ResourceFavorite> {
      * @return true-已收藏，false-未收藏
      */
     boolean isFavorite(@Param("userId") Long userId, @Param("resourceId") Long resourceId);
+
+    /**
+     * 获取用户收藏的资源
+     * @param userId 用户 ID
+     * @return 收藏的资源列表
+     */
+    List<Long> getUserFavoriteResources(Long userId);
 }

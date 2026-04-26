@@ -20,6 +20,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDTO {
     
     @Size(min = 3, max = 50, message = "用户名长度必须在3-50个字符之间")
@@ -45,6 +46,6 @@ public class UserDTO {
     private String phone;
     
     @Size(min = 4, max = 6, message = "验证码长度不正确")
-    private String code;
+    private String verifyCode;
 
 }
