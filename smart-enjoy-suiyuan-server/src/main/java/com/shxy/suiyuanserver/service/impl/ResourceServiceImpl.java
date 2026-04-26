@@ -450,6 +450,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             User user = userMap.get(resource.getUserId());
             if (user != null) {
                 vo.setUserNickName(user.getNickName());
+                vo.setUserAvatar(user.getAvatar());
             }
 
             return vo;
@@ -539,6 +540,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             User user = userMap.get(resource.getUserId());
             if (user != null) {
                 vo.setUserNickName(user.getNickName());
+                vo.setUserAvatar(user.getAvatar());
             }
 
             return vo;
