@@ -3,3 +3,9 @@ target/
 .idea/
 logs/
 *.log
+
+# Config
+config/
+*.properties
+*.yaml
+!application.yaml  # 仅保留模板，不保留带值的配置

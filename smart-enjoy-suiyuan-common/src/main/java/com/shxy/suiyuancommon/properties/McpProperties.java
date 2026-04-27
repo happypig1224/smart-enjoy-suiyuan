@@ -14,7 +14,18 @@ import org.springframework.stereotype.Component;
 @Component
 @Data
 public class McpProperties {
-    private String serverUrl; // Python的AgentServer的URL
-    private Integer timeout = 30000; // 默认30秒
-    private Integer retryCount = 3;  // 重试次数
+    /**
+     * Python Agent 服务的 MCP 接口地址
+     */
+    private String serverUrl;
+
+    /**
+     * 请求超时时间 (毫秒)
+     */
+    private Integer timeout;
+
+    /**
+     * 失败重试次数
+     */
+    private Integer retryCount;
 }

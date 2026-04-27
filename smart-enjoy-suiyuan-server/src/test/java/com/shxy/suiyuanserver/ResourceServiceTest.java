@@ -48,7 +48,7 @@ public class ResourceServiceTest {
      */
     @Test
     void testQueryResourceList() {
-        Result<PageResult> result = resourceService.queryList(1, 10, null, "newest");
+        Result<PageResult> result = resourceService.queryList(1, 10, null, null, "newest");
         
         assertNotNull(result);
         assertEquals(200, result.getCode());
@@ -64,7 +64,7 @@ public class ResourceServiceTest {
      */
     @Test
     void testQueryResourceListByType() {
-        Result<PageResult> result = resourceService.queryList(1, 10, "pdf", "newest");
+        Result<PageResult> result = resourceService.queryList(1, 10, "pdf", null, "newest");
         
         assertNotNull(result);
         assertEquals(200, result.getCode());
@@ -110,29 +110,28 @@ public class ResourceServiceTest {
     }
 
     /**
-     * 测试收藏资源
+     * 测试收藏资源（通过 ResourceFavoriteService）
      */
     @Test
     void testFavoriteResource() {
         Long userId = 1L;
         Long resourceId = 2L;
         
-        Result<String> result = resourceService.favoriteResource(userId, resourceId);
+        Result<String> result = resourceFavoriteService.favorite(userId, resourceId);
         
         assertNotNull(result);
-        assertTrue(result.getCode() == 200 || result.getCode() != 200);
         log.info("收藏资源结果：{}", result.getMessage());
     }
 
     /**
-     * 测试取消收藏资源
+     * 测试取消收藏资源（通过 ResourceFavoriteService）
      */
     @Test
     void testCancelFavoriteResource() {
         Long userId = 1L;
         Long resourceId = 2L;
         
-        Result<String> result = resourceService.cancelFavoriteResource(userId, resourceId);
+        Result<String> result = resourceFavoriteService.cancelFavorite(userId, resourceId);
         
         assertNotNull(result);
         log.info("取消收藏资源结果：{}", result.getMessage());
@@ -201,7 +200,7 @@ public class ResourceServiceTest {
      */
     @Test
     void testQueryResourceListByHotest() {
-        Result<PageResult> result = resourceService.queryList(1, 10, null, "hottest");
+        Result<PageResult> result = resourceService.queryList(1, 10, null, null, "hottest");
         
         assertNotNull(result);
         assertEquals(200, result.getCode());
@@ -215,8 +214,8 @@ public class ResourceServiceTest {
      */
     @Test
     void testPagination() {
-        Result<PageResult> result1 = resourceService.queryList(1, 5, null, null);
-        Result<PageResult> result2 = resourceService.queryList(2, 5, null, null);
+        Result<PageResult> result1 = resourceService.queryList(1, 5, null, null, null);
+        Result<PageResult> result2 = resourceService.queryList(2, 5, null, null, null);
         
         assertNotNull(result1);
         assertNotNull(result2);

@@ -120,15 +120,15 @@ CREATE TABLE post
 -- 5. 评论表 (Comments)
 CREATE TABLE comment
 (
-    id           BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    user_id      BIGINT NOT NULL COMMENT '评论者ID，关联user.id',
-    content      TEXT   NOT NULL COMMENT '评论内容',
-    post_id      BIGINT NULL COMMENT '关联帖子ID，回复帖子时使用',
-    resource_id  BIGINT NULL COMMENT '关联资源ID，回复资源时使用',
-    parent_id    BIGINT   DEFAULT 0 COMMENT '父级评论ID，用于实现二级回复',
-    create_time  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
-    update_time  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted   TINYINT  DEFAULT 0 COMMENT '逻辑删除标记: 0-未删除, 1-已删除',
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id     BIGINT NOT NULL COMMENT '评论者ID，关联user.id',
+    content     TEXT   NOT NULL COMMENT '评论内容',
+    post_id     BIGINT NULL COMMENT '关联帖子ID，回复帖子时使用',
+    resource_id BIGINT NULL COMMENT '关联资源ID，回复资源时使用',
+    parent_id   BIGINT   DEFAULT 0 COMMENT '父级评论ID，用于实现二级回复',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted  TINYINT  DEFAULT 0 COMMENT '逻辑删除标记: 0-未删除, 1-已删除',
     INDEX idx_user (user_id),
     INDEX idx_post_parent (post_id, parent_id, is_deleted),
     INDEX idx_create_time (create_time),
@@ -155,110 +155,57 @@ CREATE TABLE post_like
   COLLATE = utf8mb4_unicode_ci COMMENT ='帖子点赞记录表';
 
 -- =====================================================
--- 7. 聊天消息表 (AI Chat History)
--- 描述: 存储用户与AI智能助手的对话历史记录
--- =====================================================
-CREATE TABLE chat_message
-(
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    session_id  BIGINT                                    NOT NULL COMMENT '会话ID，用于区分不同轮次的对话',
-    user_id     BIGINT                                    NOT NULL COMMENT '用户ID，关联user.id',
-    role        ENUM ('user','assistant','system','tool') NOT NULL COMMENT '角色: user(用户), assistant(AI), system(系统), tool(工具)',
-    content     TEXT                                      NOT NULL COMMENT '消息内容，包含文本或Token',
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_session_create (session_id, create_time),
-    INDEX idx_user_create (user_id, create_time)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='AI聊天记录表';
-
--- =====================================================
--- 8. 资源收藏表(Resource Favorite)
--- 描述: 管理用户收藏的资源
 -- 7. 资源收藏表(Resource Favorite)
+-- 描述: 管理用户收藏的资源
 CREATE TABLE resource_favorite
 (
     id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    user_id       BIGINT                                  NOT NULL COMMENT '用户ID，关联user.id',
-    resource_id   BIGINT                                  NOT NULL COMMENT '资源ID，关联资源表',
+    user_id       BIGINT      NOT NULL COMMENT '用户ID，关联user.id',
+    resource_id   BIGINT      NOT NULL COMMENT '资源ID，关联资源表',
     resource_type VARCHAR(20) NOT NULL DEFAULT 'resource' COMMENT '资源类型: resource(学习资源), post(帖子), kb_document(知识库文档)',
-    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
-    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_time   DATETIME             DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    update_time   DATETIME             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_user_resource_type (user_id, resource_id, resource_type) COMMENT '同一用户同一资源类型只能收藏一次',
     INDEX idx_resource_type (resource_type)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='资源收藏表';
 
--- =====================================================
--- 9. AI会话管理表 (AI Session Management)
--- 描述: 管理用户与AI的会话会话，支持多轮对话、上下文记忆
--- =====================================================
-CREATE TABLE ai_session
+-- ----------------------------
+-- 8. AI 会话表 (ai_session)
+-- 作用: 管理用户的多次独立对话，类似 ChatGPT 的左侧历史记录列表
+-- ----------------------------
+CREATE TABLE `ai_session`
 (
-    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '会话ID',
-    user_id       BIGINT NOT NULL COMMENT '用户ID，关联user.id',
-    session_name  VARCHAR(100) COMMENT '会话名称/标题',
-    token_count   INT      DEFAULT 0 COMMENT '累计消耗Token数',
-    message_count INT      DEFAULT 0 COMMENT '会话消息数',
-    status        TINYINT  DEFAULT 1 COMMENT '状态: 1-活跃, 0-归档, -1-删除',
-    last_message  TEXT COMMENT '最后一条消息摘要',
-    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_user (user_id),
-    INDEX idx_user_status (user_id, status),
-    INDEX idx_create_time (create_time)
+    `id`          bigint       NOT NULL AUTO_INCREMENT COMMENT '主键，会话ID',
+    `user_id`     bigint       NOT NULL COMMENT '所属用户ID',
+    `title`       varchar(128) NOT NULL DEFAULT '新会话' COMMENT '会话标题(通常取第一条问题的摘要)',
+    `create_time` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`  tinyint      NOT NULL DEFAULT 0 COMMENT '逻辑删除标识 (0-正常, 1-已删除)',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`) USING BTREE COMMENT '加速按用户查询会话列表'
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='AI会话管理表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='AI会话表';
 
--- =====================================================
--- 10. 知识库表 (Knowledge Base)
--- 描述: AI RAG增强检索所需的知识库集合
--- =====================================================
-CREATE TABLE kb_info
-(
-    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '知识库ID',
-    kb_name        VARCHAR(100) NOT NULL COMMENT '知识库名称',
-    kb_description TEXT COMMENT '知识库描述',
-    kb_category    VARCHAR(50) COMMENT '知识库分类',
-    source_type    VARCHAR(20) COMMENT '来源类型: manual-手动, document-文档, web-网页',
-    document_count INT      DEFAULT 0 COMMENT '文档数量',
-    is_deleted     TINYINT  DEFAULT 0 COMMENT '逻辑删除标记',
-    create_user_id BIGINT COMMENT '创建人ID',
-    create_time    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_category (kb_category),
-    INDEX idx_deleted (is_deleted),
-    INDEX idx_create_user (create_user_id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='知识库信息表';
 
--- =====================================================
--- 11. 知识库文档表 (Knowledge Base Document)
--- 描述: 存储知识库中的具体文档内容
--- =====================================================
-CREATE TABLE kb_document
+-- ----------------------------
+-- 9. AI 聊天记录表 (chat_message)
+-- 作用: 存储每个会话下具体的对话明细
+-- ----------------------------
+CREATE TABLE `chat_message`
 (
-    id               BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '文档ID',
-    kb_id            BIGINT       NOT NULL COMMENT '所属知识库ID',
-    doc_title        VARCHAR(255) NOT NULL COMMENT '文档标题',
-    doc_content      TEXT COMMENT '文档内容',
-    file_path        VARCHAR(500) COMMENT '文件存储路径',
-    file_type        VARCHAR(20) COMMENT '文件类型: txt, pdf, docx, md, html',
-    file_size        BIGINT COMMENT '文件大小(字节)',
-    vector_status    TINYINT  DEFAULT 0 COMMENT '向量化状态: 0-未处理, 1-处理中, 2-已完成, -1-失败',
-    milvus_doc_id    VARCHAR(100) COMMENT 'Milvus中的文档ID',
-    vector_error_msg TEXT COMMENT '向量化错误信息',
-    status           TINYINT  DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
-    create_user_id   BIGINT COMMENT '创建人ID',
-    create_time      DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_kb (kb_id),
-    INDEX idx_vector_status (vector_status),
-    INDEX idx_create_user (create_user_id)
+    `id`          bigint      NOT NULL AUTO_INCREMENT COMMENT '主键，消息ID',
+    `session_id`  bigint      NOT NULL COMMENT '所属会话ID，关联 ai_session.id',
+    `user_id`     bigint      NOT NULL COMMENT '消息所属用户ID',
+    `role`        varchar(20) NOT NULL COMMENT '消息角色 (user:用户, assistant:AI助手, system:系统提示词)',
+    `content`     text        NOT NULL COMMENT '消息内容正文',
+    `create_time` datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发送/创建时间',
+    `is_deleted`  tinyint     NOT NULL DEFAULT 0 COMMENT '逻辑删除标识 (0-正常, 1-已删除)',
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`) USING BTREE COMMENT '加速加载特定会话的聊天历史',
+    KEY `idx_user_id` (`user_id`) USING BTREE COMMENT '加速按用户维度的消息统计'
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='知识库文档表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='AI聊天记录表';

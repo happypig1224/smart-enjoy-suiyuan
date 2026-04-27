@@ -3,7 +3,9 @@ smart:
     suiyuan:
       ai:
         mcp:
-          server-url:http://localhost:8000/mcp
+          server-url: http://localhost:8000/mcp
+          timeout: 30000
+          retry-count: 3
         dashscope:
           api-key: ${ALIYUN_DASHSCOPE_API_KEY}
           chat:
