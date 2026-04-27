@@ -1,5 +1,6 @@
 package com.shxy.suiyuanserver.service;
 
+import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.entity.ChatMessage;
 import com.shxy.suiyuanentity.vo.ChatMessageVO;
 import com.shxy.suiyuanentity.vo.ChatResponseVO;
@@ -34,4 +35,11 @@ public interface AiChatService {
      * @return 历史消息列表
      */
     List<ChatMessageVO> getHistoryMessage(Long sessionId);
+
+    /**
+     * 删除指定会话及其所有消息
+     * @param sessionId 会话ID
+     * @return 操作结果
+     */
+    Result<String> deleteSession(Long sessionId);
 }

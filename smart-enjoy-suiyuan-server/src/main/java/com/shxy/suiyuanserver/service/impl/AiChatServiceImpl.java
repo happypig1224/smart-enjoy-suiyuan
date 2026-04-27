@@ -167,6 +167,35 @@ public class AiChatServiceImpl implements AiChatService {
         ).collect(Collectors.toList());
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> deleteSession(Long sessionId) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null) {
+            return Result.fail("用户未登录!");
+        }
+        
+        if (sessionId == null) {
+            return Result.fail("会话ID不能为空!");
+        }
+        
+        // 验证会话是否存在且属于当前用户
+        AiSession session = aiSessionMapper.selectById(sessionId);
+        if (session == null || !session.getUserId().equals(userId)) {
+            return Result.fail("会话不存在或无权访问!");
+        }
+        
+        // 删除该会话下的所有消息记录---逻辑删除
+        LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ChatMessage::getSessionId, sessionId);
+        chatMessageMapper.delete(queryWrapper);
+        
+        // 删除会话记录---逻辑删除
+        aiSessionMapper.deleteById(sessionId);
+        
+        log.info("用户 {} 删除了会话 {}", userId, sessionId);
+        return Result.success("会话删除成功");
+    }
+
     /**
      * 内部方法：获取或创建会话
      */

@@ -55,4 +55,10 @@ public class AiChatController {
     public Result<List<ChatMessageVO>> getHistoryMessage(@RequestParam(required = false) Long sessionId) {
         return Result.success(aiChatService.getHistoryMessage(sessionId));
     }
+
+    @DeleteMapping("/session/{sessionId}")
+    @Operation(summary = "删除指定会话")
+    public Result<String> deleteSession(@PathVariable Long sessionId) {
+        return aiChatService.deleteSession(sessionId);
+    }
 }
