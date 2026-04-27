@@ -5,6 +5,7 @@ import com.shxy.suiyuanentity.entity.AiSession;
 import com.shxy.suiyuanentity.entity.ChatMessage;
 import com.shxy.suiyuanentity.entity.McpRequest;
 import com.shxy.suiyuanentity.entity.McpResponse;
+import com.shxy.suiyuanentity.vo.ChatResponseVO;
 import com.shxy.suiyuanserver.agent.McpClient;
 import com.shxy.suiyuanserver.mapper.AiSessionMapper;
 import com.shxy.suiyuanserver.mapper.ChatMessageMapper;
@@ -37,8 +38,9 @@ public class AiChatServiceImpl implements AiChatService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String chat(Long userId, String query, Long sessionId) {
+    public ChatResponseVO chat(Long userId, String query, Long sessionId) {
 
+        log.info("会话ID: {}", sessionId);
         // 1. 获取或创建会话
         AiSession session = getOrCreateSession(userId, sessionId, query);
         Long activeSessionId = session.getId();
@@ -61,7 +63,6 @@ public class AiChatServiceImpl implements AiChatService {
             map.put("content", msg.getContent());
             historyPayload.add(map);
         }
-        // ===================================================
 
         // 2. 组装 MCP 请求参数
         Map<String, Object> params = new HashMap<>();
@@ -90,7 +91,11 @@ public class AiChatServiceImpl implements AiChatService {
         // 5. 保存聊天记录到数据库 (用户问题 + AI 回复)
         saveChatMessage(activeSessionId, userId, query, aiReply);
 
-        return aiReply;
+        // 6. 返回包含 sessionId 和回复的响应
+        return ChatResponseVO.builder()
+                .sessionId(activeSessionId)
+                .reply(aiReply)
+                .build();
     }
 
     /**

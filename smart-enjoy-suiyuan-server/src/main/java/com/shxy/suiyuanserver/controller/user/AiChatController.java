@@ -1,6 +1,8 @@
 package com.shxy.suiyuanserver.controller.user;
 
 import com.shxy.suiyuancommon.result.Result;
+import com.shxy.suiyuancommon.utils.BaseContext;
+import com.shxy.suiyuanentity.vo.ChatResponseVO;
 import com.shxy.suiyuanserver.service.AiChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,10 +30,8 @@ public class AiChatController {
 
     @PostMapping("/send")
     @Operation(summary = "发送消息给AI")
-    public Result<String> sendChatMessage(@RequestBody Map<String, Object> requestParams) {
-        // 实际开发中，userId 应该从 JWT ThreadLocal 工具类中获取
-        // Long userId = UserContext.getUserId();
-        Long userId = 1L; // 模拟当前登录用户
+    public Result<ChatResponseVO> sendChatMessage(@RequestBody Map<String, Object> requestParams) {
+        Long userId = BaseContext.getCurrentUserId();
 
         String query = (String) requestParams.get("query");
         Long sessionId = requestParams.get("sessionId") != null ?
@@ -41,8 +41,8 @@ public class AiChatController {
             return Result.fail("消息不能为空");
         }
 
-        String reply = aiChatService.chat(userId, query, sessionId);
+        ChatResponseVO response = aiChatService.chat(userId, query, sessionId);
 
-        return Result.success(reply);
+        return Result.success(response);
     }
 }
