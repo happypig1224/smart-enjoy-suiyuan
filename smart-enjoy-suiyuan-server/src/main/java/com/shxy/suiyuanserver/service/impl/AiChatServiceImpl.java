@@ -1,11 +1,16 @@
 package com.shxy.suiyuanserver.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.shxy.suiyuancommon.exception.BaseException;
+import com.shxy.suiyuancommon.result.Result;
+import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuanentity.entity.AiSession;
 import com.shxy.suiyuanentity.entity.ChatMessage;
 import com.shxy.suiyuanentity.entity.McpRequest;
 import com.shxy.suiyuanentity.entity.McpResponse;
+import com.shxy.suiyuanentity.vo.ChatMessageVO;
 import com.shxy.suiyuanentity.vo.ChatResponseVO;
+import com.shxy.suiyuanentity.vo.SessionVO;
 import com.shxy.suiyuanserver.agent.McpClient;
 import com.shxy.suiyuanserver.mapper.AiSessionMapper;
 import com.shxy.suiyuanserver.mapper.ChatMessageMapper;
@@ -16,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Wu, Hui Ming
@@ -38,8 +44,11 @@ public class AiChatServiceImpl implements AiChatService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ChatResponseVO chat(Long userId, String query, Long sessionId) {
-
+    public ChatResponseVO chat(String query, Long sessionId) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null) {
+            throw new BaseException("用户未登录!");
+        }
         log.info("会话ID: {}", sessionId);
         // 1. 获取或创建会话
         AiSession session = getOrCreateSession(userId, sessionId, query);
@@ -96,6 +105,66 @@ public class AiChatServiceImpl implements AiChatService {
                 .sessionId(activeSessionId)
                 .reply(aiReply)
                 .build();
+    }
+
+    @Override
+    public List<SessionVO> getHistory() {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null){
+            throw new BaseException("用户未登录!");
+        }
+        
+        LambdaQueryWrapper<AiSession> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AiSession::getUserId, userId);
+        queryWrapper.orderByDesc(AiSession::getCreateTime);
+        List<AiSession> sessionList = aiSessionMapper.selectList(queryWrapper);
+        
+        if (sessionList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // 转换为SessionVO
+        return sessionList.stream().map(session -> 
+            SessionVO.builder()
+                .sessionId(session.getId())
+                .title(session.getTitle())
+                .createTime(session.getCreateTime())
+                .build()
+        ).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ChatMessageVO> getHistoryMessage(Long sessionId) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null){
+            throw new BaseException("用户未登录!");
+        }
+        
+        if (sessionId == null) {
+            throw new BaseException("会话ID不能为空!");
+        }
+        
+        // 验证会话是否存在且属于当前用户
+        AiSession session = aiSessionMapper.selectById(sessionId);
+        if (session == null || !session.getUserId().equals(userId)) {
+            throw new BaseException("会话不存在或无权访问!");
+        }
+        
+        // 查询该会话下的所有消息，按时间正序排列
+        LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ChatMessage::getSessionId, sessionId);
+        queryWrapper.eq(ChatMessage::getUserId, userId);
+        queryWrapper.orderByAsc(ChatMessage::getCreateTime);
+        List<ChatMessage> messageList = chatMessageMapper.selectList(queryWrapper);
+        
+        // 转换为ChatMessageVO
+        return messageList.stream().map(message -> 
+            ChatMessageVO.builder()
+                .role(message.getRole())
+                .content(message.getContent())
+                .createTime(message.getCreateTime())
+                .build()
+        ).collect(Collectors.toList());
     }
 
     /**
