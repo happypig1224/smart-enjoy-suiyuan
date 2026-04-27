@@ -1,11 +1,76 @@
+# ========== Java Maven ==========
 target/
 *.class
+*.jar
+*.war
+*.ear
+.mvn/
+mvnw
+mvnw.cmd
+
+# Python
+agent-server-python/__pycache__/
+agent-server-python/*.py[cod]
+agent-server-python/*$py.class
+agent-server-python/*.so
+agent-server-python/.Python
+agent-server-python/build/
+agent-server-python/develop-eggs/
+agent-server-python/dist/
+agent-server-python/downloads/
+agent-server-python/eggs/
+agent-server-python/.eggs/
+agent-server-python/lib/
+agent-server-python/lib64/
+agent-server-python/parts/
+agent-server-python/sdist/
+agent-server-python/var/
+agent-server-python/wheels/
+agent-server-python/pip-wheel-metadata/
+agent-server-python/share/python-wheels/
+agent-server-python/*.egg-info/
+agent-server-python/.installed.cfg
+agent-server-python/*.egg
+agent-server-python/MANIFEST
+
+# Virtual Environment
+agent-server-python/venv/
+agent-server-python/env/
+agent-server-python/ENV/
+agent-server-python/env.bak/
+agent-server-python/venv.bak/
+
+# IDE
+.vscode/
 .idea/
-logs/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Environment Variables
+agent-server-python/.env
+
+# Logs
+agent-server-python/logs/
 *.log
 
-# Config
-config/
-*.properties
-*.yaml
-!application.yaml  # 仅保留模板，不保留带值的配置
+# Testing
+agent-server-python/.pytest_cache/
+agent-server-python/.coverage
+agent-server-python/htmlcov/
+agent-server-python/.tox/
+agent-server-python/.nox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Milvus Local Data (if using milvus-lite)
+agent-server-python/milvus_data/
+
+# Backup files
+*.bak
+*.backup

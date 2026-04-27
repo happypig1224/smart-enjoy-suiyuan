@@ -1,0 +1,15 @@
+# Suiyuan AI Agent Server - 依赖列表
+# 推荐使用 pyproject.toml 进行依赖管理
+# 此文件保留用于兼容性
+
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+pydantic-settings>=2.0.0
+pyyaml>=6.0.0
+langgraph>=0.0.26
+langchain>=0.1.9
+langchain-core>=0.1.27
+langchain-community>=0.0.24
+dashscope>=1.14.0
+pymilvus>=2.3.6
