@@ -13,3 +13,5 @@ langchain-core>=0.1.27
 langchain-community>=0.0.24
 dashscope>=1.14.0
 pymilvus>=2.3.6
+httpx>=0.25.0
+apscheduler>=3.10.0

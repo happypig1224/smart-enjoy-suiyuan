@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
-from app.api.routes import mcp
+from app.api.routes import mcp, lost_found_sync
 from app.utils.logger import app_logger
 from langchain_core.messages import HumanMessage, AIMessage
 
@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(mcp.router)
+app.include_router(lost_found_sync.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -35,12 +36,24 @@ async def startup_event():
     app_logger.info(f"{settings.app_name} v{settings.version} 启动中...")
     app_logger.info(f"服务地址: http://{settings.mcp.host}:{settings.mcp.port}")
     app_logger.info(f"{'='*50}")
+    
+    # 启动定时任务
+    from app.task.scheduler import start_scheduler
+    start_scheduler()
+    
+    app_logger.info("智享绥园 Agent Server 启动完成")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭事件"""
     app_logger.info(f"{settings.app_name} 正在关闭...")
+    
+    # 停止定时任务
+    from app.task.scheduler import stop_scheduler
+    stop_scheduler()
+    
+    app_logger.info("智享绥园 Agent Server 已关闭")
 
 
 @app.get("/")

@@ -49,6 +49,7 @@ class AppSettings(BaseSettings):
     app_name: str = "Suiyuan AI Agent Server"
     version: str = "1.0.0"
     debug: bool = False
+    java_api_base_url: str = "http://localhost:8080"
     
     # 子配置
     milvus: MilvusConfig = MilvusConfig()

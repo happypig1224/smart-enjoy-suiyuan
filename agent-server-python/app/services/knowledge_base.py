@@ -44,12 +44,13 @@ class KnowledgeBaseService:
             app_logger.error(f"Embedding 生成失败: {e}")
             raise EmbeddingError(f"Embedding 生成失败: {e}")
     
-    def insert_document(self, text: str) -> List[int]:
+    def insert_document(self, text: str, doc_type: str = "campus_guide") -> List[int]:
         """
         插入文档到知识库
         
         Args:
             text: 文档文本
+            doc_type: 文档类型（campus_guide/resource）
         
         Returns:
             插入的主键 ID 列表
@@ -59,7 +60,7 @@ class KnowledgeBaseService:
             
             embedding = self.get_embedding(text)
             
-            ids = self.milvus_repo.insert([text], [embedding])
+            ids = self.milvus_repo.insert([text], [embedding], [doc_type])
             
             app_logger.info(f"文档插入成功，ID: {ids}")
             return ids
@@ -67,13 +68,14 @@ class KnowledgeBaseService:
             app_logger.error(f"文档插入失败: {e}")
             raise KnowledgeBaseError(f"文档插入失败: {e}")
     
-    def search_documents(self, query: str, top_k: int = 3) -> str:
+    def search_documents(self, query: str, top_k: int = 3, doc_type: str = None) -> str:
         """
         检索知识库文档
         
         Args:
             query: 查询文本
             top_k: 返回结果数量
+            doc_type: 文档类型过滤（可选）
         
         Returns:
             检索到的文档文本（格式化）
@@ -83,7 +85,12 @@ class KnowledgeBaseService:
             
             query_vector = self.get_embedding(query)
             
-            results = self.milvus_repo.search(query_vector, top_k)
+            # 构建过滤表达式
+            filter_expr = None
+            if doc_type:
+                filter_expr = f"doc_type == '{doc_type}'"
+            
+            results = self.milvus_repo.search(query_vector, top_k, filter_expr=filter_expr)
             
             contexts = []
             for hits in results:

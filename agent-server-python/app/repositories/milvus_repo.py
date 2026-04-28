@@ -49,6 +49,7 @@ class MilvusRepository:
         fields = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
+            FieldSchema(name="doc_type", dtype=DataType.VARCHAR, max_length=50),  # 文档类型：campus_guide/resource
             FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=self.dim)
         ]
         schema = CollectionSchema(fields=fields, description="智享绥园校园知识库")
@@ -64,19 +65,24 @@ class MilvusRepository:
         self.collection.create_index(field_name="embedding", index_params=index_params)
         app_logger.info(f"集合 {self.collection_name} 创建完成并建立索引")
     
-    def insert(self, texts: List[str], embeddings: List[List[float]]) -> List[int]:
+    def insert(self, texts: List[str], embeddings: List[List[float]], doc_types: List[str] = None) -> List[int]:
         """
         插入数据到 Milvus
         
         Args:
             texts: 文本列表
             embeddings: 向量列表
+            doc_types: 文档类型列表（可选）
         
         Returns:
             插入的主键 ID 列表
         """
         try:
-            data = [texts, embeddings]
+            # 如果没有提供 doc_type，默认为 'campus_guide'
+            if doc_types is None:
+                doc_types = ['campus_guide'] * len(texts)
+            
+            data = [texts, doc_types, embeddings]
             result = self.collection.insert(data)
             self.collection.flush()
             app_logger.info(f"成功插入 {len(result.primary_keys)} 条数据")
@@ -89,7 +95,8 @@ class MilvusRepository:
         self,
         query_vector: List[float],
         top_k: int = 3,
-        output_fields: List[str] = None
+        output_fields: List[str] = None,
+        filter_expr: str = None
     ) -> List:
         """
         向量相似度检索
@@ -98,6 +105,7 @@ class MilvusRepository:
             query_vector: 查询向量
             top_k: 返回结果数量
             output_fields: 需要返回的字段
+            filter_expr: 过滤表达式（例如："doc_type == 'resource'"）
         
         Returns:
             检索结果列表
@@ -106,7 +114,7 @@ class MilvusRepository:
             self.collection.load()
             
             if output_fields is None:
-                output_fields = ["text"]
+                output_fields = ["text", "doc_type"]
             
             search_params = {
                 "metric_type": "COSINE",
@@ -118,7 +126,8 @@ class MilvusRepository:
                 anns_field="embedding",
                 param=search_params,
                 limit=top_k,
-                output_fields=output_fields
+                output_fields=output_fields,
+                expr=filter_expr  # 添加过滤条件
             )
             
             app_logger.info(f"检索完成，返回 {len(results[0])} 条结果")
