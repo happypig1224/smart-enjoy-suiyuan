@@ -14,20 +14,15 @@ USE `smart_enjoy_suiyuan`;
 CREATE TABLE user
 (
     id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    nick_name     VARCHAR(50)        NOT NULL COMMENT '用户昵称',
-    user_name     VARCHAR(50) UNIQUE NOT NULL COMMENT '登录用户名，全局唯一',
+    user_name     VARCHAR(50) UNIQUE NOT NULL COMMENT '用户名，系统自动生成，全局唯一',
     user_password VARCHAR(100)       NOT NULL COMMENT '登录密码，BCrypt加密存储',
-    user_gender   TINYINT  DEFAULT 0 COMMENT '性别: 0-未填写, 1-男, 2-女',
-    user_age      INT COMMENT '用户年龄',
-    user_grade    VARCHAR(20) COMMENT '所属年级，如2023级',
     avatar        VARCHAR(255) COMMENT '头像图片URL地址',
-    phone         VARCHAR(20) UNIQUE COMMENT '绑定手机号，唯一索引',
+    phone         VARCHAR(20) UNIQUE NOT NULL COMMENT '手机号，用于登录和接收验证码',
     role          TINYINT  DEFAULT 1 COMMENT '角色权限: 1-普通用户, 0-管理员',
     status        TINYINT  DEFAULT 1 COMMENT '账户状态: 1-正常, 0-禁用(封号)',
     create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册/创建时间',
     update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     is_deleted    TINYINT  DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
-    INDEX idx_user_name (user_name),
     INDEX idx_phone (phone),
     INDEX idx_status (status)
 ) ENGINE = InnoDB
@@ -209,3 +204,55 @@ CREATE TABLE `chat_message`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='AI聊天记录表';
+
+-- =====================================================
+-- 10. 二手商品表 (Secondhand Market)
+-- 描述: 校园二手交易平台，支持物品发布、浏览、收藏和交易
+-- =====================================================
+CREATE TABLE secondhand_item
+(
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    seller_id       BIGINT        NOT NULL COMMENT '卖家ID，关联user.id',
+    title           VARCHAR(100)  NOT NULL COMMENT '商品标题',
+    description     TEXT          NOT NULL COMMENT '商品详细描述',
+    category        VARCHAR(20)   NOT NULL COMMENT '商品分类: electronics-数码, books-书籍, daily-日用品, sports-运动, clothes-服装, other-其他',
+    price           DECIMAL(10,2) NOT NULL COMMENT '二手价格',
+    original_price  DECIMAL(10,2) COMMENT '原价',
+    condition_level TINYINT       NOT NULL COMMENT '新旧程度: 1-全新, 2-95新, 3-9成新, 4-8成新, 5-7成新及以下',
+    images          JSON COMMENT '商品图片URL数组',
+    contact_phone   VARCHAR(20) COMMENT '联系电话',
+    contact_wechat  VARCHAR(50) COMMENT '联系微信',
+    view_count      INT           DEFAULT 0 COMMENT '浏览次数',
+    favorite_count  INT           DEFAULT 0 COMMENT '收藏次数',
+    status          TINYINT       DEFAULT 0 COMMENT '商品状态: 0-在售, 1-已售出, 2-已下架',
+    trade_location  VARCHAR(100) COMMENT '交易地点建议',
+    create_time     DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+    update_time     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted      TINYINT       DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    INDEX idx_seller (seller_id),
+    INDEX idx_category (category),
+    INDEX idx_status (status),
+    INDEX idx_price (price),
+    INDEX idx_create_time (create_time),
+    INDEX idx_category_status (category, status),
+    INDEX idx_seller_status (seller_id, status)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='二手商品表';
+
+-- =====================================================
+-- 11. 二手商品收藏表 (Secondhand Favorite)
+-- 描述: 记录用户对二手商品的收藏关系
+-- =====================================================
+CREATE TABLE secondhand_favorite
+(
+    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id       BIGINT   NOT NULL COMMENT '用户ID，关联user.id',
+    item_id       BIGINT   NOT NULL COMMENT '商品ID，关联secondhand_item.id',
+    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    UNIQUE KEY uk_user_item (user_id, item_id) COMMENT '同一用户对同一商品只能收藏一次',
+    INDEX idx_item (item_id),
+    INDEX idx_user (user_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='二手商品收藏表';

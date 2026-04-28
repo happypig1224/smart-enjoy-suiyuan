@@ -113,8 +113,15 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         final Integer finalPage = page;
         final Integer finalPageSize = pageSize;
         
-        String cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX +
-                finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort;
+        // 特殊处理热门资源排行榜，使用专门的缓存key
+        String cacheKey;
+        if ("hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType)) {
+            // 热门排行榜使用专门的缓存，更长的TTL
+            cacheKey = RedisConstant.RESOURCE_HOT_RANKING_KEY_PREFIX + finalPage + ":" + finalPageSize;
+        } else {
+            cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX +
+                    finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort;
+        }
 
         // 使用工具类解决缓存雪崩(随机过期时间)
         PageResult pageResult = redisCacheUtil.queryWithPassThrough(
@@ -145,7 +152,10 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                             .size(result.getSize())
                             .build();
                 },
-                RedisConstant.RESOURCE_LIST_TTL,
+                // 热门排行榜使用更长的TTL
+                "hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) 
+                    ? RedisConstant.RESOURCE_HOT_RANKING_TTL 
+                    : RedisConstant.RESOURCE_LIST_TTL,
                 TimeUnit.SECONDS
         );
 
@@ -449,7 +459,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
             User user = userMap.get(resource.getUserId());
             if (user != null) {
-                vo.setUserNickName(user.getNickName());
+                vo.setUserNickName(user.getUserName());
                 vo.setUserAvatar(user.getAvatar());
             }
 
@@ -539,7 +549,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
             User user = userMap.get(resource.getUserId());
             if (user != null) {
-                vo.setUserNickName(user.getNickName());
+                vo.setUserNickName(user.getUserName());
                 vo.setUserAvatar(user.getAvatar());
             }
 

@@ -30,13 +30,13 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/login")
-    @Operation(summary = "用户登录", description = "用户使用账号密码进行登录")
+    @Operation(summary = "用户登录", description = "用户使用手机号+密码进行登录")
     public Result<Map<String, Object>> login(@Valid @RequestBody UserDTO userLoginDTO) {
         return userService.login(userLoginDTO);
     }
 
     @PostMapping("/register")
-    @Operation(summary = "用户注册", description = "新用户注册账号")
+    @Operation(summary = "用户注册", description = "新用户通过手机号+验证码注册，用户名系统自动生成")
     public Result<Map<String, Object>> register(@Valid @RequestBody UserDTO userRegisterDTO) {
         return userService.register(userRegisterDTO);
     }

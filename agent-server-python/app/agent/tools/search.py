@@ -36,7 +36,9 @@ def search_resources(query: str) -> str:
     Returns:
         检索结果文本
     """
-    return f"[资源库检索结果] 为您找到与'{query}'相关的资源：1.《Java核心技术》PDF (ID:101); 2.《高数期末真题》DOC (ID:102)。"
+    # return f"[资源库检索结果] 为您找到与'{query}'相关的资源：1.《Java核心技术》PDF (ID:101); 2.《高数期末真题》DOC (ID:102)。"
+    kb_service = get_kb_service()
+    kb_service.search_documents(query=query, top_k=3)
 
 
 def search_lost_found(query: str) -> str:

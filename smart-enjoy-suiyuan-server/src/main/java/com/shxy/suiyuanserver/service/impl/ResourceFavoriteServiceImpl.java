@@ -190,7 +190,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
                             .build();
                     User uploader = userMap.get(resource.getUserId());
                     if (uploader != null) {
-                        vo.setUserNickName(uploader.getNickName());
+                        vo.setUserNickName(uploader.getUserName());
                     }
                     return vo;
                 })

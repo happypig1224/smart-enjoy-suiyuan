@@ -28,12 +28,7 @@ public class User {
     private Long id;
 
     /**
-     * 用户昵称
-     */
-    private String nickName;
-
-    /**
-     * 登录用户名，全局唯一
+     * 用户名，系统自动生成，全局唯一
      */
     private String userName;
 
@@ -43,27 +38,12 @@ public class User {
     private String userPassword;
 
     /**
-     * 性别: 0-未填写, 1-男, 2-女
-     */
-    private Integer userGender;
-
-    /**
-     * 用户年龄
-     */
-    private Integer userAge;
-
-    /**
-     * 所属年级，如2023级
-     */
-    private String userGrade;
-
-    /**
      * 头像图片URL地址
      */
     private String avatar;
 
     /**
-     * 绑定手机号，唯一索引
+     * 手机号，用于登录和接收验证码
      */
     private String phone;
 

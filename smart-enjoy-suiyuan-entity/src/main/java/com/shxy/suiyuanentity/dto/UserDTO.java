@@ -23,28 +23,28 @@ import lombok.NoArgsConstructor;
 @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDTO {
     
-    @Size(min = 3, max = 50, message = "用户名长度必须在3-50个字符之间")
-    private String userName;
-    
-    @Size(max = 50, message = "昵称长度不能超过50个字符")
-    private String nickName;
-    
-    @Size(min = 6, max = 20, message = "密码长度必须在6-20个字符之间")
-    private String userPassword;
-    
-    @Size(min = 6, max = 20, message = "新密码长度必须在6-20个字符之间")
-    private String newPassword;
-
-    private Integer userGender;
-    
-    private Integer userAge;
-
-    @Size(max = 20, message = "年级长度不能超过20个字符")
-    private String userGrade;
-    
+    /**
+     * 手机号（用于登录和注册）
+     */
+    @NotBlank(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
     
+    /**
+     * 密码（用于登录和注册）
+     */
+    @Size(min = 6, max = 20, message = "密码长度必须在6-20个字符之间")
+    private String userPassword;
+    
+    /**
+     * 新密码（用于重置密码）
+     */
+    @Size(min = 6, max = 20, message = "新密码长度必须在6-20个字符之间")
+    private String newPassword;
+    
+    /**
+     * 验证码（用于注册和重置密码）
+     */
     @Size(min = 4, max = 6, message = "验证码长度不正确")
     private String verifyCode;
 

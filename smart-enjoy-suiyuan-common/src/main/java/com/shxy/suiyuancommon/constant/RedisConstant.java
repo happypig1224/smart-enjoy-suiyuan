@@ -124,4 +124,35 @@ public class RedisConstant {
      * 评论列表 TTL：5 分钟
      */
     public static final long COMMENT_LIST_TTL = 300;
+
+    // ==================== 热门数据缓存 ====================
+    /**
+     * 热门资源排行榜缓存：resource:hot:top{limit}
+     */
+    public static final String RESOURCE_HOT_RANKING_KEY_PREFIX = "resource:hot:top";
+
+    /**
+     * 热门资源排行榜 TTL：2 小时（热门数据相对稳定）
+     */
+    public static final long RESOURCE_HOT_RANKING_TTL = 7200;
+
+    /**
+     * 紧急失物招领列表缓存：lostfound:urgent:list:{page}:{pageSize}
+     */
+    public static final String LOSTFOUND_URGENT_LIST_KEY_PREFIX = "lostfound:urgent:list:";
+
+    /**
+     * 紧急失物招领列表 TTL：15 分钟（紧急信息更新频繁）
+     */
+    public static final long LOSTFOUND_URGENT_LIST_TTL = 900;
+
+    /**
+     * 今日新增失物招领缓存：lostfound:today:new
+     */
+    public static final String LOSTFOUND_TODAY_NEW_KEY = "lostfound:today:new";
+
+    /**
+     * 今日新增失物招领 TTL：30 分钟
+     */
+    public static final long LOSTFOUND_TODAY_NEW_TTL = 1800;
 }

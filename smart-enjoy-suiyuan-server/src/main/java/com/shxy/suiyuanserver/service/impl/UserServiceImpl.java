@@ -79,12 +79,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<Map<String, Object>> login(UserDTO userLoginRequestDTO) {
-        String username = userLoginRequestDTO.getUserName();
+        String phone = userLoginRequestDTO.getPhone();
 
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUserName, username));
+                .eq(User::getPhone, phone));
         if (user == null) {
-            log.warn("登录失败: 用户名不存在, username={}", username);
+            log.warn("登录失败: 手机号不存在, phone={}", phone);
             throw new AccountNotFoundException();
         }
         if (!PASSWORD_ENCODER.matches(userLoginRequestDTO.getUserPassword(), user.getUserPassword())) {
@@ -109,7 +109,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String tokenKey = USER_TOKEN_KEY_PREFIX + user.getId();
         redisTemplate.opsForValue().set(tokenKey, token, jwtProperties.getUserTtl(), TimeUnit.MILLISECONDS);
 
-        log.info("用户登录成功: userId={}, username={}", user.getId(), username);
+        log.info("用户登录成功: userId={}, phone={}", user.getId(), phone);
         return Result.success(data);
     }
 
@@ -120,29 +120,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.fail("验证码错误!");
         }
 
-        LambdaQueryWrapper<User> userQueryWrapper = new LambdaQueryWrapper<>();
-        userQueryWrapper
-                .eq(User::getUserName, userRegisterDTO.getUserName())
-                .or()
-                .eq(User::getPhone, userRegisterDTO.getPhone());
-        if (userMapper.exists(userQueryWrapper)) {
-            LambdaQueryWrapper<User> nameWrapper = new LambdaQueryWrapper<>();
-            nameWrapper.eq(User::getUserName, userRegisterDTO.getUserName());
-            if (userMapper.exists(nameWrapper)) {
-                throw new AccountExistsException();
-            }
+        // 检查手机号是否已注册
+        LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
+        phoneWrapper.eq(User::getPhone, userRegisterDTO.getPhone());
+        if (userMapper.exists(phoneWrapper)) {
             throw new PhoneExistsException();
         }
 
+        // 生成唯一的用户名：user_ + 随机6位字符
+        String userName;
+        do {
+            userName = "user_" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        } while (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getUserName, userName)));
+
         String userPassword = PASSWORD_ENCODER.encode(userRegisterDTO.getUserPassword());
-        String nickName = "user_" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
 
         User user = User.builder()
-                .userName(userRegisterDTO.getUserName())
+                .userName(userName)
                 .userPassword(userPassword)
-                .userGender(userRegisterDTO.getUserGender())
                 .phone(userRegisterDTO.getPhone())
-                .nickName(nickName)
                 .createTime(new Date())
                 .updateTime(new Date())
                 .role(UserRoleEnum.USER.getCode())
@@ -160,6 +156,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
         data.put("userId", user.getId());
+        data.put("userName", userName);
         return Result.success(data);
     }
 
@@ -234,23 +231,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.fail("用户不存在!");
         }
 
-        String nickName = userDTO.getNickName() != null ? userDTO.getNickName() : existingUser.getNickName();
-        Integer userGender = userDTO.getUserGender() != null ? userDTO.getUserGender() : existingUser.getUserGender();
-        Integer userAge = userDTO.getUserAge() != null ? userDTO.getUserAge() : existingUser.getUserAge();
-        String userGrade = userDTO.getUserGrade() != null ? userDTO.getUserGrade() : existingUser.getUserGrade();
-
-        User user = User.builder()
-                .id(userId)
-                .nickName(nickName)
-                .userGender(userGender)
-                .userAge(userAge)
-                .userGrade(userGrade)
-                .updateTime(new Date())
-                .build();
-        int result = userMapper.updateUserInfo(user);
-        if (result == 0) {
-            return Result.fail("修改用户信息失败!");
-        }
+        // 当前只支持更新用户名（如果后续需要）
+        // 由于用户名是系统生成的，一般不建议修改，这里可以保留为空实现
+        // 或者你可以添加其他需要更新的字段
 
         redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
         return Result.success("修改用户信息成功!");

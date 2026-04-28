@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -6,12 +6,8 @@
 
     <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.User">
         <id property="id" column="id"/>
-        <result property="nickName" column="nick_name"/>
         <result property="userName" column="user_name"/>
         <result property="userPassword" column="user_password"/>
-        <result property="userGender" column="user_gender"/>
-        <result property="userAge" column="user_age"/>
-        <result property="userGrade" column="user_grade"/>
         <result property="avatar" column="avatar"/>
         <result property="phone" column="phone"/>
         <result property="role" column="role"/>
@@ -23,17 +19,13 @@
 
     <sql id="Base_Column_List">
         id
-        ,nick_name,user_name,user_password,user_gender,user_age,
-        user_grade,avatar,phone,role,status,
+        ,user_name,user_password,avatar,phone,role,status,
         create_time,update_time,is_deleted
     </sql>
     <update id="updateUserInfo">
         UPDATE user
         <set>
-            <if test="nickName != null">nick_name = #{nickName},</if>
-            <if test="userGender != null">user_gender = #{userGender},</if>
-            <if test="userAge != null">user_age = #{userAge},</if>
-            <if test="userGrade != null">user_grade = #{userGrade},</if>
+            <if test="userName != null">user_name = #{userName},</if>
             update_time = NOW()
         </set>
         WHERE id = #{id}

@@ -4,34 +4,12 @@ spring:
   application:
     name: smart-enjoy-suiyuan
   profiles:
-    active: dev
+    active: test
   # 文件上传配置
   servlet:
     multipart:
       max-file-size: 50MB        # 单个文件最大大小
       max-request-size: 100MB    # 整个请求最大大小
-  # AI大模型配置
-  ai:
-    # 阿里百炼api
-    dashscope:
-      api-key: ${smart.enjoy.suiyuan.ai.dashscope.api-key}
-      chat:
-        options:
-          # 模型名称
-          model: ${smart.enjoy.suiyuan.ai.dashscope.chat.model}
-          # 模型参数
-          temperature: ${smart.enjoy.suiyuan.ai.dashscope.chat.temperature}
-          top-p: ${smart.enjoy.suiyuan.ai.dashscope.chat.top-p}
-       # 向量模型配置
-      embedding:
-        options:
-          model: ${smart.enjoy.suiyuan.ai.embedding.options.model}
-    # 向量数据库配置
-    vectorstore:
-      redis:
-        initialize-schema: true
-        index-name: smart-enjoy-suiyuan-index
-        prefix: vector-redis
   # MySQL数据库配置
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource

@@ -111,6 +111,15 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         clearLostFoundListCache();
         String myCacheKey = RedisConstant.USER_LOSTFOUND_LIST_KEY_PREFIX + userId;
         redisTemplate.delete(myCacheKey);
+        
+        // 如果是紧急失物招领，清除紧急列表缓存
+        if (lostFoundDTO.getUrgent() != null && lostFoundDTO.getUrgent() == 1) {
+            clearUrgentLostFoundCache();
+        }
+        
+        // 清除今日新增缓存
+        redisTemplate.delete(RedisConstant.LOSTFOUND_TODAY_NEW_KEY);
+        
         log.info("失物招领创建成功，ID：{}，用户ID：{}", lostFound.getId(), userId);
         return Result.success(lostFound);
     }
@@ -123,11 +132,21 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         final int finalPage = page;
         final int finalPageSize = pageSize;
         
-        String cacheKey = RedisConstant.LOSTFOUND_LIST_KEY_PREFIX +
-                "page:" + finalPage + ":size:" + finalPageSize + 
-                ":type:" + (type != null ? type : "all") + 
-                ":status:" + (status != null ? status : "all") + 
-                ":urgent:" + (urgent != null ? urgent : "all");
+        // 特殊处理紧急失物招领，使用专门的缓存key和TTL
+        String cacheKey;
+        long cacheTTL;
+        if (urgent != null && urgent == 1) {
+            // 紧急失物招领使用专门的缓存
+            cacheKey = RedisConstant.LOSTFOUND_URGENT_LIST_KEY_PREFIX + "page:" + finalPage + ":size:" + finalPageSize;
+            cacheTTL = RedisConstant.LOSTFOUND_URGENT_LIST_TTL;
+        } else {
+            cacheKey = RedisConstant.LOSTFOUND_LIST_KEY_PREFIX +
+                    "page:" + finalPage + ":size:" + finalPageSize + 
+                    ":type:" + (type != null ? type : "all") + 
+                    ":status:" + (status != null ? status : "all") + 
+                    ":urgent:" + (urgent != null ? urgent : "all");
+            cacheTTL = RedisConstant.LOSTFOUND_LIST_TTL;
+        }
 
         log.info("查询失物招领列表，页码：{}，每页数量：{}，类型：{}，状态：{}，紧急程度：{}", finalPage, finalPageSize, type, status, urgent);
 
@@ -158,7 +177,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                             .size(result.getSize())
                             .build();
                 },
-                RedisConstant.LOSTFOUND_LIST_TTL,
+                cacheTTL,
                 TimeUnit.SECONDS
         );
 
@@ -309,6 +328,12 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
             redisTemplate.delete(detailKey);
         }
         clearLostFoundListCache();
+        
+        // 如果更新了紧急程度，清除紧急列表缓存
+        if (lostFoundDTO.getUrgent() != null) {
+            clearUrgentLostFoundCache();
+        }
+        
         log.info("失物修改成功，ID：{}，用户ID：{}", lostFoundDTO.getId(), userId);
         return Result.success("修改成功!");
     }
@@ -344,6 +369,12 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         String detailKey = RedisConstant.LOSTFOUND_DETAIL_KEY_PREFIX + id;
         redisTemplate.delete(detailKey);
         clearLostFoundListCache();
+        
+        // 如果状态变更为已解决，清除紧急列表缓存
+        if (status == 1) {
+            clearUrgentLostFoundCache();
+        }
+        
         log.info("失物招领状态更新成功，ID：{}，状态：{}，用户ID：{}", id, status, userId);
         return Result.success("修改成功!");
     }
@@ -460,12 +491,31 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
             // 设置用户信息
             User user = userMap.get(lostFound.getUserId());
             if (user != null) {
-                vo.setUserNickName(user.getNickName());
+                vo.setUserNickName(user.getUserName());
                 vo.setUserAvatar(user.getAvatar());
             }
 
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 清除紧急失物招领缓存
+     */
+    private void clearUrgentLostFoundCache() {
+        Set<String> keys = new HashSet<>();
+        Cursor<byte[]> cursor = redisTemplate.executeWithStickyConnection(
+                connection -> connection.scan(ScanOptions.scanOptions()
+                        .match(RedisConstant.LOSTFOUND_URGENT_LIST_KEY_PREFIX + "*")
+                        .count(100).build())
+        );
+        while (cursor.hasNext()) {
+            keys.add(new String(cursor.next()));
+        }
+        if (!keys.isEmpty()) {
+            redisTemplate.delete(keys);
+            log.info("清除紧急失物招领缓存，数量：{}", keys.size());
+        }
     }
 
 }
