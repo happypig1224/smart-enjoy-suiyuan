@@ -35,4 +35,10 @@ public interface LostFoundService extends IService<LostFound> {
      * @return 失物招领列表
      */
     Result<List<LostFoundVO>> getUserPublishedLostFound(Long userId);
+
+    /**
+     * 获取所有未解决的失物招领记录（用于同步到向量库）
+     * @return 失物招领列表
+     */
+    Result<List<LostFoundVO>> getAllForSync();
 }

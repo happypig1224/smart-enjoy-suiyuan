@@ -124,7 +124,6 @@ public class SecondhandServiceTest {
     @Test
     void testListItemsByKeyword() {
         Result<PageResult> result = secondhandItemService.listItems(1, 10, null, null, null, "电脑");
-        
         assertNotNull(result);
         assertEquals(200, result.getCode());
         

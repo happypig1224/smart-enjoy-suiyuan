@@ -85,4 +85,14 @@ public class LostFoundController {
         return lostFoundService.getUserPublishedLostFound(BaseContext.getCurrentUserId());
     }
 
+    /**
+     * 获取所有未解决的失物招领记录（用于同步到向量库）
+     * @return 失物招领列表
+     */
+    @GetMapping("/all-for-sync")
+    @Operation(summary = "获取所有未解决记录", description = "供Python Agent同步使用")
+    public Result<List<LostFoundVO>> getAllForSync() {
+        return lostFoundService.getAllForSync();
+    }
+
 }

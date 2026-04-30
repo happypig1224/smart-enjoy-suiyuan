@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.result.Result;
+import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuanentity.entity.Resource;
 import com.shxy.suiyuanentity.entity.ResourceFavorite;
 import com.shxy.suiyuanentity.entity.User;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,9 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Transactional(rollbackFor = Exception.class)
     public Result<String> favorite(Long userId, Long resourceId) {
@@ -88,6 +93,9 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
         }
 
         log.info("[审计日志] 用户{}成功收藏资源{}", userId, resourceId);
+
+        // 发送收藏通知给资源上传者
+        sendFavoriteNotification(userId, resourceId, resource.getFileName());
 
         // 清除相关缓存
         clearUserFavoriteCache(userId);
@@ -196,5 +204,35 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
                 })
                 .toList();
         return Result.success(resourceVOS);
+    }
+
+    /**
+     * 发送资源收藏通知
+     */
+    private void sendFavoriteNotification(Long currentUserId, Long resourceId, String resourceName) {
+        // 获取资源上传者ID
+        Resource resource = resourceService.getById(resourceId);
+        if (resource == null) {
+            return;
+        }
+
+        Long uploaderId = resource.getUserId();
+
+        // 不给自己发通知
+        if (uploaderId == null || uploaderId.equals(currentUserId)) {
+            return;
+        }
+
+        // 构建通知任务
+        long delayScore = System.currentTimeMillis() + 5000; // 延迟5秒
+        String safeResourceName = resourceName != null ? resourceName.replace("\"", "\\\"") : "未知资源";
+        
+        String taskValue = String.format(
+            "{\"type\":\"resource_favorite\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"resName\":\"%s\",\"time\":%d}",
+            currentUserId, uploaderId, resourceId, safeResourceName, System.currentTimeMillis()
+        );
+
+        stringRedisTemplate.opsForZSet().add(RedisConstant.NOTIFY_BUFFER_KEY, taskValue, delayScore);
+        log.info("收藏通知已加入缓冲区: {} -> {}, resourceId: {}", currentUserId, uploaderId, resourceId);
     }
 }

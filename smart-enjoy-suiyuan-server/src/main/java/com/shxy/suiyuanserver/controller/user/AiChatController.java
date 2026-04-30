@@ -33,8 +33,9 @@ public class AiChatController {
     public Result<ChatResponseVO> sendChatMessage(@RequestBody Map<String, Object> requestParams) {
 
         String query = (String) requestParams.get("query");
-        Long sessionId = requestParams.get("sessionId") != null ?
-                Long.valueOf(requestParams.get("sessionId").toString()) : null;
+        Object sessionIdObj = requestParams.get("sessionId");
+        Long sessionId = (sessionIdObj != null && !sessionIdObj.toString().trim().isEmpty()) ?
+                Long.valueOf(sessionIdObj.toString()) : null;
 
         if (query == null || query.trim().isEmpty()) {
             return Result.fail("消息不能为空");

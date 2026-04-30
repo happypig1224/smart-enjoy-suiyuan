@@ -4,7 +4,7 @@ spring:
   application:
     name: smart-enjoy-suiyuan
   profiles:
-    active: test
+    active: dev
   # 文件上传配置
   servlet:
     multipart:

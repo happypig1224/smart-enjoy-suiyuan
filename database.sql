@@ -30,6 +30,22 @@ CREATE TABLE user
   COLLATE = utf8mb4_unicode_ci COMMENT ='用户信息表';
 
 -- =====================================================
+-- 3. 用户关注关系表 (User Following)
+-- 描述: 存储用户之间的关注关系，实现用户之间的互动和内容分享
+-- =====================================================
+CREATE TABLE user_follow
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    follower_id BIGINT NOT NULL COMMENT '关注者ID (粉丝)',
+    followee_id BIGINT NOT NULL COMMENT '被关注者ID (博主)',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '关注时间',
+    UNIQUE KEY uk_follower_followee (follower_id, followee_id) COMMENT '防止重复关注',
+    INDEX idx_followee (followee_id) COMMENT '查询谁关注了我'
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='用户关注关系表';
+
+
+-- =====================================================
 -- 2. 资源表 (Resource Sharing)
 -- 描述: 存储用户上传的学习资料（PDF/文档/图片等）元数据
 -- =====================================================
@@ -212,23 +228,23 @@ CREATE TABLE `chat_message`
 CREATE TABLE secondhand_item
 (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    seller_id       BIGINT        NOT NULL COMMENT '卖家ID，关联user.id',
-    title           VARCHAR(100)  NOT NULL COMMENT '商品标题',
-    description     TEXT          NOT NULL COMMENT '商品详细描述',
-    category        VARCHAR(20)   NOT NULL COMMENT '商品分类: electronics-数码, books-书籍, daily-日用品, sports-运动, clothes-服装, other-其他',
-    price           DECIMAL(10,2) NOT NULL COMMENT '二手价格',
-    original_price  DECIMAL(10,2) COMMENT '原价',
-    condition_level TINYINT       NOT NULL COMMENT '新旧程度: 1-全新, 2-95新, 3-9成新, 4-8成新, 5-7成新及以下',
+    seller_id       BIGINT         NOT NULL COMMENT '卖家ID，关联user.id',
+    title           VARCHAR(100)   NOT NULL COMMENT '商品标题',
+    description     TEXT           NOT NULL COMMENT '商品详细描述',
+    category        VARCHAR(20)    NOT NULL COMMENT '商品分类: electronics-数码, books-书籍, daily-日用品, sports-运动, clothes-服装, other-其他',
+    price           DECIMAL(10, 2) NOT NULL COMMENT '二手价格',
+    original_price  DECIMAL(10, 2) COMMENT '原价',
+    condition_level TINYINT        NOT NULL COMMENT '新旧程度: 1-全新, 2-95新, 3-9成新, 4-8成新, 5-7成新及以下',
     images          JSON COMMENT '商品图片URL数组',
     contact_phone   VARCHAR(20) COMMENT '联系电话',
     contact_wechat  VARCHAR(50) COMMENT '联系微信',
-    view_count      INT           DEFAULT 0 COMMENT '浏览次数',
-    favorite_count  INT           DEFAULT 0 COMMENT '收藏次数',
-    status          TINYINT       DEFAULT 0 COMMENT '商品状态: 0-在售, 1-已售出, 2-已下架',
+    view_count      INT      DEFAULT 0 COMMENT '浏览次数',
+    favorite_count  INT      DEFAULT 0 COMMENT '收藏次数',
+    status          TINYINT  DEFAULT 0 COMMENT '商品状态: 0-在售, 1-已售出, 2-已下架',
     trade_location  VARCHAR(100) COMMENT '交易地点建议',
-    create_time     DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
-    update_time     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted      TINYINT       DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    create_time     DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+    update_time     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted      TINYINT  DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
     INDEX idx_seller (seller_id),
     INDEX idx_category (category),
     INDEX idx_status (status),
@@ -246,10 +262,10 @@ CREATE TABLE secondhand_item
 -- =====================================================
 CREATE TABLE secondhand_favorite
 (
-    id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    user_id       BIGINT   NOT NULL COMMENT '用户ID，关联user.id',
-    item_id       BIGINT   NOT NULL COMMENT '商品ID，关联secondhand_item.id',
-    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id     BIGINT NOT NULL COMMENT '用户ID，关联user.id',
+    item_id     BIGINT NOT NULL COMMENT '商品ID，关联secondhand_item.id',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
     UNIQUE KEY uk_user_item (user_id, item_id) COMMENT '同一用户对同一商品只能收藏一次',
     INDEX idx_item (item_id),
     INDEX idx_user (user_id)

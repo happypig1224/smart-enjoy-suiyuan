@@ -181,7 +181,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                     if (postVOList == null || postVOList.isEmpty()) {
                         return null;
                     }
-                    return postVOList.get(0);
+                    PostVO vo = postVOList.get(0);
+                    // isLiked 是用户相关状态，不存入缓存，每次从数据库实时查询
+                    vo.setIsLiked(null);
+                    return vo;
                 },
                 RedisConstant.POST_DETAIL_TTL,
                 TimeUnit.SECONDS

@@ -35,6 +35,25 @@ public class RedisConstant {
     public static final String USER_LOSTFOUND_LIST_KEY_PREFIX = "user:lostfound:list:";
 
     /**
+     * 用户动态列表缓存：feed:user:{userId}
+     */
+    public static final String USER_FEED_KEY_PREFIX = "feed:user:";
+
+    /**
+     * 用户通知缓存：notify:buffer
+     */
+    public static final String NOTIFY_BUFFER_KEY = "notify:buffer";
+    /**
+     * 用户通知列表缓存：notify:list:{userId}
+     */
+    public static final String NOTIFY_LIST_KEY_PREFIX = "notify:list:";
+    /**
+     * 用户通知未读缓存：notify:unread:{userId}
+     */
+    public static final String NOTIFY_UNREAD_KEY_PREFIX = "notify:unread:";
+
+
+    /**
      * 用户评论列表缓存：user:comment:list:{userId}
      */
     public static final String USER_COMMENT_LIST_KEY_PREFIX = "user:comment:list:";
@@ -89,6 +108,11 @@ public class RedisConstant {
      * 用户资源列表 TTL：30 分钟
      */
     public static final long USER_RESOURCE_TTL = 1800;
+
+    /**
+     * 用户动态列表 TTL：7 天
+     */
+    public static final long USER_FEED_TTL = 7 * 24 * 60 * 60; // 动态保留7天
 
     /**
      * 资源列表 TTL：10 分钟

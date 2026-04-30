@@ -518,6 +518,63 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         }
     }
 
+    @Override
+    public Result<List<LostFoundVO>> getAllForSync() {
+        try {
+            LambdaQueryWrapper<LostFound> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(LostFound::getStatus, 0) // 只同步未解决的
+                   .orderByDesc(LostFound::getCreateTime);
+            
+            List<LostFound> list = this.list(wrapper);
+            
+            List<LostFoundVO> voList = list.stream()
+                    .map(this::convertToSingleVO)
+                    .collect(Collectors.toList());
+            
+            log.info("同步失物招领数据，共{}条", voList.size());
+            return Result.success(voList);
+        } catch (Exception e) {
+            log.error("同步失物招领数据失败", e);
+            return Result.fail("同步失败");
+        }
+    }
+
+    /**
+     * 转换单个实体为VO（用于同步）
+     */
+    private LostFoundVO convertToSingleVO(LostFound lostFound) {
+        LostFoundVO vo = new LostFoundVO();
+        BeanUtils.copyProperties(lostFound, vo);
+        
+        // 设置类型名称
+        vo.setTypeName(lostFound.getType() == 0 ? "寻物启事" : "招领启事");
+        
+        // 设置状态名称
+        vo.setStatusName(lostFound.getStatus() == 0 ? "进行中" : "已完成");
+        
+        // 解析图片JSON
+        if (lostFound.getImages() != null && !lostFound.getImages().isEmpty()) {
+            try {
+                List<String> images = objectMapper.readValue(lostFound.getImages(), new TypeReference<List<String>>() {});
+                vo.setImages(images);
+            } catch (JsonProcessingException e) {
+                log.warn("图片JSON解析失败，ID：{}", lostFound.getId());
+                vo.setImages(Collections.emptyList());
+            }
+        } else {
+            vo.setImages(Collections.emptyList());
+        }
+        
+        // 获取用户信息
+        User user = userService.getById(lostFound.getUserId());
+        if (user != null) {
+            vo.setUserNickName(user.getUserName());
+            vo.setUserAvatar(user.getAvatar());
+        }
+        
+        return vo;
+    }
+
 }
 
 
