@@ -196,6 +196,52 @@ public class AiChatServiceImpl implements AiChatService {
         return Result.success("会话删除成功");
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Result<String> renameSession(Long sessionId, String title) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null) {
+            return Result.fail("用户未登录!");
+        }
+        if (sessionId == null || title == null || title.trim().isEmpty()) {
+            return Result.fail("参数不能为空!");
+        }
+        AiSession session = aiSessionMapper.selectById(sessionId);
+        if (session == null || !session.getUserId().equals(userId)) {
+            return Result.fail("会话不存在或无权访问!");
+        }
+        session.setTitle(title.trim());
+        aiSessionMapper.updateById(session);
+        log.info("用户 {} 重命名了会话 {} 为 {}", userId, sessionId, title);
+        return Result.success("重命名成功");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Result<String> batchDeleteSessions(List<Long> sessionIds) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null) {
+            return Result.fail("用户未登录!");
+        }
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return Result.fail("会话列表不能为空!");
+        }
+        for (Long sessionId : sessionIds) {
+            AiSession session = aiSessionMapper.selectById(sessionId);
+            if (session == null || !session.getUserId().equals(userId)) {
+                continue;
+            }
+            // 删除消息记录
+            LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ChatMessage::getSessionId, sessionId);
+            chatMessageMapper.delete(queryWrapper);
+            // 删除会话记录
+            aiSessionMapper.deleteById(sessionId);
+        }
+        log.info("用户 {} 批量删除了 {} 个会话", userId, sessionIds.size());
+        return Result.success("批量删除成功");
+    }
+
     /**
      * 内部方法：获取或创建会话
      */

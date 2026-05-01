@@ -62,4 +62,17 @@ public class AiChatController {
     public Result<String> deleteSession(@PathVariable Long sessionId) {
         return aiChatService.deleteSession(sessionId);
     }
+
+    @PutMapping("/session/{sessionId}/rename")
+    @Operation(summary = "重命名会话")
+    public Result<String> renameSession(@PathVariable Long sessionId, @RequestBody Map<String, String> params) {
+        String title = params.get("title");
+        return aiChatService.renameSession(sessionId, title);
+    }
+
+    @PostMapping("/session/batch-delete")
+    @Operation(summary = "批量删除会话")
+    public Result<String> batchDeleteSessions(@RequestBody Map<String, List<Long>> params) {
+        return aiChatService.batchDeleteSessions(params.get("sessionIds"));
+    }
 }

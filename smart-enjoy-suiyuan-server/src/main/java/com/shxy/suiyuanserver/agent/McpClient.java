@@ -74,7 +74,7 @@ public class McpClient {
         McpResponse fallback = new McpResponse();
         fallback.setCode(500);
         fallback.setMessage("AI 服务暂时不可用，请稍后重试");
-        fallback.setResult("抱歉，我暂时无法连接到知识库大脑，请稍后再试。");
+        fallback.setResult("抱歉,当前服务不可用，稍后重试喔~");
         return fallback;
     }
 }
