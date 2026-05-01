@@ -18,11 +18,10 @@ smart:
         user-ttl: 7200000
         user-token-name: authentication
 
-# 生产环境安全配置
 knife4j:
   enable: false
 
-# CORS跨域配置(生产环境需配置具体前端域名)
+# CORS跨域配置
 cors:
   allowed-origins: ${PROD_CORS_ALLOWED_ORIGINS:https://yourdomain.com}
 

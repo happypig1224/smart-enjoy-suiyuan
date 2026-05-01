@@ -60,7 +60,4 @@ public class PostVO {
     
     @Schema(description = "更新时间")
     private Date updateTime;
-
-    @Schema(description = "是否已点赞")
-    private Boolean isLiked;
 }

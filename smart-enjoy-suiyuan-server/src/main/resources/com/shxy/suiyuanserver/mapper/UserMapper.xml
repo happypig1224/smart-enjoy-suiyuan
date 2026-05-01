@@ -26,6 +26,7 @@
         UPDATE user
         <set>
             <if test="userName != null">user_name = #{userName},</if>
+            <if test="phone != null">phone = #{phone},</if>
             update_time = NOW()
         </set>
         WHERE id = #{id}

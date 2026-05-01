@@ -129,11 +129,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             throw new BaseException("帖子ID或资源ID至少提供一个");
         }
 
-        // 参数校验
         int validatedPage = (page == null || page < 1) ? 1 : page;
-        int validatedSize = (size == null || size < 1) ? 10 : Math.min(size, 100); // 限制最大分页大小
+        int validatedSize = (size == null || size < 1) ? 10 : Math.min(size, 100);
 
-        // 创建final变量以供lambda表达式使用
         final Long finalPostId = postId;
         final Long finalResourceId = resourceId;
         final int finalValidatedPage = validatedPage;
@@ -155,20 +153,29 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
                 cacheKey,
                 PageResult.class,
                 key -> {
-                    int offset = (finalValidatedPage - 1) * finalValidatedSize;
-                    List<CommentVO> commentVOList = commentMapper.selectCommentListWithUser(finalPostId, finalResourceId, offset, finalValidatedSize, "createTime");
+                    List<CommentVO> allComments = commentMapper.selectCommentListWithUser(finalPostId, finalResourceId, 0, Integer.MAX_VALUE, "createTime");
                     Long total = commentMapper.selectCommentCount(finalPostId, finalResourceId);
 
                     Long currentUserId = BaseContext.getCurrentUserId();
-                    for (CommentVO vo : commentVOList) {
+                    for (CommentVO vo : allComments) {
                         vo.setIsOwner(currentUserId != null && vo.getUserId().equals(currentUserId));
+                    }
+
+                    List<CommentVO> nestedComments = buildNestedComments(allComments);
+
+                    int offset = (finalValidatedPage - 1) * finalValidatedSize;
+                    List<CommentVO> paginatedComments;
+                    if (offset >= nestedComments.size()) {
+                        paginatedComments = new ArrayList<>();
+                    } else {
+                        paginatedComments = nestedComments.subList(offset, Math.min(offset + finalValidatedSize, nestedComments.size()));
                     }
 
                     return PageResult.builder()
                             .total(total != null ? total : 0)
                             .page(finalValidatedPage)
                             .size(finalValidatedSize)
-                            .records(commentVOList)
+                            .records(paginatedComments)
                             .build();
                 },
                 RedisConstant.COMMENT_LIST_TTL,
@@ -179,6 +186,39 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             return Result.fail("获取评论列表失败");
         }
         return Result.success(pageResult);
+    }
+
+    private List<CommentVO> buildNestedComments(List<CommentVO> allComments) {
+        Map<Long, CommentVO> commentMap = new HashMap<>();
+        List<CommentVO> rootComments = new ArrayList<>();
+
+        for (CommentVO comment : allComments) {
+            comment.setChildren(new ArrayList<>());
+            commentMap.put(comment.getId(), comment);
+        }
+
+        for (CommentVO comment : allComments) {
+            if (comment.getParentId() != null && comment.getParentId() > 0) {
+                CommentVO parent = commentMap.get(comment.getParentId());
+                if (parent != null) {
+                    parent.getChildren().add(comment);
+                } else {
+                    rootComments.add(comment);
+                }
+            } else {
+                rootComments.add(comment);
+            }
+        }
+
+        rootComments.sort((a, b) -> b.getCreateTime().compareTo(a.getCreateTime()));
+
+        for (CommentVO root : rootComments) {
+            if (root.getChildren() != null && !root.getChildren().isEmpty()) {
+                root.getChildren().sort((a, b) -> a.getCreateTime().compareTo(b.getCreateTime()));
+            }
+        }
+
+        return rootComments;
     }
 
     private void clearCommentListCache(Long postId, Long resourceId) {

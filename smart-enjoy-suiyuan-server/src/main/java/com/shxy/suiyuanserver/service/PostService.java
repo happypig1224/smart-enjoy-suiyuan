@@ -6,6 +6,7 @@ import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Post;
+import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,4 +47,11 @@ public interface PostService extends IService<Post> {
      * @return 图片URL
      */
     String uploadPostImage(MultipartFile file);
+
+    /**
+     * 查询帖子点赞状态
+     * @param postId 帖子ID
+     * @return 点赞状态
+     */
+    Result<PostLikeStatusVO> getPostLikeStatus(Long postId);
 }

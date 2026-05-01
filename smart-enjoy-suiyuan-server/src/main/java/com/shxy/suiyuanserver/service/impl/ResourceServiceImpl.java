@@ -152,8 +152,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                             .size(result.getSize())
                             .build();
                 },
-                // 热门排行榜使用更长的TTL
-                "hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) 
+                "hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType)
                     ? RedisConstant.RESOURCE_HOT_RANKING_TTL 
                     : RedisConstant.RESOURCE_LIST_TTL,
                 TimeUnit.SECONDS
@@ -164,25 +163,17 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             return Result.fail("获取资源列表失败");
         }
 
-        log.info("获取资源列表成功，开始填充收藏状态，记录数={}", 
-                pageResult.getRecords() != null ? pageResult.getRecords().size() : 0);
-        
-        // 深拷贝避免污染缓存对象(防止并发用户看到错误的收藏状态)
-        @SuppressWarnings("unchecked")
         List<ResourceVO> voListCopy = objectMapper.convertValue(pageResult.getRecords(), new TypeReference<List<ResourceVO>>() {});
         
-        // 填充当前用户的收藏状态（不缓存，每个用户单独查询）
-        fillFavoriteStatus(voListCopy);
-        
-        PageResult resultWithFavoriteStatus = PageResult.builder()
+
+        PageResult resultWithCopy = PageResult.builder()
                 .total(pageResult.getTotal())
                 .records(voListCopy)
                 .page(pageResult.getPage())
                 .size(pageResult.getSize())
                 .build();
         
-        log.info("收藏状态填充完成");
-        return Result.success(resultWithFavoriteStatus);
+        return Result.success(resultWithCopy);
     }
     
     /**
@@ -391,7 +382,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     if (resource == null) {
                         return null; // 返回null会被工具类缓存空值
                     }
-                    ResourceVO vo = ResourceVO.builder()
+                    return ResourceVO.builder()
                             .id(resource.getId())
                             .userId(resource.getUserId())
                             .type(resource.getType())
@@ -405,12 +396,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                             .updateTime(resource.getUpdateTime())
                             .isFavorite(false)
                             .build();
-                    
-                    if (userId != null && userId > 0) {
-                        boolean isFavorite = resourceFavoriteService.isFavorite(userId, id);
-                        vo.setIsFavorite(isFavorite);
-                    }
-                    return vo;
                 },
                 RedisConstant.RESOURCE_DETAIL_TTL,
                 TimeUnit.SECONDS
@@ -419,6 +404,23 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         if (resourceVO == null) {
             throw ResourceException.notFound(String.valueOf(id));
         }
+
+        // 填充发布者用户信息
+        if (resourceVO.getUserId() != null && resourceVO.getUserId() > 0) {
+            User user = userService.getById(resourceVO.getUserId());
+            if (user != null) {
+                resourceVO.setUserNickName(user.getUserName());
+                resourceVO.setUserAvatar(user.getAvatar());
+            }
+        }
+
+        // 设置收藏状态
+        if (userId != null && userId > 0) {
+            boolean isFavorite = resourceFavoriteService.isFavorite(userId, id);
+            resourceVO.setIsFavorite(isFavorite);
+        }
+
+        log.info("用户 {} 获取资源 {}", userId, resourceVO);
         return Result.success(resourceVO);
     }
 

@@ -31,6 +31,8 @@ public interface UserService extends IService<User> {
 
     Result<String> updateUserInfo(UserDTO userDTO);
 
+    Result<String> updatePhone(UserDTO userDTO);
+
     Result<UserVO> getUserInfo();
 
 }

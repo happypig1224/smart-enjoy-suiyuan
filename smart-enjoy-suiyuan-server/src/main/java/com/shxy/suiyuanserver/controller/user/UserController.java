@@ -75,10 +75,17 @@ public class UserController {
     }
 
     @PutMapping("/user/info")
-    @Operation(summary = "更新用户信息", description = "更新用户的个人资料")
+    @Operation(summary = "更新用户信息", description = "更新用户名")
     public Result<String> updateUserInfo(@Valid @RequestBody UserDTO userDTO) {
         return userService.updateUserInfo(userDTO);
     }
+
+    @PutMapping("/phone/update")
+    @Operation(summary = "修改手机号", description = "通过验证码验证后修改手机号")
+    public Result<String> updatePhone(@Valid @RequestBody UserDTO userDTO) {
+        return userService.updatePhone(userDTO);
+    }
+
     @GetMapping("/user/info")
     @Operation(summary = "获取用户信息", description = "获取当前登录用户的详细信息")
     public Result<UserVO> getUserInfo() {

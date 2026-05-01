@@ -16,6 +16,7 @@ import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.entity.PostLike;
+import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.mapper.PostLikeMapper;
 import com.shxy.suiyuanserver.mapper.PostMapper;
@@ -181,10 +182,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                     if (postVOList == null || postVOList.isEmpty()) {
                         return null;
                     }
-                    PostVO vo = postVOList.get(0);
-                    // isLiked 是用户相关状态，不存入缓存，每次从数据库实时查询
-                    vo.setIsLiked(null);
-                    return vo;
+                    return postVOList.get(0);
                 },
                 RedisConstant.POST_DETAIL_TTL,
                 TimeUnit.SECONDS
@@ -192,15 +190,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
 
         if (postVO == null) {
             throw new BaseException("帖子不存在");
-        }
-
-        Long currentUserId = BaseContext.getCurrentUserId();
-        if (currentUserId != null && currentUserId > 0) {
-            // 查询 post_like 表判断点赞状态
-            PostLike postLike = postLikeMapper.selectByPostIdAndUserId(id, currentUserId);
-            postVO.setIsLiked(postLike != null);
-        } else {
-            postVO.setIsLiked(false);
         }
 
         postMapper.update(null, new LambdaUpdateWrapper<>(Post.class)
@@ -243,8 +232,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                 .eq(Post::getId, id)
                 .setSql("like_count = like_count + 1"));
 
-        // 只清除帖子详情缓存,列表缓存容忍短暂不一致(依靠TTL自然过期)
-        // 高并发场景下清理整个列表缓存会导致缓存击穿
+        // 清除帖子详情缓存,确保下次访问时重新查询点赞状态
         String detailKey = RedisConstant.POST_DETAIL_KEY_PREFIX + id;
         redisTemplate.delete(detailKey);
 
@@ -439,7 +427,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         return Result.success(postVOList);
     }
 
-    @Override
     public String uploadPostImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BaseException("上传图片不能为空");
@@ -457,5 +444,30 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         String imageUrl = tencentCOSAvatarUtil.uploadFile(file);
         log.info("用户 {} 上传了帖子图片：{}", BaseContext.getCurrentUserId(), imageUrl);
         return imageUrl;
+    }
+
+    public Result<PostLikeStatusVO> getPostLikeStatus(Long postId) {
+        if (postId == null || postId <= 0) {
+            throw new BaseException("帖子ID不合法");
+        }
+
+        Post post = postMapper.selectById(postId);
+        if (post == null) {
+            throw new BaseException("帖子不存在");
+        }
+
+        Long currentUserId = BaseContext.getCurrentUserId();
+        boolean isLiked = false;
+        if (currentUserId != null && currentUserId > 0) {
+            PostLike postLike = postLikeMapper.selectByPostIdAndUserId(postId, currentUserId);
+            isLiked = postLike != null;
+        }
+
+        PostLikeStatusVO statusVO = PostLikeStatusVO.builder()
+                .postId(postId)
+                .isLiked(isLiked)
+                .build();
+
+        return Result.success(statusVO);
     }
 }

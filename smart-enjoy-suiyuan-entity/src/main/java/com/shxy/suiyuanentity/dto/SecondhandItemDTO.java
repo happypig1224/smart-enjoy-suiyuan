@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 二手商品发布DTO
@@ -67,9 +68,9 @@ public class SecondhandItemDTO implements Serializable {
     private Integer conditionLevel;
 
     /**
-     * 商品图片URL数组(JSON格式)
+     * 商品图片URL列表
      */
-    private String images;
+    private List<String> images;
 
     /**
      * 联系电话

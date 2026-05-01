@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:mvnrepository.com)",
+      "Bash(mvn versions:display-dependency-updates)",
+      "Bash(tail *)",
+      "Bash(grep -E \"\\(Updates|->|BUILD|INFO.*The following|INFO.*dependencies\\)\" \"C:\\\\\\\\Users\\\\\\\\33046\\\\\\\\.claude\\\\\\\\projects\\\\\\\\C--Users-33046-Desktop-smart-enjoy-suiyuan-smart-enjoy-suiyuan\\\\\\\\b41e2ddb-0205-4442-8f85-ac30c278bfce\\\\\\\\tool-results\\\\\\\\b0wxy14se.txt\")",
+      "Bash(cd \"C:\\\\\\\\Users\\\\\\\\33046\\\\\\\\Desktop\\\\\\\\smart-enjoy-suiyuan\\\\\\\\smart-enjoy-suiyuan\")",
+      "Bash(mvn versions:display-dependency-updates -q)",
+      "Bash(grep -v \"^Progress\\\\|^Download\\\\|^\\\\\\\\[\")"
+    ]
+  }
+}

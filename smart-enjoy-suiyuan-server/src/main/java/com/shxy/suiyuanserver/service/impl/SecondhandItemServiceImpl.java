@@ -75,6 +75,22 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
             return Result.fail("无效的商品分类");
         }
 
+        // 验证图片数量
+        if (itemDTO.getImages() != null && itemDTO.getImages().size() > 9) {
+            return Result.fail("最多只能上传9张图片");
+        }
+
+        // 将图片列表序列化为JSON字符串
+        String imagesJson = null;
+        if (itemDTO.getImages() != null && !itemDTO.getImages().isEmpty()) {
+            try {
+                imagesJson = objectMapper.writeValueAsString(itemDTO.getImages());
+            } catch (Exception e) {
+                log.error("图片列表序列化失败", e);
+                return Result.fail("图片数据格式错误");
+            }
+        }
+
         // 构建实体
         SecondhandItem item = SecondhandItem.builder()
                 .sellerId(userId)
@@ -84,7 +100,7 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
                 .price(itemDTO.getPrice())
                 .originalPrice(itemDTO.getOriginalPrice())
                 .conditionLevel(itemDTO.getConditionLevel())
-                .images(itemDTO.getImages())
+                .images(imagesJson)
                 .contactPhone(itemDTO.getContactPhone())
                 .contactWechat(itemDTO.getContactWechat())
                 .tradeLocation(itemDTO.getTradeLocation())
@@ -115,6 +131,22 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
             return Result.fail("无权修改此商品");
         }
 
+        // 验证图片数量
+        if (itemDTO.getImages() != null && itemDTO.getImages().size() > 9) {
+            return Result.fail("最多只能上传9张图片");
+        }
+
+        // 将图片列表序列化为JSON字符串
+        String imagesJson = null;
+        if (itemDTO.getImages() != null && !itemDTO.getImages().isEmpty()) {
+            try {
+                imagesJson = objectMapper.writeValueAsString(itemDTO.getImages());
+            } catch (Exception e) {
+                log.error("图片列表序列化失败", e);
+                return Result.fail("图片数据格式错误");
+            }
+        }
+
         // 更新字段
         existingItem.setTitle(itemDTO.getTitle());
         existingItem.setDescription(itemDTO.getDescription());
@@ -122,7 +154,7 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
         existingItem.setPrice(itemDTO.getPrice());
         existingItem.setOriginalPrice(itemDTO.getOriginalPrice());
         existingItem.setConditionLevel(itemDTO.getConditionLevel());
-        existingItem.setImages(itemDTO.getImages());
+        existingItem.setImages(imagesJson);
         existingItem.setContactPhone(itemDTO.getContactPhone());
         existingItem.setContactWechat(itemDTO.getContactWechat());
         existingItem.setTradeLocation(itemDTO.getTradeLocation());

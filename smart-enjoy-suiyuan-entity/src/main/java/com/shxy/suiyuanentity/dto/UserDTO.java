@@ -48,4 +48,10 @@ public class UserDTO {
     @Size(min = 4, max = 6, message = "验证码长度不正确")
     private String verifyCode;
 
+    /**
+     * 用户名（用于更新用户信息）
+     */
+    @Size(min = 3, max = 50, message = "用户名长度必须在3-50个字符之间")
+    private String userName;
+
 }

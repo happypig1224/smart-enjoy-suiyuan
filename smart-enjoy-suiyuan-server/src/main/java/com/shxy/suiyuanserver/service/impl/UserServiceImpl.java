@@ -222,6 +222,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return Result.success("修改密码成功!");
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public Result<String> updateUserInfo(UserDTO userDTO) {
         Long userId = BaseContext.getCurrentUserId();
@@ -231,12 +232,60 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.fail("用户不存在!");
         }
 
-        // 当前只支持更新用户名（如果后续需要）
-        // 由于用户名是系统生成的，一般不建议修改，这里可以保留为空实现
-        // 或者你可以添加其他需要更新的字段
+        if (userDTO.getUserName() != null && !userDTO.getUserName().equals(existingUser.getUserName())) {
+            String newUserName = userDTO.getUserName().trim();
+            if (newUserName.length() < 3 || newUserName.length() > 50) {
+                return Result.fail("用户名长度必须在3-50个字符之间!");
+            }
+            LambdaQueryWrapper<User> nameWrapper = new LambdaQueryWrapper<>();
+            nameWrapper.eq(User::getUserName, newUserName);
+            if (userMapper.exists(nameWrapper)) {
+                throw new UsernameExistsException();
+            }
+            existingUser.setUserName(newUserName);
+            existingUser.setUpdateTime(new Date());
+            userMapper.updateById(existingUser);
+            redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
+        }
+
+        return Result.success("修改用户信息成功!");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Result<String> updatePhone(UserDTO userDTO) {
+        Long userId = BaseContext.getCurrentUserId();
+
+        if (userDTO.getPhone() == null || userDTO.getPhone().isEmpty()) {
+            return Result.fail("新手机号不能为空!");
+        }
+        if (userDTO.getVerifyCode() == null || userDTO.getVerifyCode().isEmpty()) {
+            return Result.fail("请输入验证码!");
+        }
+
+        String newPhone = userDTO.getPhone().trim();
+
+        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(newPhone, userDTO.getVerifyCode());
+        if (checked.getCode() != 200) {
+            log.warn("用户{}修改手机号失败: 验证码错误", userId);
+            return Result.fail("验证码错误!");
+        }
+
+        LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
+        phoneWrapper.eq(User::getPhone, newPhone);
+        if (userMapper.exists(phoneWrapper)) {
+            throw new PhoneExistsException();
+        }
+
+        int result = userMapper.updatePhone(userId, newPhone);
+        if (result == 0) {
+            log.warn("用户{}修改手机号失败: 数据库更新失败", userId);
+            return Result.fail("修改手机号失败!");
+        }
 
         redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
-        return Result.success("修改用户信息成功!");
+        log.info("用户{}修改手机号成功: newPhone={}", userId, newPhone);
+        return Result.success("修改手机号成功!");
     }
 
     @Override

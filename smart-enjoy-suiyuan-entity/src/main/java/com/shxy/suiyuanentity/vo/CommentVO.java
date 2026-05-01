@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.List;
 
 @Data
 @Builder
@@ -50,4 +51,7 @@ public class CommentVO {
 
     @Schema(description = "被回复用户的昵称（二级回复时使用）")
     private String replyToUserNickName;
+
+    @Schema(description = "子评论列表（二级回复）")
+    private List<CommentVO> children;
 }

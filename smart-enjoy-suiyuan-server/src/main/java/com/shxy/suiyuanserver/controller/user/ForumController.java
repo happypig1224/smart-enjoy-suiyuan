@@ -9,6 +9,7 @@ import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Comment;
 import com.shxy.suiyuanentity.entity.Post;
+import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.service.CommentService;
 import com.shxy.suiyuanserver.service.PostService;
@@ -162,6 +163,16 @@ public class ForumController {
     public Result<String> uploadImage(@RequestParam("file") @NotNull(message = "上传文件不能为空") MultipartFile file) {
         String imageUrl = postService.uploadPostImage(file);
         return Result.success("上传成功", imageUrl);
+    }
+
+    @GetMapping("post/like/status/{id}")
+    @RequireLogin
+    @Operation(summary = "查询帖子点赞状态", description = "查询当前用户对指定帖子的点赞状态")
+    public Result<PostLikeStatusVO> getPostLikeStatus(@PathVariable @NotNull Long id) {
+        if (id <= 0) {
+            return Result.fail("帖子ID无效");
+        }
+        return postService.getPostLikeStatus(id);
     }
 
 }
