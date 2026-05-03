@@ -6,6 +6,7 @@ import com.shxy.suiyuanentity.vo.ChatMessageVO;
 import com.shxy.suiyuanentity.vo.ChatResponseVO;
 import com.shxy.suiyuanentity.vo.SessionVO;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -16,12 +17,20 @@ import java.util.List;
  */
 public interface AiChatService {
     /**
-     * AI 聊天
+     * AI 聊天（保留原有的非流式版本）
      * @param query 用户问题
      * @param sessionId 会话ID
      * @return 包含sessionId和AI回复的响应
      */
     ChatResponseVO chat(String query, Long sessionId);
+
+    /**
+     * AI 聊天 - SSE 流式输出（使用 HttpServletResponse 直接写入，确保立即 flush）
+     * @param query 用户问题
+     * @param sessionId 会话ID
+     * @param response HTTP 响应
+     */
+    void chatStream(String query, Long sessionId, HttpServletResponse response);
 
     /**
      * 获取所有历史会话列表

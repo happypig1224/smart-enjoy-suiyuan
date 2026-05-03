@@ -27,9 +27,12 @@ public class PostUpdateDTO {
     @Schema(description = "帖子标题")
     private String title;
 
-    @Size(min = 1, max = 5000, message = "帖子内容长度必须在1-5000个字符之间")
-    @Schema(description = "帖子内容")
+    @Size(min = 1, max = 50000, message = "帖子内容长度必须在1-50000个字符之间")
+    @Schema(description = "帖子内容 (支持 Markdown 格式)")
     private String content;
+
+    @Schema(description = "内容格式: markdown, html")
+    private String contentFormat;
 
     @Schema(description = "帖子类型：0-技术讨论, 1-课程问题, 2-校园生活, 3-其他")
     private Integer type;

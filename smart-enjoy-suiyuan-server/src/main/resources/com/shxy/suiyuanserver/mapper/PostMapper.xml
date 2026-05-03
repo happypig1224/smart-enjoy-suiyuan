@@ -9,13 +9,18 @@
         <result property="userId" column="user_id" />
         <result property="title" column="title" />
         <result property="content" column="content" />
+        <result property="contentFormat" column="content_format" />
+        <result property="wordCount" column="word_count" />
         <result property="type" column="type" />
+        <result property="status" column="status" />
+        <result property="isTop" column="is_top" />
         <result property="likeCount" column="like_count" />
         <result property="commentCount" column="comment_count" />
         <result property="viewCount" column="view_count" />
         <result property="images" column="images" jdbcType="VARCHAR" />
         <result property="createTime" column="create_time" />
         <result property="updateTime" column="update_time" />
+        <result property="isDeleted" column="is_deleted" />
     </resultMap>
 
     <resultMap id="PostVOResultMap" type="com.shxy.suiyuanentity.vo.PostVO">
@@ -25,7 +30,11 @@
         <result property="userAvatar" column="avatar" />
         <result property="title" column="title" />
         <result property="content" column="content" />
+        <result property="contentFormat" column="content_format" />
+        <result property="wordCount" column="word_count" />
         <result property="type" column="type" />
+        <result property="status" column="status" />
+        <result property="isTop" column="is_top" />
         <result property="likeCount" column="like_count" />
         <result property="commentCount" column="comment_count" />
         <result property="viewCount" column="view_count" />
@@ -35,8 +44,8 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,title,content,type,like_count,
-        comment_count,view_count,images,create_time,update_time
+        id,user_id,title,content,content_format,word_count,type,status,is_top,like_count,
+        comment_count,view_count,images,create_time,update_time,is_deleted
     </sql>
 
     <select id="selectPostWithUser" resultMap="PostVOResultMap">
@@ -45,7 +54,11 @@
             p.user_id,
             p.title,
             p.content,
+            p.content_format,
+            p.word_count,
             p.type,
+            p.status,
+            p.is_top,
             p.like_count,
             p.comment_count,
             p.view_count,
@@ -57,6 +70,8 @@
         FROM post p
                  LEFT JOIN user u ON p.user_id = u.id
         WHERE p.id = #{postId}
+          AND p.is_deleted = 0
+          AND p.status = 1
     </select>
 
     <select id="selectPostListWithUser" parameterType="map" resultMap="PostVOResultMap">
@@ -65,7 +80,11 @@
         p.user_id,
         p.title,
         p.content,
+        p.content_format,
+        p.word_count,
         p.type,
+        p.status,
+        p.is_top,
         p.like_count,
         p.comment_count,
         p.view_count,
@@ -77,6 +96,8 @@
         FROM post p
         LEFT JOIN user u ON p.user_id = u.id
         <where>
+            p.is_deleted = 0
+            AND p.status = 1
             <if test="type != null">
                 AND p.type = #{type}
             </if>
@@ -95,6 +116,8 @@
         SELECT COUNT(*)
         FROM post
         <where>
+            is_deleted = 0
+            AND status = 1
             <if test="type != null">
                 AND type = #{type}
             </if>
@@ -121,7 +144,11 @@
             p.user_id,
             p.title,
             p.content,
+            p.content_format,
+            p.word_count,
             p.type,
+            p.status,
+            p.is_top,
             p.like_count,
             p.comment_count,
             p.view_count,
@@ -133,6 +160,7 @@
         FROM post p
         LEFT JOIN user u ON p.user_id = u.id
         WHERE p.user_id = #{userId}
+          AND p.is_deleted = 0
         ORDER BY p.create_time DESC
     </select>
 

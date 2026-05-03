@@ -16,10 +16,13 @@ import com.shxy.suiyuanserver.mapper.AiSessionMapper;
 import com.shxy.suiyuanserver.mapper.ChatMessageMapper;
 import com.shxy.suiyuanserver.service.AiChatService;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -108,23 +111,157 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     @Override
+    public void chatStream(String query, Long sessionId, HttpServletResponse response) {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null) {
+            try {
+                PrintWriter writer = response.getWriter();
+                writer.write("data: 用户未登录\n\n");
+                writer.flush();
+            } catch (IOException e) {
+                log.error("发送错误消息失败", e);
+            }
+            return;
+        }
+
+        PrintWriter writer = null;
+        try {
+            log.info("流式聊天请求 - 会话ID: {}, 查询: {}", sessionId, query);
+            writer = response.getWriter();
+
+            // 1. 获取或创建会话
+            AiSession session = getOrCreateSession(userId, sessionId, query);
+            Long activeSessionId = session.getId();
+            log.info("会话已获取/创建: {}", activeSessionId);
+
+            // 查询该会话下最近的 10 条消息(避免token爆炸)
+            LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ChatMessage::getSessionId, activeSessionId)
+                    .orderByDesc(ChatMessage::getCreateTime)
+                    .last("LIMIT 10");
+            List<ChatMessage> historyList = chatMessageMapper.selectList(queryWrapper);
+
+            // 因为是倒序查询(最新在前)，需要反转
+            Collections.reverse(historyList);
+
+            // 将实体类转换为 Python 容易解析的字典列表
+            List<Map<String, String>> historyPayload = new ArrayList<>();
+            for (ChatMessage msg : historyList) {
+                Map<String, String> map = new HashMap<>();
+                map.put("role", msg.getRole());
+                map.put("content", msg.getContent());
+                historyPayload.add(map);
+            }
+
+            // 2. 组装 MCP 请求参数
+            Map<String, Object> params = new HashMap<>();
+            params.put("query", query);
+            params.put("userId", userId);
+            params.put("sessionId", activeSessionId);
+            params.put("history", historyPayload);
+
+            McpRequest request = McpRequest.builder()
+                    .tool("chat_agent")
+                    .params(params)
+                    .build();
+
+            // 3. 先发送 sessionId 给前端
+            writer.write("data: " + activeSessionId + "\n\n");
+            writer.flush();
+            log.info("已发送 sessionId: {}", activeSessionId);
+
+            // 4. 流式调用 Python 端 Agent
+            final Long finalSessionId = activeSessionId;
+            final String finalQuery = query;
+            final Long finalUserId = userId;
+            final StringBuilder fullResponse = new StringBuilder();
+            final boolean[] hasError = {false};
+
+            PrintWriter finalWriter = writer;
+            mcpClient.callStream(request, new McpClient.StreamCallback() {
+                @Override
+                public void onChunk(String chunk) {
+                    if (hasError[0]) return;
+
+                    fullResponse.append(chunk);
+                    try {
+                        // 直接写入 SSE 格式数据并立即 flush
+                        finalWriter.write("data: " + chunk + "\n\n");
+                        finalWriter.flush();
+                        log.info("已转发 chunk 到前端 | 累计: {} | chunk: '{}'",
+                                fullResponse.length(),
+                                chunk.length() > 50 ? chunk.substring(0, 50) + "..." : chunk);
+                    } catch (Exception e) {
+                        log.error("转发 chunk 失败", e);
+                        hasError[0] = true;
+                    }
+                }
+
+                @Override
+                public void onComplete() {
+                    if (hasError[0]) return;
+
+                    String aiReply = fullResponse.toString();
+                    log.info("流式调用完成，回复长度: {}", aiReply.length());
+
+                    // 保存聊天记录到数据库
+                    try {
+                        saveChatMessage(finalSessionId, finalUserId, finalQuery, aiReply);
+                        log.info("聊天记录已保存");
+
+                        // 发送完成信号
+                        finalWriter.write("data: [DONE]\n\n");
+                        finalWriter.flush();
+                        log.info("已发送完成信号");
+                    } catch (Exception e) {
+                        log.error("保存聊天记录失败", e);
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    hasError[0] = true;
+                    log.error("流式调用出错: {}", error);
+                    try {
+                        finalWriter.write("data: " + error + "\n\n");
+                        finalWriter.flush();
+                    } catch (Exception e) {
+                        log.error("发送错误消息失败", e);
+                    }
+                }
+            });
+
+        } catch (Exception e) {
+            log.error("流式聊天处理异常", e);
+            try {
+                if (writer != null) {
+                    writer.write("data: 服务暂时不可用，请稍后重试\n\n");
+                    writer.flush();
+                }
+            } catch (Exception ex) {
+                log.error("发送错误消息失败", ex);
+            }
+        }
+    }
+
+    @Override
     public List<SessionVO> getHistory() {
         Long userId = BaseContext.getCurrentUserId();
         if (userId == null){
             throw new BaseException("用户未登录!");
         }
-        
+
         LambdaQueryWrapper<AiSession> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AiSession::getUserId, userId);
         queryWrapper.orderByDesc(AiSession::getCreateTime);
         List<AiSession> sessionList = aiSessionMapper.selectList(queryWrapper);
-        
+
         if (sessionList.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         // 转换为SessionVO
-        return sessionList.stream().map(session -> 
+        return sessionList.stream().map(session ->
             SessionVO.builder()
                 .sessionId(session.getId())
                 .title(session.getTitle())
@@ -139,26 +276,26 @@ public class AiChatServiceImpl implements AiChatService {
         if (userId == null){
             throw new BaseException("用户未登录!");
         }
-        
+
         if (sessionId == null) {
             throw new BaseException("会话ID不能为空!");
         }
-        
+
         // 验证会话是否存在且属于当前用户
         AiSession session = aiSessionMapper.selectById(sessionId);
         if (session == null || !session.getUserId().equals(userId)) {
             throw new BaseException("会话不存在或无权访问!");
         }
-        
+
         // 查询该会话下的所有消息，按时间正序排列
         LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ChatMessage::getSessionId, sessionId);
         queryWrapper.eq(ChatMessage::getUserId, userId);
         queryWrapper.orderByAsc(ChatMessage::getCreateTime);
         List<ChatMessage> messageList = chatMessageMapper.selectList(queryWrapper);
-        
+
         // 转换为ChatMessageVO
-        return messageList.stream().map(message -> 
+        return messageList.stream().map(message ->
             ChatMessageVO.builder()
                 .role(message.getRole())
                 .content(message.getContent())
@@ -173,25 +310,25 @@ public class AiChatServiceImpl implements AiChatService {
         if (userId == null) {
             return Result.fail("用户未登录!");
         }
-        
+
         if (sessionId == null) {
             return Result.fail("会话ID不能为空!");
         }
-        
+
         // 验证会话是否存在且属于当前用户
         AiSession session = aiSessionMapper.selectById(sessionId);
         if (session == null || !session.getUserId().equals(userId)) {
             return Result.fail("会话不存在或无权访问!");
         }
-        
+
         // 删除该会话下的所有消息记录---逻辑删除
         LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ChatMessage::getSessionId, sessionId);
         chatMessageMapper.delete(queryWrapper);
-        
+
         // 删除会话记录---逻辑删除
         aiSessionMapper.deleteById(sessionId);
-        
+
         log.info("用户 {} 删除了会话 {}", userId, sessionId);
         return Result.success("会话删除成功");
     }

@@ -31,7 +31,6 @@ app.include_router(lost_found_sync.router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():
-    """应用启动事件"""
     app_logger.info(f"{'='*50}")
     app_logger.info(f"{settings.app_name} v{settings.version} 启动中...")
     app_logger.info(f"服务地址: http://{settings.mcp.host}:{settings.mcp.port}")
@@ -46,7 +45,6 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """应用关闭事件"""
     app_logger.info(f"{settings.app_name} 正在关闭...")
     
     # 停止定时任务
@@ -58,7 +56,6 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
-    """根路径"""
     return {
         "name": settings.app_name,
         "version": settings.version,
@@ -68,7 +65,6 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """健康检查"""
     return {"status": "healthy"}
 
 

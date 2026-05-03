@@ -104,23 +104,30 @@ CREATE TABLE lost_found
 
 -- =====================================================
 -- 4. 帖子表 (Community Posts)
--- 描述: 校园社区论坛，支持技术讨论、生活分享等
--- 4. 帖子表 (Community Posts)
+-- 描述: 校园社区论坛，支持技术讨论、生活分享等，支持 Markdown 富文本编辑
+-- =====================================================
 CREATE TABLE post
 (
     id            BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id       BIGINT       NOT NULL COMMENT '发布者ID，关联user.id',
     title         VARCHAR(100) NOT NULL COMMENT '帖子标题',
-    content       TEXT         NOT NULL COMMENT '帖子正文内容',
+    content       MEDIUMTEXT   NOT NULL COMMENT '帖子正文内容',
+    content_format VARCHAR(10) DEFAULT 'markdown' COMMENT '内容格式: markdown',
+    word_count    INT          DEFAULT 0 COMMENT '正文字数统计',
     type          TINYINT      NOT NULL COMMENT '板块分类: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他',
-    like_count    INT      DEFAULT 0 COMMENT '点赞总数',
-    comment_count INT      DEFAULT 0 COMMENT '评论总数',
-    view_count    INT      DEFAULT 0 COMMENT '浏览次数',
+    status        TINYINT      DEFAULT 1 COMMENT '帖子状态: 0-草稿, 1-已发布, 2-已锁定, 3-审核中',
+    is_top        TINYINT      DEFAULT 0 COMMENT '是否置顶: 0-否, 1-是',
+    like_count    INT          DEFAULT 0 COMMENT '点赞总数',
+    comment_count INT          DEFAULT 0 COMMENT '评论总数',
+    view_count    INT          DEFAULT 0 COMMENT '浏览次数',
     images        JSON COMMENT '配图列表，存储URL数组',
     create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    is_deleted    TINYINT      DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
     INDEX idx_user_type_time (user_id, type, create_time),
-    INDEX idx_type_like (type, like_count)
+    INDEX idx_type_like (type, like_count),
+    INDEX idx_status (status),
+    INDEX idx_is_top (is_top)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='社区帖子表';
@@ -128,7 +135,6 @@ CREATE TABLE post
 -- =====================================================
 -- 5. 评论表 (Comments)
 -- 描述: 支持对帖子和资源进行评论及回复
--- 5. 评论表 (Comments)
 CREATE TABLE comment
 (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',

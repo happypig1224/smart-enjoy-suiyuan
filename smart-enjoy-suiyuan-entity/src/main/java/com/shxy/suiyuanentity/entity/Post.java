@@ -39,14 +39,34 @@ public class Post {
     private String title;
 
     /**
-     * 帖子正文内容
+     * 帖子正文内容 (支持 Markdown 富文本)
      */
     private String content;
+
+    /**
+     * 内容格式: markdown, html
+     */
+    private String contentFormat;
+
+    /**
+     * 正文字数统计
+     */
+    private Integer wordCount;
 
     /**
      * 板块分类: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他
      */
     private Integer type;
+
+    /**
+     * 帖子状态: 0-草稿, 1-已发布, 2-已锁定, 3-审核中
+     */
+    private Integer status;
+
+    /**
+     * 是否置顶: 0-否, 1-是
+     */
+    private Integer isTop;
 
     /**
      * 点赞总数
@@ -77,4 +97,9 @@ public class Post {
      * 更新时间
      */
     private Date updateTime;
+
+    /**
+     * 逻辑删除: 0-未删除, 1-已删除
+     */
+    private Integer isDeleted;
 }

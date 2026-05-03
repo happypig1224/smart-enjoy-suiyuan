@@ -10,15 +10,6 @@ from app.utils.logger import app_logger
 
 
 def resource_search_node(state: SuiyuanAgentState) -> dict:
-    """
-    学习资源搜索节点
-    
-    Args:
-        state: Agent 状态
-    
-    Returns:
-        包含检索上下文和回复的状态更新
-    """
     query = state["query"]
     app_logger.info(f"执行资源搜索: {query}")
     

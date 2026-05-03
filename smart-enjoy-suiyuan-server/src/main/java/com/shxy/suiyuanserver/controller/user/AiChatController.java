@@ -1,15 +1,18 @@
 package com.shxy.suiyuanserver.controller.user;
 
 import com.shxy.suiyuancommon.result.Result;
-import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuanentity.vo.ChatMessageVO;
 import com.shxy.suiyuanentity.vo.ChatResponseVO;
 import com.shxy.suiyuanentity.vo.SessionVO;
 import com.shxy.suiyuanserver.service.AiChatService;
+import jakarta.annotation.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,11 @@ public class AiChatController {
     @Resource
     private AiChatService aiChatService;
 
+    private static final Logger log= LoggerFactory.getLogger(AiChatController.class);
+
+    /**
+     * 发送消息给AI - 非流式版本
+     */
     @PostMapping("/send")
     @Operation(summary = "发送消息给AI")
     public Result<ChatResponseVO> sendChatMessage(@RequestBody Map<String, Object> requestParams) {
@@ -41,9 +49,46 @@ public class AiChatController {
             return Result.fail("消息不能为空");
         }
 
-        ChatResponseVO response = aiChatService.chat( query, sessionId);
+        ChatResponseVO response = aiChatService.chat(query, sessionId);
 
         return Result.success(response);
+    }
+
+    @PostMapping(value = "/send/stream", produces = "text/event-stream")
+    @Operation(summary = "发送消息给AI（流式输出）")
+    public void sendChatMessageStream(@RequestBody Map<String, Object> requestParams, HttpServletResponse response) {
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+        response.setHeader("X-Accel-Buffering", "no");
+
+        String query = (String) requestParams.get("query");
+        Object sessionIdObj = requestParams.get("sessionId");
+        Long sessionId = (sessionIdObj != null && !sessionIdObj.toString().trim().isEmpty()) ?
+                Long.valueOf(sessionIdObj.toString()) : null;
+
+        if (query == null || query.trim().isEmpty()) {
+            try {
+                response.getWriter().write("data: 消息不能为空\n\n");
+                response.getWriter().flush();
+            } catch (Exception e) {
+                log.error("发送错误消息失败", e);
+            }
+            return;
+        }
+
+        try {
+            aiChatService.chatStream(query, sessionId, response);
+        } catch (Exception e) {
+            log.error("流式聊天处理异常", e);
+            try {
+                response.getWriter().write("data: 服务暂时不可用，请稍后重试\n\n");
+                response.getWriter().flush();
+            } catch (Exception ex) {
+                log.error("发送错误消息失败", ex);
+            }
+        }
     }
 
     @GetMapping("/history")

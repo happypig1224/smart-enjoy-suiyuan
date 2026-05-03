@@ -3,7 +3,7 @@ smart:
     suiyuan:
       ai:
         mcp:
-          serverUrl: http://localhost:8000/mcp
+          serverUrl: http://localhost:8000/mcp/stream
           timeout: 30000
           retryCount: 3
       datasource:

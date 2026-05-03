@@ -106,7 +106,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
 
     @Transactional(rollbackFor = Exception.class)
     public Result<Post> publishPost(PostDTO postDTO) {
-        // 验证输入数据
         validatePostData(postDTO);
         
         Long currentUserId = BaseContext.getCurrentUserId();
@@ -120,17 +119,30 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
             }
         }
 
+        String contentFormat = postDTO.getContentFormat() != null ? postDTO.getContentFormat() : "markdown";
+        int wordCount = calculateWordCount(postDTO.getContent());
+
+        Integer status = postDTO.getStatus() != null ? postDTO.getStatus() : 1;
+        if (status != 0 && status != 1) {
+            throw new BaseException("帖子状态不合法，只能为0(草稿)或1(已发布)");
+        }
+
         Post post = Post.builder()
                 .userId(currentUserId)
                 .title(postDTO.getTitle())
                 .content(postDTO.getContent())
+                .contentFormat(contentFormat)
+                .wordCount(wordCount)
                 .type(postDTO.getType())
+                .status(status)
+                .isTop(0)
                 .likeCount(0)
                 .commentCount(0)
                 .viewCount(0)
                 .images(imagesJson)
                 .createTime(new Date())
                 .updateTime(new Date())
+                .isDeleted(0)
                 .build();
 
         int insert = postMapper.insert(post);
@@ -141,6 +153,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         clearPostListCache();
 
         return Result.success(post);
+    }
+    
+    private int calculateWordCount(String content) {
+        if (content == null || content.isEmpty()) {
+            return 0;
+        }
+        return content.length();
     }
     
     /**
@@ -156,13 +175,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         if (postDTO.getContent() == null || postDTO.getContent().trim().length() == 0) {
             throw new BaseException("帖子内容不能为空");
         }
-        if (postDTO.getContent().length() > 5000) {
-            throw new BaseException("帖子内容长度不能超过5000个字符");
+        if (postDTO.getContent().length() > 50000) {
+            throw new BaseException("帖子内容长度不能超过50000个字符");
         }
         if (postDTO.getImages() != null && postDTO.getImages().size() > 10) {
             throw new BaseException("最多只能上传10张图片");
         }
-        // 验证类型是否在有效范围内: 0-技术讨论, 1-课程问题, 2-校园生活, 3-其他
         if (postDTO.getType() == null || postDTO.getType() < 0 || postDTO.getType() > 3) {
             throw new BaseException("帖子类型不合法，有效范围为0-3");
         }
@@ -341,8 +359,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         }
 
         // 验证内容长度
-        if (postUpdateDTO.getContent() != null && postUpdateDTO.getContent().length() > 5000) {
-            throw new BaseException("帖子内容长度不能超过5000个字符");
+        if (postUpdateDTO.getContent() != null && postUpdateDTO.getContent().length() > 50000) {
+            throw new BaseException("帖子内容长度不能超过50000个字符");
         }
 
         // 验证图片数量
@@ -359,6 +377,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         }
         if (postUpdateDTO.getContent() != null) {
             updateWrapper.set(Post::getContent, postUpdateDTO.getContent());
+            updateWrapper.set(Post::getWordCount, calculateWordCount(postUpdateDTO.getContent()));
+        }
+        if (postUpdateDTO.getContentFormat() != null) {
+            updateWrapper.set(Post::getContentFormat, postUpdateDTO.getContentFormat());
         }
         if (postUpdateDTO.getType() != null) {
             updateWrapper.set(Post::getType, postUpdateDTO.getType());

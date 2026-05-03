@@ -24,10 +24,10 @@ class MilvusConfig(BaseSettings):
 
 
 class DashScopeConfig(BaseSettings):
-    """阿里云百炼（DashScope）配置"""
+    """阿里云百炼配置"""
     model_config = SettingsConfigDict(env_prefix="DASHSCOPE_")
     
-    api_key: str  # 必须从环境变量读取
+    api_key: str
     chat_model: str = "qwen-plus"
     embedding_model: str = "text-embedding-v2"
 
