@@ -9,10 +9,11 @@ import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Comment;
 import com.shxy.suiyuanentity.entity.Post;
-import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
+import com.shxy.suiyuanentity.vo.PostFavoriteStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.service.CommentService;
 import com.shxy.suiyuanserver.service.PostService;
+import com.shxy.suiyuanserver.service.PostFavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -41,6 +42,8 @@ public class ForumController {
     @Autowired
     private PostService postService;
 
+    @Autowired
+    private PostFavoriteService postFavoriteService;
 
     @GetMapping("post/list")
     @Operation(summary = "获取帖子列表", description = "分页获取论坛帖子列表，支持排序和类型筛选")
@@ -72,26 +75,6 @@ public class ForumController {
             return Result.fail("帖子ID无效");
         }
         return postService.getPostDetail(id);
-    }
-
-    @PostMapping("post/like/{id}")
-    @RequireLogin
-    @Operation(summary = "点赞帖子", description = "用户对帖子进行点赞操作")
-    public Result<Post> likePost(@PathVariable @NotNull Long id) {
-        if (id <= 0) {
-            return Result.fail("帖子ID无效");
-        }
-        return postService.likePost(id);
-    }
-
-    @DeleteMapping("post/like/{id}")
-    @RequireLogin
-    @Operation(summary = "取消点赞", description = "用户取消对帖子的点赞")
-    public Result<Post> cancelLikePost(@PathVariable @NotNull Long id) {
-        if (id <= 0) {
-            return Result.fail("帖子ID无效");
-        }
-        return postService.cancelLikePost(id);
     }
 
     @DeleteMapping("post/{id}")
@@ -166,14 +149,41 @@ public class ForumController {
         return Result.success("上传成功", imageUrl);
     }
 
-    @GetMapping("post/like/status/{id}")
+    @PostMapping("post/favorite/{id}")
     @RequireLogin
-    @Operation(summary = "查询帖子点赞状态", description = "查询当前用户对指定帖子的点赞状态")
-    public Result<PostLikeStatusVO> getPostLikeStatus(@PathVariable @NotNull Long id) {
+    @Operation(summary = "收藏帖子", description = "用户对帖子进行收藏操作")
+    public Result<String> favoritePost(@PathVariable @NotNull Long id) {
         if (id <= 0) {
             return Result.fail("帖子ID无效");
         }
-        return postService.getPostLikeStatus(id);
+        return postFavoriteService.favoritePost(id);
+    }
+
+    @DeleteMapping("post/favorite/{id}")
+    @RequireLogin
+    @Operation(summary = "取消收藏帖子", description = "用户取消对帖子的收藏")
+    public Result<String> cancelFavoritePost(@PathVariable @NotNull Long id) {
+        if (id <= 0) {
+            return Result.fail("帖子ID无效");
+        }
+        return postFavoriteService.cancelFavoritePost(id);
+    }
+
+    @GetMapping("post/favorite/status/{id}")
+    @RequireLogin
+    @Operation(summary = "查询帖子收藏状态", description = "查询当前用户对指定帖子的收藏状态")
+    public Result<PostFavoriteStatusVO> getPostFavoriteStatus(@PathVariable @NotNull Long id) {
+        if (id <= 0) {
+            return Result.fail("帖子ID无效");
+        }
+        return postFavoriteService.getPostFavoriteStatus(id);
+    }
+
+    @GetMapping("post/favorite/me")
+    @RequireLogin
+    @Operation(summary = "我收藏的帖子", description = "获取当前用户收藏的帖子列表")
+    public Result<java.util.List<PostVO>> getMyFavoritePosts() {
+        return postFavoriteService.getUserFavoritePosts();
     }
 
 }

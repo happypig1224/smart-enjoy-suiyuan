@@ -292,4 +292,33 @@
           AND p.user_id = #{userId}
     </select>
 
+    <select id="selectPostListByIds" resultMap="PostVOResultMap">
+        SELECT
+            p.id as post_id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.content_format,
+            p.word_count,
+            p.type,
+            p.status,
+            p.is_top,
+            p.like_count,
+            p.comment_count,
+            p.view_count,
+            p.images,
+            p.create_time,
+            p.update_time,
+            u.nick_name,
+            u.avatar
+        FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.id IN
+        <foreach collection="postIds" item="postId" open="(" separator="," close=")">
+            #{postId}
+        </foreach>
+        AND p.is_deleted = 0
+        ORDER BY p.create_time DESC
+    </select>
+
 </mapper>

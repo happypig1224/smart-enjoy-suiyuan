@@ -8,7 +8,6 @@ import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.vo.CreatorPostListVO;
 import com.shxy.suiyuanentity.vo.CreatorStatsVO;
-import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,10 +27,6 @@ public interface PostService extends IService<Post> {
 
     Result<PostVO> getPostDetail(Long id);
 
-    Result<Post> likePost(Long id);
-
-    Result<Post> cancelLikePost(Long id);
-
     Result<String> deletePost(Long id);
 
     Result<Post> updatePost(PostUpdateDTO postUpdateDTO);
@@ -49,13 +44,6 @@ public interface PostService extends IService<Post> {
      * @return 图片URL
      */
     String uploadPostImage(MultipartFile file);
-
-    /**
-     * 查询帖子点赞状态
-     * @param postId 帖子ID
-     * @return 点赞状态
-     */
-    Result<PostLikeStatusVO> getPostLikeStatus(Long postId);
 
     /**
      * 获取创作者中心统计数据

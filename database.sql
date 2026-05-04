@@ -280,3 +280,20 @@ CREATE TABLE secondhand_favorite
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='二手商品收藏表';
+
+-- =====================================================
+-- 12. 帖子收藏表 (Post Favorite)
+-- 描述: 记录用户对帖子的收藏关系
+-- =====================================================
+CREATE TABLE post_favorite
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id     BIGINT NOT NULL COMMENT '用户ID，关联user.id',
+    post_id     BIGINT NOT NULL COMMENT '帖子ID，关联post.id',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    UNIQUE KEY uk_user_post (user_id, post_id) COMMENT '同一用户对同一帖子只能收藏一次',
+    INDEX idx_user (user_id),
+    INDEX idx_post (post_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='帖子收藏表';

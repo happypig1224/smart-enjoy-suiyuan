@@ -65,6 +65,11 @@ public interface PostMapper extends BaseMapper<Post> {
      * 查询帖子详情（创作者中心使用，包含草稿）
      */
     List<PostVO> selectPostWithUserForCreator(@Param("postId") Long postId, @Param("userId") Long userId);
+
+    /**
+     * 根据帖子ID列表查询帖子详情
+     */
+    List<PostVO> selectPostListByIds(@Param("postIds") List<Long> postIds);
 }
 
 

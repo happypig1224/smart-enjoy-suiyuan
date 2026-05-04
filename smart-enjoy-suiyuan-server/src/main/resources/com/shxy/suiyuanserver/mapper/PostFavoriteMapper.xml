@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.shxy.suiyuanserver.mapper.PostLikeMapper">
+<mapper namespace="com.shxy.suiyuanserver.mapper.PostFavoriteMapper">
 
-    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.PostLike">
+    <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.PostFavorite">
         <id property="id" column="id" />
         <result property="postId" column="post_id" />
         <result property="userId" column="user_id" />
@@ -17,13 +17,13 @@
 
     <select id="selectByPostIdAndUserId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM post_like
+        FROM post_favorite
         WHERE post_id = #{postId} AND user_id = #{userId}
     </select>
 
     <select id="countByPostId" resultType="java.lang.Long">
         SELECT COUNT(*)
-        FROM post_like
+        FROM post_favorite
         WHERE post_id = #{postId}
     </select>
 

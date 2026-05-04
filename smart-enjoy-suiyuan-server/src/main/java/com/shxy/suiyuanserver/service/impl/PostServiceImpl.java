@@ -15,12 +15,9 @@ import com.shxy.suiyuancommon.utils.TencentCOSAvatarUtil;
 import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Post;
-import com.shxy.suiyuanentity.entity.PostLike;
 import com.shxy.suiyuanentity.vo.CreatorPostListVO;
 import com.shxy.suiyuanentity.vo.CreatorStatsVO;
-import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
-import com.shxy.suiyuanserver.mapper.PostLikeMapper;
 import com.shxy.suiyuanserver.mapper.PostMapper;
 import com.shxy.suiyuanserver.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +39,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         implements PostService {
 
     private final PostMapper postMapper;
-    private final PostLikeMapper postLikeMapper;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final RedisCacheUtil redisCacheUtil;
@@ -223,86 +219,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public Result<Post> likePost(Long id) {
-        if (id == null || id <= 0) {
-            throw new BaseException("帖子ID不合法");
-        }
-
-        Post post = postMapper.selectById(id);
-        if (post == null) {
-            throw new BaseException("帖子不存在");
-        }
-
-        Long currentUserId = BaseContext.getCurrentUserId();
-
-        // 查询 post_like 表判断是否已点赞
-        PostLike existingLike = postLikeMapper.selectByPostIdAndUserId(id, currentUserId);
-        if (existingLike != null) {
-            throw new BaseException("已经点赞过");
-        }
-
-        PostLike postLike = PostLike.builder()
-                .postId(id)
-                .userId(currentUserId)
-                .createTime(new Date())
-                .build();
-        int insert = postLikeMapper.insert(postLike);
-        if (insert <= 0) {
-            throw new BaseException("点赞失败");
-        }
-
-        postMapper.update(null, new LambdaUpdateWrapper<>(Post.class)
-                .eq(Post::getId, id)
-                .setSql("like_count = like_count + 1"));
-
-        // 清除帖子详情缓存,确保下次访问时重新查询点赞状态
-        String detailKey = RedisConstant.POST_DETAIL_KEY_PREFIX + id;
-        redisTemplate.delete(detailKey);
-
-        post.setLikeCount(post.getLikeCount() + 1);
-        return Result.success(post);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public Result<Post> cancelLikePost(Long id) {
-        if (id == null || id <= 0) {
-            throw new BaseException("帖子ID不合法");
-        }
-
-        Post post = postMapper.selectById(id);
-        if (post == null) {
-            throw new BaseException("帖子不存在");
-        }
-
-        Long currentUserId = BaseContext.getCurrentUserId();
-
-        // 查询 post_like 表判断是否已点赞
-        PostLike existingLike = postLikeMapper.selectByPostIdAndUserId(id, currentUserId);
-        if (existingLike == null) {
-            throw new BaseException("还未点赞，无法取消");
-        }
-
-        // 删除点赞记录
-        int delete = postLikeMapper.deleteById(existingLike.getId());
-        if (delete <= 0) {
-            throw new BaseException("取消点赞失败");
-        }
-
-        // 更新帖子点赞数
-        postMapper.update(null, new LambdaUpdateWrapper<>(Post.class)
-                .eq(Post::getId, id)
-                .gt(Post::getLikeCount, 0)
-                .setSql("like_count = like_count - 1"));
-
-        // 只清除帖子详情缓存,列表缓存容忍短暂不一致
-        String detailKey = RedisConstant.POST_DETAIL_KEY_PREFIX + id;
-        redisTemplate.delete(detailKey);
-
-        post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
-        return Result.success(post);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
     public Result<String> deletePost(Long id) {
         if (id == null || id <= 0) {
             throw new BaseException("帖子ID不合法");
@@ -317,10 +233,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         if (!post.getUserId().equals(currentUserId)) {
             throw new BaseException("只能删除自己发布的帖子");
         }
-
-        // 删除帖子关联的点赞记录
-        postLikeMapper.delete(new LambdaQueryWrapper<>(PostLike.class)
-                .eq(PostLike::getPostId, id));
 
         // 删除帖子
         int delete = postMapper.deleteById(id);
@@ -479,31 +391,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         String imageUrl = tencentCOSAvatarUtil.uploadFile(file);
         log.info("用户 {} 上传了帖子图片：{}", BaseContext.getCurrentUserId(), imageUrl);
         return imageUrl;
-    }
-
-    public Result<PostLikeStatusVO> getPostLikeStatus(Long postId) {
-        if (postId == null || postId <= 0) {
-            throw new BaseException("帖子ID不合法");
-        }
-
-        Post post = postMapper.selectById(postId);
-        if (post == null) {
-            throw new BaseException("帖子不存在");
-        }
-
-        Long currentUserId = BaseContext.getCurrentUserId();
-        boolean isLiked = false;
-        if (currentUserId != null && currentUserId > 0) {
-            PostLike postLike = postLikeMapper.selectByPostIdAndUserId(postId, currentUserId);
-            isLiked = postLike != null;
-        }
-
-        PostLikeStatusVO statusVO = PostLikeStatusVO.builder()
-                .postId(postId)
-                .isLiked(isLiked)
-                .build();
-
-        return Result.success(statusVO);
     }
 
     public Result<CreatorStatsVO> getCreatorStats(Long userId) {
