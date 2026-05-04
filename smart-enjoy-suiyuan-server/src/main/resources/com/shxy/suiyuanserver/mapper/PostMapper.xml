@@ -164,4 +164,126 @@
         ORDER BY p.create_time DESC
     </select>
 
+    <resultMap id="CreatorPostListResultMap" type="com.shxy.suiyuanentity.vo.CreatorPostListVO">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="contentFormat" column="content_format" />
+        <result property="wordCount" column="word_count" />
+        <result property="type" column="type" />
+        <result property="status" column="status" />
+        <result property="isTop" column="is_top" />
+        <result property="likeCount" column="like_count" />
+        <result property="commentCount" column="comment_count" />
+        <result property="viewCount" column="view_count" />
+        <result property="images" column="images" jdbcType="VARCHAR" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <resultMap id="CreatorStatsResultMap" type="com.shxy.suiyuanentity.vo.CreatorStatsVO">
+        <result property="totalPosts" column="total_posts" />
+        <result property="publishedPosts" column="published_posts" />
+        <result property="draftPosts" column="draft_posts" />
+        <result property="reviewingPosts" column="reviewing_posts" />
+        <result property="lockedPosts" column="locked_posts" />
+        <result property="totalComments" column="total_comments" />
+        <result property="totalLikes" column="total_likes" />
+        <result property="totalViews" column="total_views" />
+        <result property="totalWords" column="total_words" />
+        <result property="totalFollowers" column="total_followers" />
+        <result property="newFollowers" column="new_followers" />
+        <result property="interactiveFollowers" column="interactive_followers" />
+    </resultMap>
+
+    <select id="selectCreatorStats" resultMap="CreatorStatsResultMap">
+        SELECT
+            -- 帖子统计
+            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0) AS total_posts,
+            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 1) AS published_posts,
+            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 0) AS draft_posts,
+            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 3) AS reviewing_posts,
+            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 2) AS locked_posts,
+            -- 互动统计
+            COALESCE((SELECT SUM(comment_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_comments,
+            COALESCE((SELECT SUM(like_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_likes,
+            COALESCE((SELECT SUM(view_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_views,
+            COALESCE((SELECT SUM(word_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_words,
+            -- 粉丝统计
+            (SELECT COUNT(*) FROM user_follow WHERE followee_id = #{userId}) AS total_followers,
+            (SELECT COUNT(*) FROM user_follow WHERE followee_id = #{userId} AND DATE(create_time) = CURDATE()) AS new_followers,
+            (SELECT COUNT(DISTINCT uf.follower_id)
+             FROM user_follow uf
+             INNER JOIN post p ON uf.follower_id = p.user_id
+             WHERE uf.followee_id = #{userId}
+             AND (p.comment_count > 0 OR p.like_count > 0)) AS interactive_followers
+    </select>
+
+    <select id="selectCreatorPostList" resultMap="CreatorPostListResultMap">
+        SELECT
+            id, user_id, title, content, content_format, word_count, type, status,
+            is_top, like_count, comment_count, view_count, images, create_time, update_time
+        FROM post
+        WHERE user_id = #{userId}
+          AND is_deleted = 0
+          <choose>
+              <when test="status == 0">
+                  AND status = 0
+              </when>
+              <otherwise>
+                  AND status != 0
+                  <if test="status != null and status != 0">
+                      AND status = #{status}
+                  </if>
+              </otherwise>
+          </choose>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="selectCreatorPostListCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM post
+        WHERE user_id = #{userId}
+          AND is_deleted = 0
+          <choose>
+              <when test="status == 0">
+                  AND status = 0
+              </when>
+              <otherwise>
+                  AND status != 0
+                  <if test="status != null and status != 0">
+                      AND status = #{status}
+                  </if>
+              </otherwise>
+          </choose>
+    </select>
+
+    <select id="selectPostWithUserForCreator" resultMap="PostVOResultMap">
+        SELECT
+            p.id as post_id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.content_format,
+            p.word_count,
+            p.type,
+            p.status,
+            p.is_top,
+            p.like_count,
+            p.comment_count,
+            p.view_count,
+            p.images,
+            p.create_time,
+            p.update_time,
+            u.nick_name,
+            u.avatar
+        FROM post p
+                 LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.id = #{postId}
+          AND p.is_deleted = 0
+          AND p.user_id = #{userId}
+    </select>
+
 </mapper>

@@ -16,6 +16,8 @@ import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Post;
 import com.shxy.suiyuanentity.entity.PostLike;
+import com.shxy.suiyuanentity.vo.CreatorPostListVO;
+import com.shxy.suiyuanentity.vo.CreatorStatsVO;
 import com.shxy.suiyuanentity.vo.PostLikeStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.mapper.PostLikeMapper;
@@ -394,6 +396,14 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                 throw new BaseException("图片数据格式错误");
             }
         }
+        // 验证状态
+        if (postUpdateDTO.getStatus() != null && (postUpdateDTO.getStatus() < 0 || postUpdateDTO.getStatus() > 3)) {
+            throw new BaseException("帖子状态不合法");
+        }
+        if (postUpdateDTO.getStatus() != null) {
+            updateWrapper.set(Post::getStatus, postUpdateDTO.getStatus());
+        }
+
         updateWrapper.set(Post::getUpdateTime, new Date());
 
         int update = postMapper.update(null, updateWrapper);
@@ -491,5 +501,78 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                 .build();
 
         return Result.success(statusVO);
+    }
+
+    public Result<CreatorStatsVO> getCreatorStats(Long userId) {
+        if (userId == null || userId <= 0) {
+            return Result.fail("用户ID不合法");
+        }
+
+        CreatorStatsVO stats = postMapper.selectCreatorStats(userId);
+        if (stats == null) {
+            stats = new CreatorStatsVO();
+            stats.setTotalPosts(0L);
+            stats.setPublishedPosts(0L);
+            stats.setDraftPosts(0L);
+            stats.setReviewingPosts(0L);
+            stats.setLockedPosts(0L);
+            stats.setTotalComments(0L);
+            stats.setTotalLikes(0L);
+            stats.setTotalViews(0L);
+            stats.setTotalWords(0L);
+            stats.setTotalFollowers(0L);
+            stats.setNewFollowers(0L);
+            stats.setInteractiveFollowers(0L);
+        }
+
+        return Result.success(stats);
+    }
+
+    public Result<PageResult> getCreatorPostList(Long userId, Integer status, Integer page, Integer size) {
+        if (userId == null || userId <= 0) {
+            return Result.fail("用户ID不合法");
+        }
+
+        int validatedPage = (page == null || page < 1) ? 1 : page;
+        int validatedSize = (size == null || size < 1) ? 10 : Math.min(size, 50);
+        int offset = (validatedPage - 1) * validatedSize;
+
+        List<CreatorPostListVO> records = postMapper.selectCreatorPostList(userId, status, offset, validatedSize);
+        Long total = postMapper.selectCreatorPostListCount(userId, status);
+
+        PageResult pageResult = PageResult.builder()
+                .total(total != null ? total : 0)
+                .records(records != null ? records : Collections.emptyList())
+                .page(validatedPage)
+                .size(validatedSize)
+                .build();
+
+        return Result.success(pageResult);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Post> publishPostPublic(PostDTO postDTO) {
+        return publishPost(postDTO);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Post> updatePostPublic(PostUpdateDTO postUpdateDTO) {
+        return updatePost(postUpdateDTO);
+    }
+
+    public Result<PostVO> getPostDetailForCreator(Long userId, Long postId) {
+        if (userId == null || userId <= 0) {
+            return Result.fail("用户ID不合法");
+        }
+        if (postId == null || postId <= 0) {
+            return Result.fail("帖子ID无效");
+        }
+
+        List<PostVO> postVOList = postMapper.selectPostWithUserForCreator(postId, userId);
+        if (postVOList == null || postVOList.isEmpty()) {
+            throw new BaseException("帖子不存在");
+        }
+
+        return Result.success(postVOList.get(0));
     }
 }

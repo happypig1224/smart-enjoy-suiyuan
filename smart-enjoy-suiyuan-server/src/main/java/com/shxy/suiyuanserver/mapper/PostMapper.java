@@ -2,6 +2,8 @@ package com.shxy.suiyuanserver.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shxy.suiyuanentity.entity.Post;
+import com.shxy.suiyuanentity.vo.CreatorPostListVO;
+import com.shxy.suiyuanentity.vo.CreatorStatsVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import org.apache.ibatis.annotations.Param;
 
@@ -37,6 +39,30 @@ public interface PostMapper extends BaseMapper<Post> {
      * 根据用户ID查询帖子列表
      */
     List<PostVO> selectPostListByUserId(@Param("userId") Long userId);
+
+    /**
+     * 查询创作者统计数据
+     */
+    CreatorStatsVO selectCreatorStats(@Param("userId") Long userId);
+
+    /**
+     * 查询创作者帖子列表（内容管理）
+     */
+    List<CreatorPostListVO> selectCreatorPostList(@Param("userId") Long userId,
+                                                   @Param("status") Integer status,
+                                                   @Param("offset") int offset,
+                                                   @Param("size") int size);
+
+    /**
+     * 查询创作者帖子总数
+     */
+    Long selectCreatorPostListCount(@Param("userId") Long userId,
+                                     @Param("status") Integer status);
+
+    /**
+     * 查询帖子详情（创作者中心使用，包含草稿）
+     */
+    List<PostVO> selectPostWithUserForCreator(@Param("postId") Long postId, @Param("userId") Long userId);
 }
 
 

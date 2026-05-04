@@ -109,15 +109,6 @@ async def generate_stream_async(query: str, user_id: int, session_id: int, histo
 
 @router.post("", response_model=McpResponse)
 async def handle_mcp_request(request: McpRequest):
-    """
-    处理 MCP 请求
-    
-    Args:
-        request: MCP 请求数据
-    
-    Returns:
-        MCP 响应数据
-    """
     if request.tool != "chat_agent":
         app_logger.warning(f"不支持的工具: {request.tool}")
         return McpResponse(code=400, result="", message="Unsupported tool")
@@ -171,15 +162,6 @@ async def handle_mcp_request(request: McpRequest):
 
 @router.post("/stream")
 async def handle_mcp_stream_request(body: dict = Body(...)):
-    """
-    处理 MCP 流式请求
-    
-    Args:
-        body: 请求体字典
-    
-    Returns:
-        SSE 流式响应
-    """
     app_logger.info("="*60)
     app_logger.info("收到流式 MCP 请求，开始处理...")
     app_logger.info("="*60)
