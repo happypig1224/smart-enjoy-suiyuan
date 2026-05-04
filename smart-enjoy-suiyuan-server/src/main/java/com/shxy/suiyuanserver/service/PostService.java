@@ -22,7 +22,7 @@ import java.util.List;
 public interface PostService extends IService<Post> {
 
 
-    Result<PageResult> listPost(Integer page, Integer size, String sort, Integer type);
+    Result<PageResult> listPost(Integer page, Integer size, String sort, Integer type, String keyword);
 
     Result<Post> publishPost(PostDTO postDTO);
 

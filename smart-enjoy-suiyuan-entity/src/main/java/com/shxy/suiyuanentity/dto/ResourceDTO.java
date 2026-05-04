@@ -22,6 +22,14 @@ import lombok.NoArgsConstructor;
 public class ResourceDTO {
     
     /**
+     * 资源标题
+     */
+    @NotBlank(message = "资源标题不能为空")
+    @Size(max = 100, message = "资源标题长度不能超过100个字符")
+    @Schema(description = "资源标题")
+    private String title;
+    
+    /**
      * 资源类型：image, pdf, doc, txt, md
      */
     @NotBlank(message = "资源类型不能为空")

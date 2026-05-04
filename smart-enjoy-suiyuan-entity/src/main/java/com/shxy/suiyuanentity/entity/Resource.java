@@ -33,6 +33,11 @@ public class Resource {
     private Long userId;
 
     /**
+     * 资源标题
+     */
+    private String title;
+
+    /**
      * 资源格式: image, pdf, doc, txt, md
      */
     private String type;

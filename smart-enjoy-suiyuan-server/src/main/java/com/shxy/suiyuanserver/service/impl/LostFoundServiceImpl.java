@@ -124,18 +124,22 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         return Result.success(lostFound);
     }
 
-    public Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent) {
+    public Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent, String keyword) {
         if (page == null || page < 1) page = 1;
         if (pageSize == null || pageSize < 1 || pageSize > 50) pageSize = 10;
+        
+        // 处理keyword
+        String finalKeyword = keyword != null ? keyword.trim() : null;
         
         // 使用final变量保证lambda表达式可用
         final int finalPage = page;
         final int finalPageSize = pageSize;
+        final String keywordForLambda = finalKeyword;
         
         // 特殊处理紧急失物招领，使用专门的缓存key和TTL
         String cacheKey;
         long cacheTTL;
-        if (urgent != null && urgent == 1) {
+        if (urgent != null && urgent == 1 && (finalKeyword == null || finalKeyword.isEmpty())) {
             // 紧急失物招领使用专门的缓存
             cacheKey = RedisConstant.LOSTFOUND_URGENT_LIST_KEY_PREFIX + "page:" + finalPage + ":size:" + finalPageSize;
             cacheTTL = RedisConstant.LOSTFOUND_URGENT_LIST_TTL;
@@ -144,11 +148,12 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                     "page:" + finalPage + ":size:" + finalPageSize + 
                     ":type:" + (type != null ? type : "all") + 
                     ":status:" + (status != null ? status : "all") + 
-                    ":urgent:" + (urgent != null ? urgent : "all");
+                    ":urgent:" + (urgent != null ? urgent : "all") +
+                    ":keyword:" + (finalKeyword != null ? finalKeyword : "none");
             cacheTTL = RedisConstant.LOSTFOUND_LIST_TTL;
         }
 
-        log.info("查询失物招领列表，页码：{}，每页数量：{}，类型：{}，状态：{}，紧急程度：{}", finalPage, finalPageSize, type, status, urgent);
+        log.info("查询失物招领列表，页码：{}，每页数量：{}，类型：{}，状态：{}，紧急程度：{}，关键词：{}", finalPage, finalPageSize, type, status, urgent, finalKeyword);
 
         // 使用工具类解决缓存雪崩(随机过期时间)
         PageResult pageResult = redisCacheUtil.queryWithPassThrough(
@@ -164,6 +169,14 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                     }
                     if (urgent != null) {
                         queryWrapper.eq(LostFound::getUrgent, urgent);
+                    }
+                    if (keywordForLambda != null && !keywordForLambda.isEmpty()) {
+                        queryWrapper.and(wrapper -> wrapper
+                                .like(LostFound::getTitle, keywordForLambda)
+                                .or()
+                                .like(LostFound::getDescription, keywordForLambda)
+                                .or()
+                                .like(LostFound::getLocation, keywordForLambda));
                     }
                     queryWrapper.orderByDesc(LostFound::getCreateTime);
                     Page<LostFound> pageInfo = new Page<>(finalPage, finalPageSize);

@@ -48,7 +48,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     private final RedisCacheUtil redisCacheUtil;
     private final TencentCOSAvatarUtil tencentCOSAvatarUtil;
 
-    public Result<PageResult> listPost(Integer page, Integer size, String sort, Integer type) {
+    public Result<PageResult> listPost(Integer page, Integer size, String sort, Integer type, String keyword) {
         // 参数验证
         int validatedPage = (page == null || page < 1) ? 1 : page;
         int validatedSize = (size == null || size < 1) ? 10 : Math.min(size, 50); // 限制每页最大数量
@@ -57,17 +57,20 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
             validatedSort = "newest"; // 默认排序
         }
         Integer validatedType = type;
+        String validatedKeyword = keyword != null ? keyword.trim() : null;
 
         // 创建final变量以供lambda表达式使用
         final String finalValidatedSort = validatedSort;
         final Integer finalValidatedType = validatedType;
         final int finalValidatedPage = validatedPage;
         final int finalValidatedSize = validatedSize;
+        final String finalKeyword = validatedKeyword;
 
         String cacheKey = RedisConstant.POST_LIST_KEY_PREFIX +
                 finalValidatedPage + ":" + finalValidatedSize +
                 ":" + (finalValidatedType != null ? finalValidatedType : "all") +
-                ":" + (finalValidatedSort != null ? finalValidatedSort : "newest");
+                ":" + (finalValidatedSort != null ? finalValidatedSort : "newest") +
+                ":" + (finalKeyword != null ? finalKeyword : "none");
 
         PageResult pageResult = redisCacheUtil.queryWithPassThrough(
                 cacheKey,
@@ -80,8 +83,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                         orderBy = "mostLiked";
                     }
                     int offset = (finalValidatedPage - 1) * finalValidatedSize;
-                    List<PostVO> postVOList = postMapper.selectPostListWithUser(finalValidatedType, offset, finalValidatedSize, orderBy);
-                    Long total = postMapper.selectPostCount(finalValidatedType);
+                    List<PostVO> postVOList = postMapper.selectPostListWithUser(finalValidatedType, finalKeyword, offset, finalValidatedSize, orderBy);
+                    Long total = postMapper.selectPostCount(finalValidatedType, finalKeyword);
                     return PageResult.builder()
                             .total(total != null ? total : 0)
                             .records(postVOList)

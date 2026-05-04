@@ -19,7 +19,7 @@ public interface LostFoundService extends IService<LostFound> {
 
     Result<LostFound> createLostFound(LostFoundDTO lostFoundDTO);
 
-    Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent);
+    Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent, String keyword);
 
     Result<LostFoundVO> detailLostFound(Long id);
 

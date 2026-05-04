@@ -19,11 +19,13 @@ public interface PostMapper extends BaseMapper<Post> {
     List<PostVO> selectPostWithUser(@Param("postId") Long postId);
 
     List<PostVO> selectPostListWithUser(@Param("type") Integer type,
+                                        @Param("keyword") String keyword,
                                         @Param("offset") int offset,
                                         @Param("size") int size,
                                         @Param("orderBy") String orderBy);
 
-    Long selectPostCount(@Param("type") Integer type);
+    Long selectPostCount(@Param("type") Integer type,
+                         @Param("keyword") String keyword);
     
     /**
      * 增加帖子评论数

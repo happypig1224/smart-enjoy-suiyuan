@@ -24,9 +24,10 @@ public interface ResourceService extends IService<Resource> {
      * @param type 类型
      * @param subject 学科分类
      * @param sort 排序字段
+     * @param keyword 搜索关键词
      * @return 分页结果
      */
-    Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort);
+    Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort, String keyword);
 
     /**
      * 上传资源

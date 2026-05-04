@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -7,6 +7,7 @@
     <resultMap id="BaseResultMap" type="com.shxy.suiyuanentity.entity.Resource">
             <id property="id" column="id" />
             <result property="userId" column="user_id" />
+            <result property="title" column="title" />
             <result property="type" column="type" />
             <result property="subject" column="subject" />
             <result property="resourceUrl" column="resource_url" />
@@ -19,7 +20,77 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,type,subject,resource_url,file_name,
+        id,user_id,title,type,subject,resource_url,file_name,
         file_size,description,download_count,create_time,update_time
     </sql>
+
+    <resultMap id="ResourceVOResultMap" type="com.shxy.suiyuanentity.vo.ResourceVO">
+        <id property="id" column="resource_id" />
+        <result property="userId" column="user_id" />
+        <result property="userNickName" column="nick_name" />
+        <result property="userAvatar" column="avatar" />
+        <result property="title" column="title" />
+        <result property="type" column="type" />
+        <result property="subject" column="subject" />
+        <result property="resourceUrl" column="resource_url" />
+        <result property="fileName" column="file_name" />
+        <result property="fileSize" column="file_size" />
+        <result property="description" column="description" />
+        <result property="downloadCount" column="download_count" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <select id="selectResourceListWithUser" parameterType="map" resultMap="ResourceVOResultMap">
+        SELECT
+        r.id as resource_id,
+        r.user_id,
+        r.title,
+        r.type,
+        r.subject,
+        r.resource_url,
+        r.file_name,
+        r.file_size,
+        r.description,
+        r.download_count,
+        r.create_time,
+        r.update_time,
+        u.nick_name,
+        u.avatar
+        FROM resource r
+        LEFT JOIN user u ON r.user_id = u.id
+        <where>
+            <if test="type != null and type != 'all' and type != ''">
+                AND r.type = #{type}
+            </if>
+            <if test="subject != null">
+                AND r.subject = #{subject}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{keyword}, '%') OR r.file_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY
+        <choose>
+            <when test="orderBy == 'hottest'">r.download_count DESC</when>
+            <otherwise>r.create_time DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectResourceCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM resource r
+        <where>
+            <if test="type != null and type != 'all' and type != ''">
+                AND r.type = #{type}
+            </if>
+            <if test="subject != null">
+                AND r.subject = #{subject}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{keyword}, '%') OR r.file_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
 </mapper>

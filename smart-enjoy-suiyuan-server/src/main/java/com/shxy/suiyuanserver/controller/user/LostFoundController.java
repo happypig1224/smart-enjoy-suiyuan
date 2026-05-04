@@ -46,8 +46,9 @@ public class LostFoundController {
                                             @RequestParam(value = "pageSize", defaultValue = "10") @Min(1) @Max(50) Integer pageSize,
                                             @RequestParam(value = "type", required = false) Integer type,
                                             @RequestParam(value = "status", required = false) Integer status,
-                                            @RequestParam(value = "urgent",  required = false) Integer urgent) {
-        return lostFoundService.listLostFound(page, pageSize, type, status, urgent);
+                                            @RequestParam(value = "urgent",  required = false) Integer urgent,
+                                            @RequestParam(value = "keyword", required = false) String keyword) {
+        return lostFoundService.listLostFound(page, pageSize, type, status, urgent, keyword);
     }
 
     @GetMapping("detail/{id}")

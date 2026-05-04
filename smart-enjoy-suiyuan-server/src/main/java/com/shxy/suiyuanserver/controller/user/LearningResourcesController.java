@@ -62,8 +62,9 @@ public class LearningResourcesController {
                                    @RequestParam(value = "pageSize", defaultValue = "10") @Min(value = 1, message = "每页数量最小值为1") @Max(value = 50, message = "每页数量最大值为50") Integer pageSize,
                                    @RequestParam(value = "type", required = false)  String type,
                                    @RequestParam(value = "subject", required = false) Integer subject,
-                                   @RequestParam(value = "sort", required = false)  String sort) {
-        return resourceService.queryList(page, pageSize, type, subject, sort);
+                                   @RequestParam(value = "sort", required = false)  String sort,
+                                   @RequestParam(value = "keyword", required = false) String keyword) {
+        return resourceService.queryList(page, pageSize, type, subject, sort, keyword);
     }
 
     /**

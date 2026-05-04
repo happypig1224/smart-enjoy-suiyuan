@@ -101,6 +101,9 @@
             <if test="type != null">
                 AND p.type = #{type}
             </if>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
         </where>
         ORDER BY
         <choose>
@@ -120,6 +123,9 @@
             AND status = 1
             <if test="type != null">
                 AND type = #{type}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
     </select>

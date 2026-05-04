@@ -48,13 +48,14 @@ public class ForumController {
             @RequestParam(value = "page", defaultValue = "1") @Min(1) Integer page,
             @RequestParam(value = "size", defaultValue = "10") @Min(1) @Max(50) Integer size,
             @RequestParam(value = "sort", required = false) String sort,
-            @RequestParam(value = "type", required = false) Integer type
+            @RequestParam(value = "type", required = false) Integer type,
+            @RequestParam(value = "keyword", required = false) String keyword
     )  {
         // 验证排序参数
         if (sort != null && !isValidSortField(sort)) {
             return Result.fail("无效的排序参数");
         }
-        return postService.listPost(page, size, sort, type);
+        return postService.listPost(page, size, sort, type, keyword);
     }
 
     @PostMapping("post/publish")

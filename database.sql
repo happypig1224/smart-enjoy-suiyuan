@@ -53,6 +53,7 @@ CREATE TABLE resource
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id        BIGINT        NOT NULL COMMENT '上传者ID，关联user.id',
+    title          VARCHAR(100)  NOT NULL COMMENT '资源标题',
     type           VARCHAR(20)   NOT NULL COMMENT '资源格式: image, pdf, doc, txt, md',
     subject        INT      DEFAULT NULL COMMENT '所属学科分类ID',
     resource_url   VARCHAR(1000) NOT NULL COMMENT '文件在COS/服务器的存储路径',
@@ -65,6 +66,7 @@ CREATE TABLE resource
     INDEX idx_user (user_id),
     INDEX idx_type (type),
     INDEX idx_subject (subject),
+    INDEX idx_title (title),
     INDEX idx_download (download_count),
     INDEX idx_type_time (type, create_time),
     INDEX idx_download_time (download_count, create_time)

@@ -46,6 +46,12 @@ public class ResourceVO {
     private String userAvatar;
     
     /**
+     * 资源标题
+     */
+    @Schema(description = "资源标题")
+    private String title;
+    
+    /**
      * 资源类型：image, pdf, doc, txt, md
      */
     @Schema(description = "资源类型：image, pdf, doc, txt, md")

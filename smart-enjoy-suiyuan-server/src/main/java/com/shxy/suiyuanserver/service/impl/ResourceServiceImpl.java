@@ -97,7 +97,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         this.redisCacheUtil = redisCacheUtil;
     }
 
-    public Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort) {
+    public Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort, String keyword) {
         String cleanType = type != null ? type.replaceAll("[^a-zA-Z0-9_-]", "") : "all";
         String cleanSort = sort != null ? sort.replaceAll("[^a-zA-Z0-9_-]", "") : "newest";
 
@@ -112,15 +112,16 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         final String finalCleanSort = cleanSort;
         final Integer finalPage = page;
         final Integer finalPageSize = pageSize;
+        final String finalKeyword = keyword != null ? keyword.trim() : null;
         
         // 特殊处理热门资源排行榜，使用专门的缓存key
         String cacheKey;
-        if ("hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType)) {
+        if ("hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())) {
             // 热门排行榜使用专门的缓存，更长的TTL
             cacheKey = RedisConstant.RESOURCE_HOT_RANKING_KEY_PREFIX + finalPage + ":" + finalPageSize;
         } else {
             cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX +
-                    finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort;
+                    finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort + ":" + (finalKeyword != null ? finalKeyword : "none");
         }
 
         // 使用工具类解决缓存雪崩(随机过期时间)
@@ -128,31 +129,32 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                 cacheKey,
                 PageResult.class,
                 key -> {
-                    LambdaQueryWrapper<Resource> queryWrapper = new LambdaQueryWrapper<>();
-                    if (!"all".equals(finalCleanType) && !finalCleanType.isEmpty()) {
-                        queryWrapper.eq(Resource::getType, finalCleanType);
+                    String orderBy = "newest";
+                    if ("hottest".equals(finalCleanSort)) {
+                        orderBy = "hottest";
                     }
-                    if (finalSubject != null) {
-                        queryWrapper.eq(Resource::getSubject, finalSubject);
-                    }
-                    if ("newest".equals(finalCleanSort)) {
-                        queryWrapper.orderByDesc(Resource::getCreateTime);
-                    } else if ("hottest".equals(finalCleanSort)) {
-                        queryWrapper.orderByDesc(Resource::getDownloadCount);
-                    } else {
-                        queryWrapper.orderByDesc(Resource::getCreateTime);
-                    }
-                    Page<Resource> pageInfo = new Page<>(finalPage, finalPageSize);
-                    Page<Resource> result = resourceMapper.selectPage(pageInfo, queryWrapper);
-                    List<ResourceVO> voList = convertToVOWithoutFavorite(result.getRecords());
+                    int offset = (finalPage - 1) * finalPageSize;
+                    List<ResourceVO> voList = resourceMapper.selectResourceListWithUser(
+                            "all".equals(finalCleanType) ? null : finalCleanType,
+                            finalSubject,
+                            finalKeyword,
+                            offset,
+                            finalPageSize,
+                            orderBy
+                    );
+                    Long total = resourceMapper.selectResourceCount(
+                            "all".equals(finalCleanType) ? null : finalCleanType,
+                            finalSubject,
+                            finalKeyword
+                    );
                     return PageResult.builder()
-                            .total(result.getTotal())
+                            .total(total != null ? total : 0)
                             .records(voList)
-                            .page(result.getCurrent())
-                            .size(result.getSize())
+                            .page(finalPage)
+                            .size(finalPageSize)
                             .build();
                 },
-                "hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType)
+                "hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())
                     ? RedisConstant.RESOURCE_HOT_RANKING_TTL 
                     : RedisConstant.RESOURCE_LIST_TTL,
                 TimeUnit.SECONDS
@@ -214,6 +216,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
         Resource resource = Resource.builder()
                 .userId(userId)
+                .title(resourceDTO.getTitle())
                 .type(resourceDTO.getType())
                 .subject(resourceDTO.getSubject())
                 .resourceUrl(resourceUrl)
@@ -385,6 +388,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     return ResourceVO.builder()
                             .id(resource.getId())
                             .userId(resource.getUserId())
+                            .title(resource.getTitle())
                             .type(resource.getType())
                             .subject(resource.getSubject())
                             .resourceUrl(resource.getResourceUrl())
@@ -447,6 +451,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             ResourceVO vo = ResourceVO.builder()
                     .id(resource.getId())
                     .userId(resource.getUserId())
+                    .title(resource.getTitle())
                     .type(resource.getType())
                     .subject(resource.getSubject())
                     .resourceUrl(resource.getResourceUrl())
@@ -537,6 +542,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             ResourceVO vo = ResourceVO.builder()
                     .id(resource.getId())
                     .userId(resource.getUserId())
+                    .title(resource.getTitle())
                     .type(resource.getType())
                     .subject(resource.getSubject())
                     .resourceUrl(resource.getResourceUrl())
