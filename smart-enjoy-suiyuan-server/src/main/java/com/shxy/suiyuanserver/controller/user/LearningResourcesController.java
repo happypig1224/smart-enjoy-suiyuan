@@ -14,7 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -63,7 +63,7 @@ public class LearningResourcesController {
                                    @RequestParam(value = "type", required = false)  String type,
                                    @RequestParam(value = "subject", required = false) Integer subject,
                                    @RequestParam(value = "sort", required = false)  String sort,
-                                   @RequestParam(value = "keyword", required = false) String keyword) {
+                                   @RequestParam(value = "keyword", required = false) @Size(max = 100, message = "搜索关键词长度不能超过100个字符") String keyword) {
         return resourceService.queryList(page, pageSize, type, subject, sort, keyword);
     }
 
@@ -97,9 +97,17 @@ public class LearningResourcesController {
      * @return 资源列表
      */
     @GetMapping("/me/publish")
-    @Operation(summary = "我的发布资源", description = "获取当前用户发布的所有学习资源")
-    public Result<List<ResourceVO>> getMyPublishedResources() {
+    @Operation(summary = "我的发布资源", description = "分页获取当前用户发布的所有学习资源")
+    public Result<PageResult> getMyPublishedResources(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size) {
         Long userId = BaseContext.getCurrentUserId();
+        return resourceService.getUserPublishedResourcesPaged(userId, page, size);
+    }
+
+    @GetMapping("/user/{userId}/publish")
+    @Operation(summary = "用户发布的资源", description = "获取指定用户发布的所有学习资源")
+    public Result<List<ResourceVO>> getUserPublishedResources(@PathVariable("userId") @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
         return resourceService.getUserPublishedResources(userId);
     }
 
@@ -148,6 +156,7 @@ public class LearningResourcesController {
      * @return 资源下载URL
      */
     @GetMapping("/download/{id}")
+    @RequireLogin
     @Operation(summary = "下载学习资源", description = "获取资源下载链接，同时递增下载次数")
     public Result<String> download(@PathVariable("id") @NotNull(message = "资源ID不能为空") @Min(value = 1, message = "资源ID必须大于0") Long id) {
         return resourceService.downloadResource(id);

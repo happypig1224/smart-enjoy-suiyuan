@@ -5,6 +5,7 @@ import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuanentity.dto.CommentDTO;
 import com.shxy.suiyuanentity.entity.Comment;
+import com.shxy.suiyuanentity.vo.CommentVO;
 
 /**
 * @author huang qi long
@@ -13,7 +14,7 @@ import com.shxy.suiyuanentity.entity.Comment;
 */
 public interface CommentService extends IService<Comment> {
 
-    Result<Comment> publishComment(CommentDTO commentDTO);
+    Result<CommentVO> publishComment(CommentDTO commentDTO);
 
     Result<String> deleteComment(Long id);
 

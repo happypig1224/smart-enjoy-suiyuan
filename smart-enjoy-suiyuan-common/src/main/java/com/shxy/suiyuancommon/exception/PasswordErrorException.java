@@ -10,7 +10,7 @@ package com.shxy.suiyuancommon.exception;
  */
 public class PasswordErrorException extends BaseException {
     public PasswordErrorException() {
-        super("密码错误!");
+        super("手机号或密码错误");
     }
 
     public PasswordErrorException(String message) {

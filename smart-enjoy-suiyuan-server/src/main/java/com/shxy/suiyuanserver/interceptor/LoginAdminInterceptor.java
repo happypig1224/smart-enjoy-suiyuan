@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.shxy.suiyuancommon.constant.RedisConstant.TOKEN_BLACKLIST_KEY_PREFIX;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_TOKEN_KEY_PREFIX;
 
 /**
@@ -66,6 +67,24 @@ public class LoginAdminInterceptor implements HandlerInterceptor {
         try {
             Claims claims = JwtUtil.parseJWT(jwtProperties.getAdminSecretKey(), token);
             Long userId = Long.valueOf(claims.get(JwtClaimConstant.USER_ID).toString());
+
+            String storedToken = stringRedisTemplate.opsForValue().get(USER_TOKEN_KEY_PREFIX + userId);
+            if (storedToken == null || !storedToken.equals(token)) {
+                log.warn("管理员token与Redis不匹配: userId={}", userId);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token无效或者已经过期")));
+                return false;
+            }
+
+            String jti = claims.getId();
+            if (jti != null && Boolean.TRUE.equals(stringRedisTemplate.hasKey(TOKEN_BLACKLIST_KEY_PREFIX + jti))) {
+                log.warn("管理员token已被撤销: userId={}, jti={}", userId, jti);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token已被撤销")));
+                return false;
+            }
 
             long ttl = stringRedisTemplate.getExpire(USER_TOKEN_KEY_PREFIX + userId, TimeUnit.SECONDS);
             if (ttl > 0 && ttl < 1800) {

@@ -1,9 +1,11 @@
 package com.shxy.suiyuanserver.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.exception.BaseException;
+import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
 import com.shxy.suiyuanentity.entity.Post;
@@ -12,10 +14,15 @@ import com.shxy.suiyuanentity.vo.PostFavoriteStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.mapper.PostFavoriteMapper;
 import com.shxy.suiyuanserver.mapper.PostMapper;
+import com.shxy.suiyuanserver.mapper.UserMapper;
 import com.shxy.suiyuanserver.service.PostFavoriteService;
+import com.shxy.suiyuanserver.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +44,9 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
 
     private final PostFavoriteMapper postFavoriteMapper;
     private final PostMapper postMapper;
+    private final UserMapper userMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -53,10 +62,13 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
 
         Long currentUserId = BaseContext.getCurrentUserId();
 
-        // 检查是否已收藏
+        if (currentUserId.equals(post.getUserId())) {
+            throw new BaseException("不能收藏自己的帖子");
+        }
+
         PostFavorite existingFavorite = postFavoriteMapper.selectByPostIdAndUserId(postId, currentUserId);
         if (existingFavorite != null) {
-            throw new BaseException("已经收藏过");
+            return Result.success("已经收藏过");
         }
 
         // 创建收藏记录
@@ -70,12 +82,47 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
             throw new BaseException("收藏失败");
         }
 
-        // 清除帖子详情缓存
         String detailKey = RedisConstant.POST_DETAIL_KEY_PREFIX + postId;
         redisTemplate.delete(detailKey);
 
+        Set<String> keys = new HashSet<>();
+        ScanOptions scanOptions = ScanOptions.scanOptions()
+                .match(RedisConstant.POST_LIST_KEY_PREFIX + "*")
+                .count(100)
+                .build();
+        try (Cursor<String> cursor = redisTemplate.scan(scanOptions)) {
+            while (cursor.hasNext()) {
+                keys.add(cursor.next());
+            }
+        }
+        if (!keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+
+        sendFavoriteNotification(currentUserId, post.getUserId(), postId, post.getTitle());
+
         log.info("用户{}收藏帖子{}成功", currentUserId, postId);
         return Result.success("收藏成功");
+    }
+
+    /**
+     * 发送帖子收藏通知
+     */
+    private void sendFavoriteNotification(Long fromUserId, Long toUserId, Long postId, String postTitle) {
+        if (toUserId == null || toUserId.equals(fromUserId)) {
+            return;
+        }
+
+        long delayScore = System.currentTimeMillis() + 5000;
+        String safePostTitle = postTitle != null ? postTitle.replace("\"", "\\\"") : "未知帖子";
+
+        String taskValue = String.format(
+            "{\"type\":\"post_favorite\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"postTitle\":\"%s\",\"time\":%d}",
+            fromUserId, toUserId, postId, safePostTitle, System.currentTimeMillis()
+        );
+
+        stringRedisTemplate.opsForZSet().add(RedisConstant.NOTIFY_BUFFER_KEY, taskValue, delayScore);
+        log.info("帖子收藏通知已加入缓冲区: {} -> {}, postId: {}", fromUserId, toUserId, postId);
     }
 
     @Override
@@ -92,10 +139,9 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
 
         Long currentUserId = BaseContext.getCurrentUserId();
 
-        // 检查是否已收藏
         PostFavorite existingFavorite = postFavoriteMapper.selectByPostIdAndUserId(postId, currentUserId);
         if (existingFavorite == null) {
-            throw new BaseException("还未收藏，无法取消");
+            return Result.success("还未收藏");
         }
 
         // 删除收藏记录
@@ -112,6 +158,7 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
         return Result.success("取消收藏成功");
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Result<PostFavoriteStatusVO> getPostFavoriteStatus(Long postId) {
         if (postId == null || postId <= 0) {
@@ -138,32 +185,35 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
         return Result.success(statusVO);
     }
 
+    @Transactional(readOnly = true)
     @Override
-    public Result<List<PostVO>> getUserFavoritePosts() {
+    public Result<PageResult> getUserFavoritePosts(Integer page, Integer size) {
         Long currentUserId = BaseContext.getCurrentUserId();
         if (currentUserId == null || currentUserId <= 0) {
             throw new BaseException("用户未登录");
         }
 
-        // 查询用户收藏的所有帖子ID
-        List<PostFavorite> favorites = postFavoriteMapper.selectList(
+        if (page == null || page < 1) page = 1;
+        if (size == null || size < 1) size = 10;
+
+        Page<PostFavorite> favoritePage = postFavoriteMapper.selectPage(
+                new Page<>(page, size),
                 new LambdaQueryWrapper<>(PostFavorite.class)
                         .eq(PostFavorite::getUserId, currentUserId)
                         .orderByDesc(PostFavorite::getCreateTime)
         );
 
-        if (favorites == null || favorites.isEmpty()) {
-            return Result.success(Collections.emptyList());
+        if (favoritePage.getRecords() == null || favoritePage.getRecords().isEmpty()) {
+            return Result.success(PageResult.builder().total(0).records(Collections.emptyList()).page(page).size(size).build());
         }
 
-        // 根据帖子ID列表查询帖子详情
-        List<Long> postIds = favorites.stream().map(PostFavorite::getPostId).toList();
+        List<Long> postIds = favoritePage.getRecords().stream().map(PostFavorite::getPostId).toList();
         List<PostVO> postVOList = postMapper.selectPostListByIds(postIds);
 
         if (postVOList == null) {
-            return Result.success(Collections.emptyList());
+            postVOList = Collections.emptyList();
         }
 
-        return Result.success(postVOList);
+        return Result.success(PageResult.builder().total(favoritePage.getTotal()).records(postVOList).page(page).size(size).build());
     }
 }

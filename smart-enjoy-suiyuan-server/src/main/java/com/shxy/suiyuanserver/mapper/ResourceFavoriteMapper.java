@@ -5,6 +5,7 @@ import com.shxy.suiyuanentity.entity.ResourceFavorite;
 import com.shxy.suiyuanentity.vo.ResourceVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -54,4 +55,10 @@ public interface ResourceFavoriteMapper extends BaseMapper<ResourceFavorite> {
      * @return 收藏的资源列表
      */
     List<Long> getUserFavoriteResources(Long userId);
+
+    /**
+     * 统计用户收藏的资源数
+     */
+    @Select("SELECT COUNT(*) FROM resource_favorite WHERE user_id = #{userId}")
+    Integer countByUserId(@Param("userId") Long userId);
 }

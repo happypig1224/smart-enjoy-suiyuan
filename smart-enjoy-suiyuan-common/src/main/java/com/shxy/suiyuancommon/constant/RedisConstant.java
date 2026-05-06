@@ -14,6 +14,8 @@ public class RedisConstant {
      */
     public static final String USER_TOKEN_KEY_PREFIX = "user:token:";
 
+    public static final String TOKEN_BLACKLIST_KEY_PREFIX = "token:blacklist:";
+
     /**
      * 用户信息缓存：user:info:{userId}
      */

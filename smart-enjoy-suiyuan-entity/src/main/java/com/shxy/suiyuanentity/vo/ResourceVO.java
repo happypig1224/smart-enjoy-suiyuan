@@ -34,10 +34,10 @@ public class ResourceVO {
     private Long userId;
     
     /**
-     * 上传者昵称
+     * 上传者用户名
      */
-    @Schema(description = "上传者昵称")
-    private String userNickName;
+    @Schema(description = "上传者用户名")
+    private String userName;
     
     /**
      * 上传者头像

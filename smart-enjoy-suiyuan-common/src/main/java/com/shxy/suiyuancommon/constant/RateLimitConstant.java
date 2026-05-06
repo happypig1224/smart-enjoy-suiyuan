@@ -24,6 +24,10 @@ public class RateLimitConstant {
      */
     public static final String API_RATE_LIMIT_KEY = "rate_limit:api:";
 
+    public static final String LOGIN_RATE_LIMIT_KEY = "rate_limit:login:";
+
+    public static final String AI_RATE_LIMIT_KEY = "rate_limit:ai:";
+
     // ==================== 限流配置（统一秒为单位） ====================
     /**
      * 短信验证码限流：60 秒内最多发送 1 次
@@ -48,4 +52,10 @@ public class RateLimitConstant {
      */
     public static final int COMMENT_TIME_WINDOW = 60;
     public static final int COMMENT_MAX_REQUESTS = 10;
+
+    public static final int LOGIN_TIME_WINDOW = 300;
+    public static final int LOGIN_MAX_REQUESTS = 5;
+
+    public static final int AI_TIME_WINDOW = 60;
+    public static final int AI_MAX_REQUESTS = 20;
 }

@@ -40,6 +40,7 @@ public class PostUpdateDTO {
     @Schema(description = "帖子图片列表")
     private List<String> images;
 
+    @Min(value = 0, message = "帖子状态不合法")
     @Schema(description = "帖子状态：0-草稿, 1-已发布")
     private Integer status;
 }

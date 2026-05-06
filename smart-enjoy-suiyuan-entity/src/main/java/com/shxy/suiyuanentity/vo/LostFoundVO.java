@@ -22,8 +22,8 @@ public class LostFoundVO {
     @Schema(description = "用户ID")
     private Long userId;
     
-    @Schema(description = "用户昵称")
-    private String userNickName;
+    @Schema(description = "用户名")
+    private String userName;
     
     @Schema(description = "用户头像")
     private String userAvatar;

@@ -105,6 +105,7 @@ public class SecondhandFavoriteServiceImpl extends ServiceImpl<SecondhandFavorit
         return Result.success("取消收藏成功");
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Result<List<SecondhandItemVO>> getUserFavoriteItems(Long userId) {
         // 查询用户收藏的商品ID列表

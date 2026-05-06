@@ -92,6 +92,12 @@ public class SecondhandController {
         return secondhandItemService.getUserPublishedItems(userId);
     }
 
+    @GetMapping("/user/{userId}/publish")
+    @Operation(summary = "用户发布的商品", description = "获取指定用户发布的所有二手商品")
+    public Result<List<SecondhandItemVO>> getUserPublishedItems(@PathVariable("userId") @NotNull(message = "用户ID不能为空") @Min(value = 1, message = "用户ID必须大于0") Long userId) {
+        return secondhandItemService.getUserPublishedItems(userId);
+    }
+
 
     @PostMapping("/on-sale/{id}")
     @RequireLogin

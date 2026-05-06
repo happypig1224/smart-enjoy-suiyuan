@@ -32,6 +32,9 @@ public class UserVO {
     
     @Schema(description = "手机号")
     private String phone;
+
+    @Schema(description = "脱敏手机号")
+    private String phoneMasked;
     
     @Schema(description = "角色")
     private Integer role;

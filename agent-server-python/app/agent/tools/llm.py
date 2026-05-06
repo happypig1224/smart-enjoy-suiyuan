@@ -8,14 +8,15 @@ from app.utils.logger import app_logger
 
 
 # 同步调用使用的 LLM 实例
-llm = ChatTongyi(model=settings.dashscope.chat_model)
+llm = ChatTongyi(model=settings.dashscope.chat_model, request_timeout=30)
 
 # 流式调用使用的 LLM 实例（需要在编译时启用 streaming）
 def create_streaming_llm():
     """创建支持流式调用的 LLM 实例"""
     return ChatTongyi(
         model=settings.dashscope.chat_model,
-        streaming=True
+        streaming=True,
+        request_timeout=60
     )
 
 app_logger.info(f"LLM 初始化成功: {settings.dashscope.chat_model}")

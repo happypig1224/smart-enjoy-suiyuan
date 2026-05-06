@@ -39,9 +39,9 @@ class LostFoundSyncService:
                 
                 data = response.json()
                 
-                if data.get('code') != 1:  # 假设成功码为1
-                    app_logger.error(f"Java API返回业务错误: {data.get('msg')}")
-                    return {"success": False, "error": data.get('msg')}
+                if data.get('code') != 200:
+                    app_logger.error(f"Java API返回业务错误: {data.get('message')}")
+                    return {"success": False, "error": data.get('message')}
                 
                 lost_found_list = data.get('data', [])
                 app_logger.info(f"从Java API获取到 {len(lost_found_list)} 条失物招领记录")

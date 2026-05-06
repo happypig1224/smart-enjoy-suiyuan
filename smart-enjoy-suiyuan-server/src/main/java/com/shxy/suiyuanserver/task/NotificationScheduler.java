@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuanserver.mapper.CommentMapper;
+import com.shxy.suiyuanserver.mapper.PostFavoriteMapper;
 import com.shxy.suiyuanserver.mapper.ResourceFavoriteMapper;
 import com.shxy.suiyuanserver.mapper.UserFollowMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class NotificationScheduler {
     private final UserFollowMapper userFollowMapper;
     private final CommentMapper commentMapper;
     private final ResourceFavoriteMapper resourceFavoriteMapper;
+    private final PostFavoriteMapper postFavoriteMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -101,6 +103,14 @@ public class NotificationScheduler {
                         new LambdaQueryWrapper<com.shxy.suiyuanentity.entity.ResourceFavorite>()
                                 .eq(com.shxy.suiyuanentity.entity.ResourceFavorite::getUserId, fromId)
                                 .eq(com.shxy.suiyuanentity.entity.ResourceFavorite::getResourceId, resourceId)
+                );
+            case "post_favorite":
+                // 校验帖子收藏状态是否依然存在
+                Long postId = task.get("targetId").asLong();
+                return postId != null && postFavoriteMapper.exists(
+                        new LambdaQueryWrapper<com.shxy.suiyuanentity.entity.PostFavorite>()
+                                .eq(com.shxy.suiyuanentity.entity.PostFavorite::getUserId, fromId)
+                                .eq(com.shxy.suiyuanentity.entity.PostFavorite::getPostId, postId)
                 );
             default:
                 return false;

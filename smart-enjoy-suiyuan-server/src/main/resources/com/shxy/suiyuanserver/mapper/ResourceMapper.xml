@@ -27,7 +27,7 @@
     <resultMap id="ResourceVOResultMap" type="com.shxy.suiyuanentity.vo.ResourceVO">
         <id property="id" column="resource_id" />
         <result property="userId" column="user_id" />
-        <result property="userNickName" column="nick_name" />
+        <result property="userName" column="user_name" />
         <result property="userAvatar" column="avatar" />
         <result property="title" column="title" />
         <result property="type" column="type" />
@@ -55,7 +55,7 @@
         r.download_count,
         r.create_time,
         r.update_time,
-        u.nick_name,
+        u.user_name,
         u.avatar
         FROM resource r
         LEFT JOIN user u ON r.user_id = u.id

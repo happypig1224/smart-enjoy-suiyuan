@@ -13,6 +13,7 @@ import com.shxy.suiyuancommon.exception.ResourceException;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
+import com.shxy.suiyuancommon.utils.FileMagicUtil;
 import com.shxy.suiyuancommon.utils.RateLimitUtil;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
 import com.shxy.suiyuancommon.utils.TencentCOSAvatarUtil;
@@ -35,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -64,17 +66,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "pdf", "doc", "docx", "txt", "md", "jpg", "jpeg", "png", "gif"
     );
-    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "text/plain",
-            "text/markdown",
-            "application/octet-stream",
-            "image/jpeg",
-            "image/png",
-            "image/gif"
-    );
+    private static final Set<String> ALLOWED_TYPES = Set.of("image", "pdf", "doc", "txt", "md");
 
     // 文件名安全处理正则表达式
     private static final Pattern FILENAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\-\\.]+$");
@@ -114,14 +106,13 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         final Integer finalPageSize = pageSize;
         final String finalKeyword = keyword != null ? keyword.trim() : null;
         
-        // 特殊处理热门资源排行榜，使用专门的缓存key
         String cacheKey;
         if ("hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())) {
-            // 热门排行榜使用专门的缓存，更长的TTL
             cacheKey = RedisConstant.RESOURCE_HOT_RANKING_KEY_PREFIX + finalPage + ":" + finalPageSize;
         } else {
-            cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX +
-                    finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort + ":" + (finalKeyword != null ? finalKeyword : "none");
+            String version = (String) redisTemplate.opsForValue().get(RESOURCE_LIST_CACHE_VERSION_KEY);
+            cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX + "v" + (version != null ? version : "0") +
+                    ":" + finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort + ":" + (finalKeyword != null ? finalKeyword : "none");
         }
 
         // 使用工具类解决缓存雪崩(随机过期时间)
@@ -166,7 +157,9 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         }
 
         List<ResourceVO> voListCopy = objectMapper.convertValue(pageResult.getRecords(), new TypeReference<List<ResourceVO>>() {});
-        
+
+        fillFavoriteStatus(voListCopy);
+        voListCopy.forEach(vo -> vo.setResourceUrl(null));
 
         PageResult resultWithCopy = PageResult.builder()
                 .total(pageResult.getTotal())
@@ -199,6 +192,10 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
         if (resourceDTO == null || resourceDTO.getType() == null) {
             throw new BaseException("资源类型不能为空");
+        }
+
+        if (!ALLOWED_TYPES.contains(resourceDTO.getType())) {
+            throw new BaseException("不允许的资源类型，允许的类型：image、pdf、doc、txt、md");
         }
 
         // 验证上传文件的安全性
@@ -242,7 +239,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
      * 验证上传文件的安全性
      */
     private void validateUploadFile(MultipartFile file) {
-        // 检查文件大小
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new BaseException("文件大小超出限制，最大支持50MB");
         }
@@ -252,7 +248,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             throw new BaseException("文件名不能为空");
         }
         
-        // 检查文件扩展名
         String extension = FilenameUtils.getExtension(fileName).toLowerCase();
         if (extension == null || extension.isEmpty()) {
             throw new BaseException("文件必须包含扩展名");
@@ -261,13 +256,22 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             throw new BaseException("不允许的文件类型: " + extension);
         }
         
-        // 检查MIME类型
         String contentType = file.getContentType();
-        if (contentType != null && !ALLOWED_MIME_TYPES.contains(contentType)) {
+        if (contentType != null && !FileMagicUtil.isAllowedMimeType(contentType)) {
             throw new BaseException("不允许的文件类型: " + contentType);
         }
+
+        Set<String> magicCheckExtensions = Set.of("jpg", "jpeg", "png", "gif", "pdf");
+        if (magicCheckExtensions.contains(extension)) {
+            try {
+                if (!FileMagicUtil.isValidFile(file.getInputStream(), fileName)) {
+                    throw new BaseException("文件内容与扩展名不匹配，请上传真实的文件");
+                }
+            } catch (IOException e) {
+                throw new BaseException("文件读取失败");
+            }
+        }
         
-        // 检查文件名是否包含危险字符
         if (fileName.contains("..") || fileName.contains("/")) {
             throw new BaseException("文件名包含非法字符");
         }
@@ -339,16 +343,15 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         return Result.success("删除成功");
     }
 
+    @Transactional(readOnly = true)
     public Result<List<ResourceVO>> getUserPublishedResources(Long userId) {
         if (userId == null || userId <= 0) {
             throw new BaseException("用户 ID 不合法");
         }
 
         String cacheKey = RedisConstant.USER_RESOURCE_LIST_KEY_PREFIX + userId;
-        
-        // 使用工具类解决缓存穿透+雪崩(列表数据用queryWithPassThrough)
-        @SuppressWarnings("unchecked")
-        List<ResourceVO> resourceVOList = (List<ResourceVO>) redisCacheUtil.queryWithPassThrough(
+
+        Object cached = redisCacheUtil.queryWithPassThrough(
                 cacheKey,
                 Object.class,
                 key -> {
@@ -362,13 +365,38 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                 TimeUnit.SECONDS
         );
 
-        if (resourceVOList == null) {
+        List<ResourceVO> resourceVOList;
+        if (cached == null) {
+            resourceVOList = Collections.emptyList();
+        } else if (cached instanceof List) {
+            resourceVOList = objectMapper.convertValue(cached, new TypeReference<List<ResourceVO>>() {});
+        } else {
             resourceVOList = Collections.emptyList();
         }
         return Result.success(resourceVOList);
     }
 
+    @Override
+    public Result<PageResult> getUserPublishedResourcesPaged(Long userId, Integer page, Integer size) {
+        if (userId == null || userId <= 0) {
+            throw new BaseException("用户 ID 不合法");
+        }
+        if (page == null || page < 1) page = 1;
+        if (size == null || size < 1) size = 10;
 
+        Page<Resource> resourcePage = resourceMapper.selectPage(
+                new Page<>(page, size),
+                new LambdaQueryWrapper<Resource>()
+                        .eq(Resource::getUserId, userId)
+                        .orderByDesc(Resource::getCreateTime)
+        );
+
+        List<ResourceVO> voList = convertToVO(resourcePage.getRecords());
+        return Result.success(PageResult.builder().total(resourcePage.getTotal()).records(voList).page(page).size(size).build());
+    }
+
+
+    @Transactional(readOnly = true)
     public Result<ResourceVO> getResourceDetail(Long id, Long userId) {
         if (id == null || id <= 0) {
             throw new BaseException("资源 ID 不合法");
@@ -385,7 +413,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     if (resource == null) {
                         return null; // 返回null会被工具类缓存空值
                     }
-                    return ResourceVO.builder()
+                    ResourceVO vo = ResourceVO.builder()
                             .id(resource.getId())
                             .userId(resource.getUserId())
                             .title(resource.getTitle())
@@ -400,6 +428,17 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                             .updateTime(resource.getUpdateTime())
                             .isFavorite(false)
                             .build();
+
+                    // 填充发布者用户信息
+                    if (resource.getUserId() != null && resource.getUserId() > 0) {
+                        User user = userService.getById(resource.getUserId());
+                        if (user != null) {
+                            vo.setUserName(user.getUserName());
+                            vo.setUserAvatar(user.getAvatar());
+                        }
+                    }
+
+                    return vo;
                 },
                 RedisConstant.RESOURCE_DETAIL_TTL,
                 TimeUnit.SECONDS
@@ -407,15 +446,6 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
         if (resourceVO == null) {
             throw ResourceException.notFound(String.valueOf(id));
-        }
-
-        // 填充发布者用户信息
-        if (resourceVO.getUserId() != null && resourceVO.getUserId() > 0) {
-            User user = userService.getById(resourceVO.getUserId());
-            if (user != null) {
-                resourceVO.setUserNickName(user.getUserName());
-                resourceVO.setUserAvatar(user.getAvatar());
-            }
         }
 
         // 设置收藏状态
@@ -466,7 +496,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
             User user = userMap.get(resource.getUserId());
             if (user != null) {
-                vo.setUserNickName(user.getUserName());
+                vo.setUserName(user.getUserName());
                 vo.setUserAvatar(user.getAvatar());
             }
 
@@ -557,7 +587,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
 
             User user = userMap.get(resource.getUserId());
             if (user != null) {
-                vo.setUserNickName(user.getUserName());
+                vo.setUserName(user.getUserName());
                 vo.setUserAvatar(user.getAvatar());
             }
 
@@ -566,19 +596,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
     }
 
 
+    private static final String RESOURCE_LIST_CACHE_VERSION_KEY = "cache:version:resource_list";
+
     private void clearResourceListCache() {
-        Set<String> keys = new HashSet<>();
-        Cursor<byte[]> cursor = redisTemplate.executeWithStickyConnection(
-                connection -> connection.scan(ScanOptions.scanOptions()
-                        .match(RedisConstant.RESOURCE_LIST_KEY_PREFIX + "*")
-                        .count(100).build())
-        );
-        while (cursor.hasNext()) {
-            keys.add(new String(cursor.next()));
-        }
-        if (!keys.isEmpty()) {
-            redisTemplate.delete(keys);
-        }
+        long newVersion = System.currentTimeMillis();
+        redisTemplate.opsForValue().set(RESOURCE_LIST_CACHE_VERSION_KEY, String.valueOf(newVersion));
     }
 
     @Override
@@ -607,23 +629,27 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
             throw new BaseException("资源ID不合法");
         }
 
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null || userId <= 0) {
+            throw new BaseException("请先登录后再下载");
+        }
+
         Resource resource = resourceMapper.selectById(id);
         if (resource == null) {
             throw ResourceException.notFound(String.valueOf(id));
         }
 
-        // 递增下载次数
         resourceMapper.update(null, new LambdaUpdateWrapper<>(Resource.class)
                 .eq(Resource::getId, id)
                 .setSql("download_count = download_count + 1"));
 
-        // 清除资源详情缓存
         String detailKey = RedisConstant.RESOURCE_DETAIL_KEY_PREFIX + id;
         redisTemplate.delete(detailKey);
         clearResourceListCache();
 
-        log.info("下载资源{}，下载次数+1",  id);
-        return Result.success(resource.getResourceUrl());
+        String signedUrl = tencentCOSAvatarUtil.generateSignedUrl(resource.getResourceUrl(), 30);
+        log.info("用户{}下载资源{}", userId, id);
+        return Result.success(signedUrl);
     }
 
     @Override

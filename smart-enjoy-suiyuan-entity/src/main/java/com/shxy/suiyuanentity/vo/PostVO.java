@@ -1,7 +1,5 @@
 package com.shxy.suiyuanentity.vo;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,8 +22,8 @@ public class PostVO {
     @Schema(description = "用户ID")
     private Long userId;
     
-    @Schema(description = "用户昵称")
-    private String userNickName;
+    @Schema(description = "用户名")
+    private String userName;
     
     @Schema(description = "用户头像")
     private String userAvatar;
@@ -64,7 +62,6 @@ public class PostVO {
     private Integer viewCount;
     
     @Schema(description = "图片列表")
-    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> images;
     
     @Schema(description = "创建时间")

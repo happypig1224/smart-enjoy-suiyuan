@@ -3,16 +3,19 @@ smart:
     suiyuan:
       ai:
         mcp:
-          server-url: http://localhost:8000/mcp
+          server-url: ${TEST_MCP_SERVER_URL:http://localhost:8000/mcp}
           timeout: 30000
           retry-count: 3
+          service-token: ${MCP_SERVICE_TOKEN:change-me-in-production}
       datasource:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://localhost:3306/smart_enjoy_suiyuan?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=true&cachePrepStmts=true
-        username: root
-        password: root
+        url: jdbc:mysql://${TEST_MYSQL_HOST:localhost}:3306/smart_enjoy_suiyuan_test?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&useServerPrepStmts=true&cachePrepStmts=true
+        username: ${TEST_MYSQL_USERNAME:root}
+        password: ${TEST_MYSQL_PASSWORD:root}
       data:
         redis:
-          host: localhost
+          host: ${TEST_REDIS_HOST:localhost}
           port: 6379
-          password: 123456
+          password: ${TEST_REDIS_PASSWORD:123456}
+      jwt:
+        user-secret-key: ${JWT_USER_SECRET_KEY}

@@ -47,8 +47,9 @@ public class LostFoundController {
                                             @RequestParam(value = "type", required = false) Integer type,
                                             @RequestParam(value = "status", required = false) Integer status,
                                             @RequestParam(value = "urgent",  required = false) Integer urgent,
-                                            @RequestParam(value = "keyword", required = false) String keyword) {
-        return lostFoundService.listLostFound(page, pageSize, type, status, urgent, keyword);
+                                            @RequestParam(value = "keyword", required = false) String keyword,
+                                            @RequestParam(value = "sort", required = false, defaultValue = "newest") String sort) {
+        return lostFoundService.listLostFound(page, pageSize, type, status, urgent, keyword, sort);
     }
 
     @GetMapping("detail/{id}")
@@ -84,6 +85,13 @@ public class LostFoundController {
     @Operation(summary = "我的失物招领", description = "获取当前用户发布的失物招领列表")
     public Result<List<LostFoundVO>> getMyPublishedLostFound() {
         return lostFoundService.getUserPublishedLostFound(BaseContext.getCurrentUserId());
+    }
+
+    @GetMapping("/user/{userId}/publish")
+    @RequireLogin
+    @Operation(summary = "用户发布的失物招领", description = "获取指定用户发布的所有失物招领记录")
+    public Result<List<LostFoundVO>> getUserPublishedLostFound(@PathVariable("userId") Long userId) {
+        return lostFoundService.getUserPublishedLostFound(userId);
     }
 
     /**

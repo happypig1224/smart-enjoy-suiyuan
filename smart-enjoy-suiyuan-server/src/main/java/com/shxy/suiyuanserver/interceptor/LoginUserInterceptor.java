@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.shxy.suiyuancommon.constant.RedisConstant.TOKEN_BLACKLIST_KEY_PREFIX;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_TOKEN_KEY_PREFIX;
 
 /**
@@ -58,8 +59,8 @@ public class LoginUserInterceptor implements HandlerInterceptor {
         }
 
         HandlerMethod handlerMethod = (HandlerMethod) handler;
-        // 检查方法是否标注了 RequireLogin 注解
-        boolean requireLogin = handlerMethod.hasMethodAnnotation(RequireLogin.class);
+        boolean requireLogin = handlerMethod.hasMethodAnnotation(RequireLogin.class)
+                || handlerMethod.getBeanType().isAnnotationPresent(RequireLogin.class);
 
         String token = request.getHeader(jwtProperties.getUserTokenName());
 
@@ -79,6 +80,24 @@ public class LoginUserInterceptor implements HandlerInterceptor {
             Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
             Long userId = Long.valueOf(claims.get(JwtClaimConstant.USER_ID).toString());
 
+            String storedToken = (String) redisTemplate.opsForValue().get(USER_TOKEN_KEY_PREFIX + userId);
+            if (storedToken == null || !storedToken.equals(token)) {
+                log.warn("用户token与Redis不匹配: userId={}", userId);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token无效或者过期")));
+                return false;
+            }
+
+            String jti = claims.getId();
+            if (jti != null && Boolean.TRUE.equals(stringRedisTemplate.hasKey(TOKEN_BLACKLIST_KEY_PREFIX + jti))) {
+                log.warn("用户token已被撤销: userId={}, jti={}", userId, jti);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token已被撤销")));
+                return false;
+            }
+
             long ttl = redisTemplate.getExpire(USER_TOKEN_KEY_PREFIX + userId);
             if (ttl > 0 && ttl < 1800) {
                 renewToken(userId, response);
@@ -95,16 +114,14 @@ public class LoginUserInterceptor implements HandlerInterceptor {
                 response.getWriter().write(objectMapper.writeValueAsString(Result.fail("token无效或者过期")));
                 return false;
             }
+            BaseContext.remove();
             return true;
         }
     }
 
     /**
      * Token续期：当剩余有效期不足30分钟时自动续期
-     * <p>
      * 使用分布式锁防止并发续期，通过Lua脚本保证原子性
-     * </p>
-     *
      * @param userId 用户ID
      * @param response HTTP响应
      */

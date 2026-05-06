@@ -6,6 +6,7 @@ import com.shxy.suiyuanentity.entity.UserFollow;
 import com.shxy.suiyuanentity.vo.UserFollowVO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author 33046
@@ -41,15 +42,4 @@ public interface UserFollowService extends IService<UserFollow> {
      */
     Result<Boolean> isFollowing(Long followeeId);
 
-    /**
-     * 获取用户通知列表
-     * @return 通知列表
-     */
-    Result<List<String>> getNotifications();
-
-    /**
-     * 清除未读通知数
-     * @return 结果
-     */
-    Result<String> clearUnreadCount();
 }

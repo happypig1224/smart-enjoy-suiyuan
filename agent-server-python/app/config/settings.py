@@ -33,11 +33,12 @@ class DashScopeConfig(BaseSettings):
 
 
 class MCPConfig(BaseSettings):
-    """MCP 服务配置"""
     model_config = SettingsConfigDict(env_prefix="MCP_")
     
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 8000
+    service_token: str = ""
+    cors_origin: str = "http://localhost:8080"
 
 
 class AppSettings(BaseSettings):

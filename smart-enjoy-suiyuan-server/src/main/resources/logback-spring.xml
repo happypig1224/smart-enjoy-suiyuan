@@ -1,8 +1,9 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- 定义日志文件存放的目录为项目根目录下的 logs 文件夹 -->
-    <property name="LOG_HOME" value="logs"/>
+    <turboFilter class="com.shxy.suiyuanserver.config.LogMaskingFilter"/>
+
+    <property name="LOG_HOME" value="${LOG_PATH:-logs}"/>
     <!-- 定义日志文件名称 -->
     <property name="APP_NAME" value="smart-enjoy-suiyuan"/>
     
@@ -30,9 +31,10 @@
             <includeMdcKeyName>traceId</includeMdcKeyName>
             <includeMdcKeyName>spanId</includeMdcKeyName>
         </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
     </appender>
-    
-    <!-- 文件日志格式 -->
     <property name="FILE_LOG_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level ${PID:- } --- [%15.15thread] %-40.40logger{39} : %msg%n"/>
 
@@ -66,7 +68,15 @@
     </appender>
 
     <!-- 针对不同包设置不同的日志级别 -->
-    <logger name="com.shxy" level="DEBUG"/>
+    <springProfile name="dev">
+        <logger name="com.shxy" level="DEBUG"/>
+    </springProfile>
+    <springProfile name="prod">
+        <logger name="com.shxy" level="INFO"/>
+    </springProfile>
+    <springProfile name="test">
+        <logger name="com.shxy" level="DEBUG"/>
+    </springProfile>
     <logger name="org.springframework" level="INFO"/>
     <logger name="org.mybatis" level="INFO"/>
 

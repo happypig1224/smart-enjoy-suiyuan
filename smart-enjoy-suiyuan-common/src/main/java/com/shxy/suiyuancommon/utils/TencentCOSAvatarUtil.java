@@ -6,6 +6,7 @@ import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.auth.COSCredentials;
 import com.qcloud.cos.exception.CosClientException;
 import com.qcloud.cos.exception.CosServiceException;
+import com.qcloud.cos.http.HttpMethodName;
 import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
@@ -19,6 +20,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -57,10 +62,18 @@ public class TencentCOSAvatarUtil {
             throw new FileUploadException("头像文件大小不能超过5MB");
         }
 
+        try {
+            if (!FileMagicUtil.isValidImage(file.getInputStream(), originalFilename)) {
+                throw new FileUploadException("文件内容与扩展名不匹配，请上传真实的图片文件");
+            }
+        } catch (IOException e) {
+            throw new FileUploadException("文件读取失败");
+        }
+
         COSClient cosClient = null;
         try {
             cosClient = initCOSClient();
-            
+
             String fileName = generateFileName(originalFilename);
             String key = tencentCOSProperties.getAvatarDir() + "/" + fileName;
 
@@ -246,6 +259,15 @@ public class TencentCOSAvatarUtil {
             throw new FileUploadException("文件大小不能超过 50MB");
         }
 
+        String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        List<String> allowedExts = Arrays.asList(
+            "jpg", "jpeg", "png", "gif", "bmp", "pdf", "doc", "docx", "xls", "xlsx",
+            "ppt", "pptx", "txt", "zip", "rar"
+        );
+        if (!allowedExts.contains(ext)) {
+            throw new FileUploadException("不支持的文件类型，允许的类型：图片、文档、压缩包");
+        }
+
         COSClient cosClient = null;
         try {
             cosClient = initCOSClient();
@@ -281,6 +303,28 @@ public class TencentCOSAvatarUtil {
         } catch (IOException e) {
             log.error("文件读取异常", e);
             throw new FileUploadException("文件读取失败");
+        } finally {
+            if (cosClient != null) {
+                cosClient.shutdown();
+            }
+        }
+    }
+
+    public String generateSignedUrl(String resourceUrl, int expirationMinutes) {
+        String key = extractKeyFromUrl(resourceUrl);
+        if (key == null || key.isEmpty()) {
+            return resourceUrl;
+        }
+
+        COSClient cosClient = null;
+        try {
+            cosClient = initCOSClient();
+            Date expiration = new Date(System.currentTimeMillis() + (long) expirationMinutes * 60 * 1000);
+            URL url = cosClient.generatePresignedUrl(tencentCOSProperties.getBucketName(), key, expiration, HttpMethodName.GET);
+            return url.toString();
+        } catch (Exception e) {
+            log.error("生成签名URL失败", e);
+            return resourceUrl;
         } finally {
             if (cosClient != null) {
                 cosClient.shutdown();

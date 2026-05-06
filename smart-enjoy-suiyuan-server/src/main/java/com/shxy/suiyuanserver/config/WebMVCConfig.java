@@ -12,6 +12,8 @@ import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Arrays;
+
 /**
  * Web MVC配置
  * <p>
@@ -47,13 +49,16 @@ public class WebMVCConfig implements WebMvcConfigurer {
                         "/user/user/captcha/send",
                         "/user/user/check-exists",
                         "/user/user/verify-captcha",
+                        "/user/user/password/forgot",
                         "/user/forum/post/list",
                         "/user/forum/post/detail/**",
                         "/user/forum/comment/list",
+                        "/user/forum/post/batch-counts",
                         "/user/resource/list",
                         "/user/resource/detail/**",
-                        "/user/resource/download/**",
                         "/user/lost-found/list",
+                        "/user/lost-found/detail/**",
+                        "/user/lost-found/all-for-sync",
                         "/user/captcha/**"
                         );
     }
@@ -68,7 +73,11 @@ public class WebMVCConfig implements WebMvcConfigurer {
         String[] origins = allowedOrigins.split(",");
         // 如果配置了"*"，使用allowedOriginPatterns替代allowedOrigin以支持credentials
         if (origins.length == 1 && "*".equals(origins[0].trim())) {
-            config.setAllowedOriginPatterns(java.util.Collections.singletonList("*"));
+            config.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://[::1]:*"
+            ));
         } else {
             for (String origin : origins) {
                 config.addAllowedOrigin(origin.trim());
@@ -84,6 +93,7 @@ public class WebMVCConfig implements WebMvcConfigurer {
         config.addAllowedHeader("*");
         config.addExposedHeader("authentication");
         config.addExposedHeader("admin-token");
+        config.addExposedHeader("X-Trace-Id");
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

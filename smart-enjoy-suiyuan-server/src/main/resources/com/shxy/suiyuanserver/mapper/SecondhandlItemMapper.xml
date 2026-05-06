@@ -7,7 +7,7 @@
     <resultMap id="SecondhandItemVOResultMap" type="com.shxy.suiyuanentity.vo.SecondhandItemVO">
         <id property="id" column="item_id" />
         <result property="sellerId" column="seller_id" />
-        <result property="sellerNickName" column="nick_name" />
+        <result property="sellerUserName" column="user_name" />
         <result property="sellerAvatar" column="avatar" />
         <result property="sellerPhone" column="seller_phone" />
         <result property="title" column="title" />
@@ -46,7 +46,7 @@
         si.trade_location,
         si.create_time,
         si.update_time,
-        u.nick_name,
+        u.user_name,
         u.avatar,
         u.phone as seller_phone
         FROM secondhand_item si

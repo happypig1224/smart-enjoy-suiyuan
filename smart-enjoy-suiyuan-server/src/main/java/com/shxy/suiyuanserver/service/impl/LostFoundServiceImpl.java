@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shxy.suiyuancommon.constant.LostFoundConstant;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.result.PageResult;
@@ -124,17 +125,18 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         return Result.success(lostFound);
     }
 
-    public Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent, String keyword) {
+    @Transactional(readOnly = true)
+    public Result<PageResult> listLostFound(Integer page, Integer pageSize, Integer type, Integer status, Integer urgent, String keyword, String sort) {
         if (page == null || page < 1) page = 1;
         if (pageSize == null || pageSize < 1 || pageSize > 50) pageSize = 10;
-        
-        // 处理keyword
+
         String finalKeyword = keyword != null ? keyword.trim() : null;
-        
-        // 使用final变量保证lambda表达式可用
+        String finalSort = (sort != null && ("oldest".equals(sort) || "newest".equals(sort))) ? sort : "newest";
+
         final int finalPage = page;
         final int finalPageSize = pageSize;
         final String keywordForLambda = finalKeyword;
+        final String sortForLambda = finalSort;
         
         // 特殊处理紧急失物招领，使用专门的缓存key和TTL
         String cacheKey;
@@ -178,7 +180,11 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                                 .or()
                                 .like(LostFound::getLocation, keywordForLambda));
                     }
-                    queryWrapper.orderByDesc(LostFound::getCreateTime);
+                    if ("oldest".equals(sortForLambda)) {
+                        queryWrapper.orderByAsc(LostFound::getCreateTime);
+                    } else {
+                        queryWrapper.orderByDesc(LostFound::getCreateTime);
+                    }
                     Page<LostFound> pageInfo = new Page<>(finalPage, finalPageSize);
                     Page<LostFound> result = lostFoundMapper.selectPage(pageInfo, queryWrapper);
                     
@@ -202,6 +208,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         return Result.success(pageResult);
     }
 
+    @Transactional(readOnly = true)
     public Result<LostFoundVO> detailLostFound(Long id) {
         if (id == null || id <= 0) {
             log.warn("查询失物招领详情失败，ID不合法：{}", id);
@@ -214,9 +221,11 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         
         log.info("用户{}开始查询失物招领详情，ID：{}", currentUserId, id);
 
-        // 使用Redis原子递增浏览量，避免缓存与数据库不一致
         try {
-            redisTemplate.opsForValue().increment(viewCountKey);
+            Long newCount = redisTemplate.opsForValue().increment(viewCountKey);
+            if (newCount != null && newCount == 1) {
+                redisTemplate.expire(viewCountKey, 24, TimeUnit.HOURS);
+            }
         } catch (Exception e) {
             log.error("更新浏览量缓存失败，ID：{}", id, e);
         }
@@ -330,7 +339,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 .images(imagesJson)
                 .build();
         
-        Integer count = lostFoundMapper.updateById(updateEntity);
+        Integer count = lostFoundMapper.updateLostFound(updateEntity);
         if (count <= 0) {
             log.warn("失物修改失败，ID：{}，用户ID：{}", lostFoundDTO.getId(), userId);
             return Result.fail("修改失败!");
@@ -392,6 +401,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         return Result.success("修改成功!");
     }
 
+    @Transactional(readOnly = true)
     public Result<List<LostFoundVO>> getUserPublishedLostFound(Long userId) {
         if (userId == null || userId <= 0) {
             throw new BaseException("用户ID不合法");
@@ -446,7 +456,8 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
             return Collections.emptyList();
         }
 
-        // 批量查询用户信息
+        Long currentUserId = BaseContext.getCurrentUserId();
+
         List<Long> userIds = lostFounds.stream()
                 .map(LostFound::getUserId)
                 .filter(Objects::nonNull)
@@ -456,7 +467,6 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         Map<Long, User> userMap = userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u, (k1, k2) -> k1));
 
-        // 转换为 VO
         return lostFounds.stream().map(lostFound -> {
             LostFoundVO vo = LostFoundVO.builder()
                     .id(lostFound.getId())
@@ -467,27 +477,31 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                     .description(lostFound.getDescription())
                     .urgent(lostFound.getUrgent())
                     .location(lostFound.getLocation())
-                    .phoneContact(lostFound.getPhoneContact())
-                    .wechatContact(lostFound.getWechatContact())
                     .viewCount(lostFound.getViewCount())
                     .createTime(lostFound.getCreateTime())
                     .updateTime(lostFound.getUpdateTime())
                     .build();
 
-            // 设置类型名称和状态名称
-            if (Integer.valueOf(0).equals(lostFound.getType())) {
+            if (LostFoundConstant.TYPE_LOST == lostFound.getType()) {
                 vo.setTypeName("寻物启事");
             } else {
                 vo.setTypeName("招领启事");
             }
             
-            if (Integer.valueOf(0).equals(lostFound.getStatus())) {
+            if (LostFoundConstant.STATUS_ACTIVE == lostFound.getStatus()) {
                 vo.setStatusName("进行中");
             } else {
                 vo.setStatusName("已完成");
             }
 
-            // 解析图片JSON
+            if (currentUserId == null || !currentUserId.equals(lostFound.getUserId())) {
+                vo.setPhoneContact(maskPhone(lostFound.getPhoneContact()));
+                vo.setWechatContact(maskWechat(lostFound.getWechatContact()));
+            } else {
+                vo.setPhoneContact(lostFound.getPhoneContact());
+                vo.setWechatContact(lostFound.getWechatContact());
+            }
+
             String imagesStr = lostFound.getImages();
             if (imagesStr != null && !imagesStr.isEmpty()) {
                 try {
@@ -501,15 +515,30 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 vo.setImages(Collections.emptyList());
             }
 
-            // 设置用户信息
             User user = userMap.get(lostFound.getUserId());
             if (user != null) {
-                vo.setUserNickName(user.getUserName());
+                vo.setUserName(user.getUserName());
                 vo.setUserAvatar(user.getAvatar());
             }
 
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.isEmpty()) return phone;
+        if (phone.length() >= 7) {
+            return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+        }
+        return "***";
+    }
+
+    private String maskWechat(String wechat) {
+        if (wechat == null || wechat.isEmpty()) return wechat;
+        if (wechat.length() > 2) {
+            return wechat.substring(0, 1) + "***" + wechat.substring(wechat.length() - 1);
+        }
+        return "***";
     }
 
     /**
@@ -581,7 +610,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         // 获取用户信息
         User user = userService.getById(lostFound.getUserId());
         if (user != null) {
-            vo.setUserNickName(user.getUserName());
+            vo.setUserName(user.getUserName());
             vo.setUserAvatar(user.getAvatar());
         }
         

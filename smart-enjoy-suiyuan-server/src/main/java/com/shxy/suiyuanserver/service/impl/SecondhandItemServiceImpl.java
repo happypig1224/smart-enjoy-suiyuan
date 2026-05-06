@@ -173,17 +173,16 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
             return Result.fail("商品不存在");
         }
 
-        // 权限校验
         if (!existingItem.getSellerId().equals(userId)) {
             return Result.fail("无权删除此商品");
         }
 
-        // 逻辑删除（MyBatis-Plus会自动处理@TableLogic）
         secondhandItemMapper.deleteById(itemId);
         log.info("用户{}删除二手商品成功，商品ID: {}", userId, itemId);
         return Result.success("删除成功");
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public Result<SecondhandItemVO> getItemDetail(Long itemId, Long userId) {
         SecondhandItem item = secondhandItemMapper.selectById(itemId);
@@ -210,6 +209,7 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
         return Result.success(vo);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Result<PageResult> listItems(Integer page, Integer pageSize, String category,
                                         Integer status, String sort, String keyword) {
@@ -267,6 +267,7 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
         return Result.success(pageResult);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Result<List<SecondhandItemVO>> getUserPublishedItems(Long userId) {
         LambdaQueryWrapper<SecondhandItem> queryWrapper = new LambdaQueryWrapper<>();
@@ -403,7 +404,7 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
     void fillSellerInfo(SecondhandItemVO vo) {
         User seller = userMapper.selectById(vo.getSellerId());
         if (seller != null) {
-            vo.setSellerNickName(seller.getUserName());
+            vo.setSellerUserName(seller.getUserName());
             vo.setSellerAvatar(seller.getAvatar());
         }
     }

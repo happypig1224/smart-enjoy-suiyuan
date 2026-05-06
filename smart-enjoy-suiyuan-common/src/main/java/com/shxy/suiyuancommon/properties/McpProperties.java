@@ -28,4 +28,6 @@ public class McpProperties {
      * 失败重试次数
      */
     private Integer retryCount;
+
+    private String serviceToken;
 }

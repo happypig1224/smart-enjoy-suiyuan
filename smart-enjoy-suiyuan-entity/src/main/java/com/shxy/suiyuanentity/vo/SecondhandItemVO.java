@@ -40,10 +40,10 @@ public class SecondhandItemVO implements Serializable {
     private Long sellerId;
 
     /**
-     * 卖家昵称
+     * 卖家用户名
      */
-    @Schema(description = "卖家昵称")
-    private String sellerNickName;
+    @Schema(description = "卖家用户名")
+    private String sellerUserName;
 
     /**
      * 卖家头像

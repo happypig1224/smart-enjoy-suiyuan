@@ -12,6 +12,7 @@ import com.shxy.suiyuanentity.vo.PostVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author huang qi long
@@ -53,7 +54,7 @@ public interface PostService extends IService<Post> {
     Result<CreatorStatsVO> getCreatorStats(Long userId);
 
     /**
-     * 获取创作者帖子列表（内容管理）
+     * 获取创作者帖子列表
      * @param userId 用户ID
      * @param status 状态筛选 null-全部, 0-草稿, 1-已发布, 2-已锁定, 3-审核中
      * @param page 页码
@@ -83,4 +84,6 @@ public interface PostService extends IService<Post> {
      * @return 帖子详情
      */
     Result<PostVO> getPostDetailForCreator(Long userId, Long postId);
+
+    Result<Map<Long, Map<String, Integer>>> getBatchCounts(List<Long> postIds);
 }

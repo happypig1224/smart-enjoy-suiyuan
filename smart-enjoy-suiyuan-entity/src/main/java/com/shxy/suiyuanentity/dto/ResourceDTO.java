@@ -1,5 +1,6 @@
 package com.shxy.suiyuanentity.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -39,6 +40,7 @@ public class ResourceDTO {
     /**
      * 学科分类 ID
      */
+    @Min(value = 1, message = "学科分类ID必须大于0")
     @Schema(description = "学科分类ID")
     private Integer subject;
     

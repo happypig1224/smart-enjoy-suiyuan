@@ -20,6 +20,10 @@ public class RateLimitUtil {
      * Lua脚本：原子性执行计数器递增和过期时间设置
      */
     private static final String RATE_LIMIT_LUA_SCRIPT =
+            "local current = redis.call('GET', KEYS[1]) " +
+            "if current and tonumber(current) > tonumber(ARGV[2]) then " +
+            "    return tonumber(current) " +
+            "end " +
             "local count = redis.call('INCR', KEYS[1]) " +
             "if count == 1 then " +
             "    redis.call('EXPIRE', KEYS[1], ARGV[1]) " +
@@ -48,7 +52,8 @@ public class RateLimitUtil {
             Long count = stringRedisTemplate.execute(
                     RATE_LIMIT_SCRIPT,
                     Collections.singletonList(key),
-                    String.valueOf(timeWindow)
+                    String.valueOf(timeWindow),
+                    String.valueOf(maxRequests)
             );
 
             if (count != null && count > maxRequests) {

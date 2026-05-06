@@ -21,7 +21,8 @@ public interface UserFollowMapper extends BaseMapper<UserFollow> {
      * @return 关注列表
      */
     @Select("SELECT uf.id, uf.followee_id, uf.create_time, " +
-            "u.user_name AS followee_user_name, u.avatar AS followee_avatar, u.phone AS followee_phone " +
+            "u.user_name AS followee_user_name, u.avatar AS followee_avatar, " +
+            "CONCAT(LEFT(u.phone,3),'****',RIGHT(u.phone,4)) AS followee_phone " +
             "FROM user_follow uf " +
             "LEFT JOIN user u ON uf.followee_id = u.id " +
             "WHERE uf.follower_id = #{followerId} " +
@@ -36,6 +37,19 @@ public interface UserFollowMapper extends BaseMapper<UserFollow> {
      */
     @Select("SELECT * FROM user_follow WHERE follower_id = #{followerId} AND followee_id = #{followeeId}")
     UserFollow selectByFollowerAndFollowee(Long followerId, Long followeeId);
+
+    /**
+     * 统计用户关注数
+     */
+    @Select("SELECT COUNT(*) FROM user_follow WHERE follower_id = #{followerId}")
+    Integer countFollowing(Long followerId);
+
+    /**
+     * 统计用户粉丝数
+     */
+    @Select("SELECT COUNT(*) FROM user_follow WHERE followee_id = #{followeeId}")
+    Integer countFollowers(Long followeeId);
+
 }
 
 

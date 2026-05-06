@@ -14,7 +14,7 @@ import org.apache.ibatis.annotations.Update;
 */
 public interface LostFoundMapper extends BaseMapper<LostFound> {
 
-    Integer updateLostFound(LostFoundDTO lostFoundDTO);
+    Integer updateLostFound(LostFound lostFound);
 
     Integer updateLostFoundStatus(Long id, Integer status);
 

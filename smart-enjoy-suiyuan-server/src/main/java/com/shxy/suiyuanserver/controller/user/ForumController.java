@@ -9,6 +9,7 @@ import com.shxy.suiyuanentity.dto.PostDTO;
 import com.shxy.suiyuanentity.dto.PostUpdateDTO;
 import com.shxy.suiyuanentity.entity.Comment;
 import com.shxy.suiyuanentity.entity.Post;
+import com.shxy.suiyuanentity.vo.CommentVO;
 import com.shxy.suiyuanentity.vo.PostFavoriteStatusVO;
 import com.shxy.suiyuanentity.vo.PostVO;
 import com.shxy.suiyuanserver.service.CommentService;
@@ -49,7 +50,7 @@ public class ForumController {
     @Operation(summary = "获取帖子列表", description = "分页获取论坛帖子列表，支持排序和类型筛选")
     public Result<PageResult> listPost(
             @RequestParam(value = "page", defaultValue = "1") @Min(1) Integer page,
-            @RequestParam(value = "size", defaultValue = "10") @Min(1) @Max(50) Integer size,
+            @RequestParam(value = "size", defaultValue = "10") @Min(1) @Max(200) Integer size,
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "type", required = false) Integer type,
             @RequestParam(value = "keyword", required = false) String keyword
@@ -97,7 +98,7 @@ public class ForumController {
     @PostMapping("comment/publish")
     @RequireLogin
     @Operation(summary = "发布评论", description = "用户对帖子或资源发布评论")
-    public Result<Comment> publishComment(@Valid @RequestBody CommentDTO commentDTO) {
+    public Result<CommentVO> publishComment(@Valid @RequestBody CommentDTO commentDTO) {
         return commentService.publishComment(commentDTO);
     }
 
@@ -105,7 +106,7 @@ public class ForumController {
     @Operation(summary = "获取评论列表", description = "分页获取评论列表，支持按帖子或资源筛选")
     public Result<PageResult> listComment(
             @RequestParam(value = "page", defaultValue = "1") @Min(1) Integer page,
-            @RequestParam(value = "size", defaultValue = "10") @Min(1) @Max(50) Integer size,
+            @RequestParam(value = "size", defaultValue = "10") @Min(1) @Max(200) Integer size,
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "postId", required = false) Long postId,
             @RequestParam(value = "resourceId", required = false) Long resourceId
@@ -181,9 +182,26 @@ public class ForumController {
 
     @GetMapping("post/favorite/me")
     @RequireLogin
-    @Operation(summary = "我收藏的帖子", description = "获取当前用户收藏的帖子列表")
-    public Result<java.util.List<PostVO>> getMyFavoritePosts() {
-        return postFavoriteService.getUserFavoritePosts();
+    @Operation(summary = "我收藏的帖子", description = "分页获取当前用户收藏的帖子列表")
+    public Result<PageResult> getMyFavoritePosts(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size) {
+        return postFavoriteService.getUserFavoritePosts(page, size);
+    }
+
+    @GetMapping("post/user/{userId}/publish")
+    @Operation(summary = "用户发布的帖子", description = "获取指定用户发布的帖子列表")
+    public Result<java.util.List<PostVO>> getUserPublishedPosts(@PathVariable @NotNull Long userId) {
+        if (userId <= 0) {
+            return Result.fail("用户ID无效");
+        }
+        return postService.getUserPublishedPosts(userId);
+    }
+
+    @PostMapping("post/batch-counts")
+    @Operation(summary = "批量获取帖子计数", description = "批量获取帖子的浏览量、评论数、点赞数，不增加浏览量")
+    public Result<java.util.Map<Long, java.util.Map<String, Integer>>> getBatchCounts(@RequestBody java.util.List<Long> postIds) {
+        return postService.getBatchCounts(postIds);
     }
 
 }

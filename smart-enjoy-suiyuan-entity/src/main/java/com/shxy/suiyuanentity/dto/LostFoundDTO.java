@@ -34,7 +34,7 @@ public class LostFoundDTO {
     private String title;
 
     @NotBlank(message = "描述不能为空")
-    @Size(min = 1, max = 2000, message = "描述长度必须在1-2000个字符之间")
+    @Size(min = 1, max = 1000, message = "描述长度必须在1-1000个字符之间")
     private String description;
 
     private Integer urgent;

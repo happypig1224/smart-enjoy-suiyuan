@@ -44,6 +44,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     private final RedisCacheUtil redisCacheUtil;
     private final TencentCOSAvatarUtil tencentCOSAvatarUtil;
 
+    @Transactional(readOnly = true)
     public Result<PageResult> listPost(Integer page, Integer size, String sort, Integer type, String keyword) {
         // 参数验证
         int validatedPage = (page == null || page < 1) ? 1 : page;
@@ -62,32 +63,20 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         final int finalValidatedSize = validatedSize;
         final String finalKeyword = validatedKeyword;
 
-        String cacheKey = RedisConstant.POST_LIST_KEY_PREFIX +
+        String cacheKey = getListCacheKeyWithVersion(RedisConstant.POST_LIST_KEY_PREFIX) +
                 finalValidatedPage + ":" + finalValidatedSize +
                 ":" + (finalValidatedType != null ? finalValidatedType : "all") +
-                ":" + (finalValidatedSort != null ? finalValidatedSort : "newest") +
-                ":" + (finalKeyword != null ? finalKeyword : "none");
+                ":" + (finalValidatedSort != null ? finalValidatedSort : "newest");
+
+        if (finalKeyword != null && !finalKeyword.isEmpty()) {
+            PageResult result = queryPostListFromDB(finalValidatedPage, finalValidatedSize, finalValidatedSort, finalValidatedType, finalKeyword);
+            return Result.success(result);
+        }
 
         PageResult pageResult = redisCacheUtil.queryWithPassThrough(
                 cacheKey,
                 PageResult.class,
-                key -> {
-                    String orderBy = "newest";
-                    if ("hottest".equals(finalValidatedSort)) {
-                        orderBy = "hottest";
-                    } else if ("mostLiked".equals(finalValidatedSort)) {
-                        orderBy = "mostLiked";
-                    }
-                    int offset = (finalValidatedPage - 1) * finalValidatedSize;
-                    List<PostVO> postVOList = postMapper.selectPostListWithUser(finalValidatedType, finalKeyword, offset, finalValidatedSize, orderBy);
-                    Long total = postMapper.selectPostCount(finalValidatedType, finalKeyword);
-                    return PageResult.builder()
-                            .total(total != null ? total : 0)
-                            .records(postVOList)
-                            .page(finalValidatedPage)
-                            .size(finalValidatedSize)
-                            .build();
-                },
+                key -> queryPostListFromDB(finalValidatedPage, finalValidatedSize, finalValidatedSort, finalValidatedType, null),
                 RedisConstant.POST_LIST_TTL,
                 TimeUnit.SECONDS
         );
@@ -103,6 +92,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
      */
     private boolean isValidSortField(String sort) {
         return "newest".equals(sort) || "hottest".equals(sort) || "mostLiked".equals(sort);
+    }
+
+    private PageResult queryPostListFromDB(int page, int size, String sort, Integer type, String keyword) {
+        String orderBy = "newest";
+        if ("hottest".equals(sort)) {
+            orderBy = "hottest";
+        } else if ("mostLiked".equals(sort)) {
+            orderBy = "mostLiked";
+        }
+        int offset = (page - 1) * size;
+        List<PostVO> postVOList = postMapper.selectPostListWithUser(type, keyword, offset, size, orderBy);
+        Long total = postMapper.selectPostCount(type, keyword);
+        return PageResult.builder()
+                .total(total != null ? total : 0)
+                .records(postVOList)
+                .page(page)
+                .size(size)
+                .build();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -191,13 +198,17 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         if (id == null || id <= 0) {
             return Result.fail("ID不合法");
         }
+        log.info("查询帖子详情, id={}", id);
+        
         String cacheKey = RedisConstant.POST_DETAIL_KEY_PREFIX + id;
 
         PostVO postVO = redisCacheUtil.queryWithMutex(
                 cacheKey,
                 PostVO.class,
                 key -> {
+                    log.info("缓存未命中，查询数据库, postId={}", id);
                     List<PostVO> postVOList = postMapper.selectPostWithUser(id);
+                    log.info("数据库查询结果, postId={}, 记录数={}", id, postVOList != null ? postVOList.size() : 0);
                     if (postVOList == null || postVOList.isEmpty()) {
                         return null;
                     }
@@ -208,12 +219,16 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         );
 
         if (postVO == null) {
+            log.error("帖子不存在, postId={}", id);
             throw new BaseException("帖子不存在");
         }
 
         postMapper.update(null, new LambdaUpdateWrapper<>(Post.class)
                 .eq(Post::getId, id)
                 .setSql("view_count = view_count + 1"));
+
+        String detailKey = RedisConstant.POST_DETAIL_KEY_PREFIX + id;
+        redisTemplate.delete(detailKey);
 
         return Result.success(postVO);
     }
@@ -234,8 +249,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
             throw new BaseException("只能删除自己发布的帖子");
         }
 
-        // 删除帖子
-        int delete = postMapper.deleteById(id);
+        int delete = postMapper.update(null, new LambdaUpdateWrapper<>(Post.class)
+                .eq(Post::getId, id)
+                .set(Post::getIsDeleted, 1)
+                .set(Post::getUpdateTime, new Date()));
         if (delete <= 0) {
             throw new BaseException("删除帖子失败");
         }
@@ -336,23 +353,21 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         return Result.success(updatedPost);
     }
 
+    private static final String POST_LIST_CACHE_VERSION_KEY = "cache:version:post_list";
+
     private void clearPostListCache() {
-        Set<String> keys = new HashSet<>();
-        ScanOptions scanOptions = ScanOptions.scanOptions()
-                .match(RedisConstant.POST_LIST_KEY_PREFIX + "*")
-                .count(100)
-                .build();
-        try (Cursor<String> cursor = redisTemplate.scan(scanOptions)) {
-            while (cursor.hasNext()) {
-                keys.add(cursor.next());
-            }
-        }
-        if (!keys.isEmpty()) {
-            redisTemplate.delete(keys);
-        }
-        log.info("清除帖子列表缓存, 删除 {} 个key", keys.size());
+        String currentVersion = (String) redisTemplate.opsForValue().get(POST_LIST_CACHE_VERSION_KEY);
+        long newVersion = System.currentTimeMillis();
+        redisTemplate.opsForValue().set(POST_LIST_CACHE_VERSION_KEY, String.valueOf(newVersion));
+        log.info("更新帖子列表缓存版本: {} -> {}", currentVersion, newVersion);
     }
 
+    private String getListCacheKeyWithVersion(String baseKey) {
+        String version = (String) redisTemplate.opsForValue().get(POST_LIST_CACHE_VERSION_KEY);
+        return baseKey + ":v" + (version != null ? version : "0");
+    }
+
+    @Transactional(readOnly = true)
     public Result<List<PostVO>> getUserPublishedPosts(Long userId) {
         if (userId == null || userId <= 0) {
             throw new BaseException("用户ID不合法");
@@ -393,6 +408,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         return imageUrl;
     }
 
+    @Transactional(readOnly = true)
     public Result<CreatorStatsVO> getCreatorStats(Long userId) {
         if (userId == null || userId <= 0) {
             return Result.fail("用户ID不合法");
@@ -418,6 +434,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         return Result.success(stats);
     }
 
+    @Transactional(readOnly = true)
     public Result<PageResult> getCreatorPostList(Long userId, Integer status, Integer page, Integer size) {
         if (userId == null || userId <= 0) {
             return Result.fail("用户ID不合法");
@@ -464,5 +481,27 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         }
 
         return Result.success(postVOList.get(0));
+    }
+
+    @Override
+    public Result<Map<Long, Map<String, Integer>>> getBatchCounts(List<Long> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return Result.success(Collections.emptyMap());
+        }
+        if (postIds.size() > 50) {
+            postIds = postIds.subList(0, 50);
+        }
+
+        Map<Long, Map<String, Integer>> result = new HashMap<>();
+        List<Post> posts = postMapper.selectBatchIds(postIds);
+        for (Post post : posts) {
+            if (post.getIsDeleted() == 1) continue;
+            Map<String, Integer> counts = new HashMap<>();
+            counts.put("viewCount", post.getViewCount());
+            counts.put("commentCount", post.getCommentCount());
+            counts.put("likeCount", post.getLikeCount());
+            result.put(post.getId(), counts);
+        }
+        return Result.success(result);
     }
 }

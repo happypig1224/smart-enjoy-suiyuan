@@ -13,7 +13,8 @@ import com.shxy.suiyuanserver.mapper.ResourceFavoriteMapper;
 import com.shxy.suiyuanserver.service.ResourceFavoriteService;
 import com.shxy.suiyuanserver.service.ResourceService;
 import com.shxy.suiyuanserver.service.UserService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -28,15 +29,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * @author Wu, Hui Ming
- * @description 针对表【resource_favorite】的数据库操作 Service 实现
- * @createDate 2026-04-10
- */
 @Service
-@Slf4j
 public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMapper, ResourceFavorite>
         implements ResourceFavoriteService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ResourceFavoriteServiceImpl.class);
 
     @Autowired
     private ResourceFavoriteMapper resourceFavoriteMapper;
@@ -57,7 +54,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
     @Transactional(rollbackFor = Exception.class)
     public Result<String> favorite(Long userId, Long resourceId) {
-        log.info("用户{}尝试收藏资源{}", userId, resourceId);
+        logger.info("用户{}尝试收藏资源{}", userId, resourceId);
 
         if (userId == null || userId <= 0) {
             throw new BaseException("用户 ID 不合法");
@@ -68,17 +65,16 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
         Resource resource = resourceService.getById(resourceId);
         if (resource == null) {
-            log.warn(" 用户{}收藏失败: 资源{}不存在", userId, resourceId);
+            logger.warn("用户{}收藏失败: 资源{}不存在", userId, resourceId);
             throw new BaseException("资源不存在");
         }
 
         ResourceFavorite existing = resourceFavoriteMapper.checkFavorite(userId, resourceId);
         if (existing != null) {
-            log.warn("[审计日志] 用户{}收藏失败: 资源{}已收藏", userId, resourceId);
+            logger.warn("[审计日志] 用户{}收藏失败: 资源{}已收藏", userId, resourceId);
             throw new BaseException("该资源已在收藏列表中");
         }
 
-        // 使用 MyBatis-Plus 的 save 方法，自动处理 ENUM 类型
         ResourceFavorite favorite = ResourceFavorite.builder()
                 .userId(userId)
                 .resourceId(resourceId)
@@ -88,16 +84,14 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
         boolean success = this.save(favorite);
         if (!success) {
-            log.warn("用户{}收藏资源{}失败: 数据库操作失败", userId, resourceId);
+            logger.warn("用户{}收藏资源{}失败: 数据库操作失败", userId, resourceId);
             throw new BaseException("收藏失败");
         }
 
-        log.info("[审计日志] 用户{}成功收藏资源{}", userId, resourceId);
+        logger.info("[审计日志] 用户{}成功收藏资源{}", userId, resourceId);
 
-        // 发送收藏通知给资源上传者
         sendFavoriteNotification(userId, resourceId, resource.getFileName());
 
-        // 清除相关缓存
         clearUserFavoriteCache(userId);
         String detailKey = RedisConstant.RESOURCE_DETAIL_KEY_PREFIX + resourceId;
         redisTemplate.delete(detailKey);
@@ -107,7 +101,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
     @Transactional(rollbackFor = Exception.class)
     public Result<String> cancelFavorite(Long userId, Long resourceId) {
-        log.info("[审计日志] 用户{}尝试取消收藏资源{}", userId, resourceId);
+        logger.info("[审计日志] 用户{}尝试取消收藏资源{}", userId, resourceId);
 
         if (userId == null || userId <= 0) {
             throw new BaseException("用户 ID 不合法");
@@ -118,19 +112,18 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
         Resource resource = resourceService.getById(resourceId);
         if (resource == null) {
-            log.warn("[审计日志] 用户{}取消收藏失败: 资源{}不存在", userId, resourceId);
+            logger.warn("[审计日志] 用户{}取消收藏失败: 资源{}不存在", userId, resourceId);
             throw new BaseException("资源不存在");
         }
 
         int result = resourceFavoriteMapper.cancelFavorite(userId, resourceId);
         if (result == 0) {
-            log.warn("[审计日志] 用户{}取消收藏失败: 未收藏资源{}", userId, resourceId);
+            logger.warn("[审计日志] 用户{}取消收藏失败: 未收藏资源{}", userId, resourceId);
             throw new BaseException("取消收藏失败，可能未收藏该资源");
         }
 
-        log.info("[审计日志] 用户{}成功取消收藏资源{}", userId, resourceId);
+        logger.info("[审计日志] 用户{}成功取消收藏资源{}", userId, resourceId);
 
-        // 清除相关缓存
         clearUserFavoriteCache(userId);
         String detailKey = RedisConstant.RESOURCE_DETAIL_KEY_PREFIX + resourceId;
         redisTemplate.delete(detailKey);
@@ -138,9 +131,6 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
         return Result.success("取消收藏成功");
     }
 
-    /**
-     * 清理用户收藏列表缓存
-     */
     private void clearUserFavoriteCache(Long userId) {
         String favoriteListKey = RedisConstant.USER_RESOURCE_FAVORITE_LIST_KEY_PREFIX + userId;
         redisTemplate.delete(favoriteListKey);
@@ -154,6 +144,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
         return resourceFavoriteMapper.isFavorite(userId, resourceId);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Result<List<ResourceVO>> getUserFavoriteResources(Long userId) {
         if (userId == null || userId <= 0) {
@@ -171,7 +162,6 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
             return Result.success(Collections.emptyList());
         }
 
-        // 批量查询上传者信息
         List<Long> uploaderIds = resources.stream()
                 .map(Resource::getUserId)
                 .filter(Objects::nonNull)
@@ -198,7 +188,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
                             .build();
                     User uploader = userMap.get(resource.getUserId());
                     if (uploader != null) {
-                        vo.setUserNickName(uploader.getUserName());
+                        vo.setUserName(uploader.getUserName());
                     }
                     return vo;
                 })
@@ -206,11 +196,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
         return Result.success(resourceVOS);
     }
 
-    /**
-     * 发送资源收藏通知
-     */
     private void sendFavoriteNotification(Long currentUserId, Long resourceId, String resourceName) {
-        // 获取资源上传者ID
         Resource resource = resourceService.getById(resourceId);
         if (resource == null) {
             return;
@@ -218,21 +204,22 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
 
         Long uploaderId = resource.getUserId();
 
-        // 不给自己发通知
         if (uploaderId == null || uploaderId.equals(currentUserId)) {
             return;
         }
 
-        // 构建通知任务
-        long delayScore = System.currentTimeMillis() + 5000; // 延迟5秒
-        String safeResourceName = resourceName != null ? resourceName.replace("\"", "\\\"") : "未知资源";
-        
+        String resourceTitle = resource.getTitle() != null ? resource.getTitle() :
+                              (resource.getFileName() != null ? resource.getFileName() : "未知资源");
+
+        long delayScore = System.currentTimeMillis() + 5000;
+        String safeResourceTitle = resourceTitle.replace("\"", "\\\"");
+
         String taskValue = String.format(
-            "{\"type\":\"resource_favorite\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"resName\":\"%s\",\"time\":%d}",
-            currentUserId, uploaderId, resourceId, safeResourceName, System.currentTimeMillis()
+            "{\"type\":\"resource_favorite\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"resTitle\":\"%s\",\"time\":%d}",
+            currentUserId, uploaderId, resourceId, safeResourceTitle, System.currentTimeMillis()
         );
 
         stringRedisTemplate.opsForZSet().add(RedisConstant.NOTIFY_BUFFER_KEY, taskValue, delayScore);
-        log.info("收藏通知已加入缓冲区: {} -> {}, resourceId: {}", currentUserId, uploaderId, resourceId);
+        logger.info("资源收藏通知已加入缓冲区: {} -> {}, resourceId: {}", currentUserId, uploaderId, resourceId);
     }
 }

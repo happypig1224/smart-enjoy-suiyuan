@@ -1,45 +1,46 @@
 package com.shxy.suiyuanserver.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
+import com.shxy.suiyuanentity.entity.User;
 import com.shxy.suiyuanentity.entity.UserFollow;
 import com.shxy.suiyuanentity.vo.UserFollowVO;
 import com.shxy.suiyuanserver.mapper.UserFollowMapper;
+import com.shxy.suiyuanserver.mapper.UserMapper;
 import com.shxy.suiyuanserver.service.UserFollowService;
+import com.shxy.suiyuanserver.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
-* @author 33046
-* @description 针对表【user_follow(用户关注关系表)】的数据库操作Service实现
-* @createDate 2026-04-28 20:22:21
-*/
+ * 用户关注关系Service实现
+ */
 @Slf4j
 @Service
 public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFollow>
     implements UserFollowService{
 
     private final UserFollowMapper userFollowMapper;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final UserMapper userMapper;
+    private final UserNotificationService userNotificationService;
 
-    public UserFollowServiceImpl(UserFollowMapper userFollowMapper, StringRedisTemplate stringRedisTemplate) {
+    public UserFollowServiceImpl(UserFollowMapper userFollowMapper, UserMapper userMapper, 
+                                  UserNotificationService userNotificationService) {
         this.userFollowMapper = userFollowMapper;
-        this.stringRedisTemplate = stringRedisTemplate;
+        this.userMapper = userMapper;
+        this.userNotificationService = userNotificationService;
     }
 
     /**
      * 关注用户
-     * @param followeeId 被关注者ID
-     * @return 结果
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -71,16 +72,13 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         if (insert <= 0) {
             throw new BaseException("关注失败");
         }
-        // TODO 推送关注通知给被关注者
-        // 1. 将通知任务加入 ZSet 缓冲区
-        // Score 设置为当前时间戳 + 5000ms (即延迟5秒处理)
-        long delayScore = System.currentTimeMillis() + 5000;
 
-        // Value包含所有必要信息
-        String taskValue = String.format("{\"type\":\"follow\",\"from\":%d,\"to\":%d,\"time\":%d}",
-                followerId, followeeId, System.currentTimeMillis());
+        // 获取关注者用户名
+        User follower = userMapper.selectById(followerId);
+        String followerName = follower != null ? follower.getUserName() : "未知用户";
 
-        stringRedisTemplate.opsForZSet().add(RedisConstant.NOTIFY_BUFFER_KEY, taskValue, delayScore);
+        // 发送关注通知
+        userNotificationService.sendFollowNotification(followerId, followeeId, followerName);
 
         log.info("用户 {} 关注了用户 {}", followerId, followeeId);
         return Result.success("关注成功");
@@ -88,8 +86,6 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
 
     /**
      * 取消关注
-     * @param followeeId 被关注者ID
-     * @return 结果
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -112,15 +108,15 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
         if (delete <= 0) {
             throw new BaseException("取消关注失败");
         }
-        // 取关不需要通知
+        
         log.info("用户 {} 取消关注了用户 {}", followerId, followeeId);
         return Result.success("取消关注成功");
     }
 
     /**
      * 获取关注列表
-     * @return 关注列表
      */
+    @Transactional(readOnly = true)
     @Override
     public Result<List<UserFollowVO>> getFollowList() {
         Long followerId = BaseContext.getCurrentUserId();
@@ -134,8 +130,6 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
 
     /**
      * 检查是否已关注
-     * @param followeeId 被关注者ID
-     * @return 是否已关注
      */
     @Override
     public Result<Boolean> isFollowing(Long followeeId) {
@@ -150,37 +144,6 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
 
         UserFollow existingFollow = userFollowMapper.selectByFollowerAndFollowee(followerId, followeeId);
         return Result.success(existingFollow != null);
-    }
-
-    /**
-     * 获取用户通知列表
-     */
-    @Override
-    public Result<List<String>> getNotifications() {
-        Long userId = BaseContext.getCurrentUserId();
-        if (userId == null) {
-            return Result.fail("用户未登录");
-        }
-
-        String notifyKey = RedisConstant.NOTIFY_LIST_KEY_PREFIX + userId;
-        // 获取最近 50 条通知
-        List<String> notifications = stringRedisTemplate.opsForList().range(notifyKey, 0, 49);
-        return Result.success(notifications != null ? notifications : java.util.Collections.emptyList());
-    }
-
-    /**
-     * 清除未读通知数
-     */
-    @Override
-    public Result<String> clearUnreadCount() {
-        Long userId = BaseContext.getCurrentUserId();
-        if (userId == null) {
-            return Result.fail("用户未登录");
-        }
-
-        String unreadKey = RedisConstant.NOTIFY_UNREAD_KEY_PREFIX + userId;
-        stringRedisTemplate.delete(unreadKey);
-        return Result.success("已清除未读数");
     }
 }
 

@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -44,6 +45,9 @@ public class AiChatServiceImpl implements AiChatService {
 
     @Resource
     private ChatMessageMapper chatMessageMapper;
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -185,8 +189,9 @@ public class AiChatServiceImpl implements AiChatService {
 
                     fullResponse.append(chunk);
                     try {
-                        // 直接写入 SSE 格式数据并立即 flush
-                        finalWriter.write("data: " + chunk + "\n\n");
+                        // 将 chunk 包装为 JSON 格式，避免 SSE 格式被破坏
+                        String jsonChunk = com.alibaba.fastjson2.JSON.toJSONString(java.util.Map.of("content", chunk));
+                        finalWriter.write("data: " + jsonChunk + "\n\n");
                         finalWriter.flush();
                         log.info("已转发 chunk 到前端 | 累计: {} | chunk: '{}'",
                                 fullResponse.length(),
@@ -206,7 +211,9 @@ public class AiChatServiceImpl implements AiChatService {
 
                     // 保存聊天记录到数据库
                     try {
-                        saveChatMessage(finalSessionId, finalUserId, finalQuery, aiReply);
+                        transactionTemplate.executeWithoutResult(status -> {
+                            saveChatMessage(finalSessionId, finalUserId, finalQuery, aiReply);
+                        });
                         log.info("聊天记录已保存");
 
                         // 发送完成信号
@@ -363,19 +370,25 @@ public class AiChatServiceImpl implements AiChatService {
         if (sessionIds == null || sessionIds.isEmpty()) {
             return Result.fail("会话列表不能为空!");
         }
-        for (Long sessionId : sessionIds) {
-            AiSession session = aiSessionMapper.selectById(sessionId);
-            if (session == null || !session.getUserId().equals(userId)) {
-                continue;
-            }
-            // 删除消息记录
-            LambdaQueryWrapper<ChatMessage> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(ChatMessage::getSessionId, sessionId);
-            chatMessageMapper.delete(queryWrapper);
-            // 删除会话记录
-            aiSessionMapper.deleteById(sessionId);
+
+        LambdaQueryWrapper<AiSession> sessionQuery = new LambdaQueryWrapper<>();
+        sessionQuery.eq(AiSession::getUserId, userId)
+                .in(AiSession::getId, sessionIds);
+        List<AiSession> userSessions = aiSessionMapper.selectList(sessionQuery);
+
+        if (userSessions.isEmpty()) {
+            return Result.success("批量删除成功");
         }
-        log.info("用户 {} 批量删除了 {} 个会话", userId, sessionIds.size());
+
+        List<Long> validSessionIds = userSessions.stream()
+                .map(AiSession::getId)
+                .collect(Collectors.toList());
+
+        chatMessageMapper.delete(new LambdaQueryWrapper<ChatMessage>()
+                .in(ChatMessage::getSessionId, validSessionIds));
+        aiSessionMapper.deleteBatchIds(validSessionIds);
+
+        log.info("用户 {} 批量删除了 {} 个会话", userId, validSessionIds.size());
         return Result.success("批量删除成功");
     }
 

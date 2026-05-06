@@ -1,5 +1,7 @@
 package com.shxy.suiyuanserver.agent;
 
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONUtil;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.properties.McpProperties;
@@ -7,6 +9,8 @@ import com.shxy.suiyuanentity.entity.McpRequest;
 import com.shxy.suiyuanentity.entity.McpResponse;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -14,8 +18,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Wu, Hui Ming
@@ -30,10 +37,39 @@ public class McpClient {
     @Resource
     private McpProperties mcpProperties;
 
+    @Value("${smart.enjoy.suiyuan.ai.mcp.service-token:}")
+    private String mcpServiceToken;
+
+    private static final Semaphore SSE_PERMITS = new Semaphore(50);
+
+    private volatile int failureCount = 0;
+    private volatile long lastFailureTime = 0;
+    private static final int CIRCUIT_BREAKER_THRESHOLD = 5;
+    private static final long CIRCUIT_BREAKER_RESET_MS = 30000;
+
+    private boolean isCircuitOpen() {
+        if (failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
+            if (System.currentTimeMillis() - lastFailureTime > CIRCUIT_BREAKER_RESET_MS) {
+                failureCount = 0;
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     /**
      * 调用 Python Agent 的 MCP 接口
      */
     public McpResponse call(McpRequest request) {
+        if (isCircuitOpen()) {
+            McpResponse fallback = new McpResponse();
+            fallback.setCode(503);
+            fallback.setMessage("AI 服务暂时不可用，请稍后重试");
+            fallback.setResult("抱歉，AI服务暂时不可用，稍后重试喔~");
+            return fallback;
+        }
+
         String url = mcpProperties.getServerUrl();
         int timeout = mcpProperties.getTimeout();
         int maxRetries = mcpProperties.getRetryCount();
@@ -48,11 +84,14 @@ public class McpClient {
                 cn.hutool.http.HttpResponse response = cn.hutool.http.HttpRequest.post(url)
                         .body(jsonBody)
                         .timeout(timeout)
+                        .header("X-Service-Token", mcpServiceToken)
+                        .header("X-Trace-Id", org.slf4j.MDC.get("traceId") != null ? org.slf4j.MDC.get("traceId") : java.util.UUID.randomUUID().toString())
                         .execute();
 
                 if (response.isOk()) {
                     String responseBody = response.body();
                     log.info("MCP Response: {}", responseBody);
+                    failureCount = 0;
                     return JSONUtil.toBean(responseBody, McpResponse.class);
                 } else {
                     log.error("MCP 调用 HTTP 状态异常: {}", response.getStatus());
@@ -73,6 +112,8 @@ public class McpClient {
         fallback.setCode(500);
         fallback.setMessage("AI 服务暂时不可用，请稍后重试");
         fallback.setResult("抱歉,当前服务不可用，稍后重试喔~");
+        failureCount++;
+        lastFailureTime = System.currentTimeMillis();
         return fallback;
     }
 
@@ -95,16 +136,29 @@ public class McpClient {
         String jsonBody = JSONUtil.toJsonStr(request);
 
         try {
-            log.info("MCP Stream Request: URL={}, Body={}", url, jsonBody);
+            if (!SSE_PERMITS.tryAcquire(10, TimeUnit.SECONDS)) {
+                callback.onError("AI服务繁忙，请稍后重试");
+                return;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            callback.onError("获取连接许可被中断");
+            return;
+        }
 
-            cn.hutool.http.HttpRequest httpRequest = cn.hutool.http.HttpRequest.post(url)
+        try {
+            log.info("MCP Stream Request: URL={}", url);
+
+            HttpRequest httpRequest = HttpRequest.post(url)
                     .body(jsonBody)
                     .timeout(timeout)
                     .header("Content-Type", "application/json")
                     .header("Accept", "text/event-stream")
-                    .header("Connection", "close");
+                    .header("Connection", "close")
+                    .header("X-Service-Token", mcpServiceToken)
+                    .header("X-Trace-Id", MDC.get("traceId") != null ? MDC.get("traceId") : java.util.UUID.randomUUID().toString());
 
-            cn.hutool.http.HttpResponse response = httpRequest.executeAsync();
+            HttpResponse response = httpRequest.executeAsync();
 
             if (!response.isOk()) {
                 callback.onError("MCP 服务返回异常状态: " + response.getStatus());
@@ -113,33 +167,46 @@ public class McpClient {
 
             log.info("开始读取流式响应...");
 
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(response.bodyStream(), java.nio.charset.StandardCharsets.UTF_8))) {
-                
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(response.bodyStream(), StandardCharsets.UTF_8))) {
+
                 String line;
                 boolean hasContent = false;
                 int chunkCount = 0;
+                long streamStartTime = System.currentTimeMillis();
+                long lastChunkTime = streamStartTime;
 
                 while ((line = reader.readLine()) != null) {
+                    long chunkTime = System.currentTimeMillis();
+                    if (chunkTime - lastChunkTime > 30000) {
+                        callback.onError("流式响应超时：30秒内未收到数据");
+                        return;
+                    }
+                    if (chunkTime - streamStartTime > 120000) {
+                        callback.onError("流式响应超时：总时长超过120秒");
+                        return;
+                    }
+                    lastChunkTime = chunkTime;
+
                     if (line.isEmpty()) continue;
 
                     if (line.startsWith("data:")) {
                         String data = line.substring(5).trim();
-                        
+
                         if ("[DONE]".equals(data)) {
                             log.info("收到 [DONE] 信号，流式调用完成");
                             callback.onComplete();
                             return;
                         }
-                        
+
                         try {
                             Map<String, Object> eventData = JSONUtil.toBean(data, Map.class);
-                            
+
                             if (eventData.containsKey("error")) {
                                 callback.onError(String.valueOf(eventData.get("error")));
                                 return;
                             }
-                            
+
                             if (eventData.containsKey("content")) {
                                 String content = String.valueOf(eventData.get("content"));
                                 if (content != null && !content.isEmpty()) {
@@ -171,6 +238,8 @@ public class McpClient {
         } catch (Exception e) {
             log.error("MCP 流式调用异常: {}", e.getMessage(), e);
             callback.onError("服务调用失败: " + e.getMessage());
+        } finally {
+            SSE_PERMITS.release();
         }
     }
 

@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
  * @School SuiHua  University
  * @since 2026/4/25 22:05
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequireLogin {
 }

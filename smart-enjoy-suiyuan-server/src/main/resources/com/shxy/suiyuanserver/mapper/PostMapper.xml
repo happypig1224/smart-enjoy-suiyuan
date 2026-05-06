@@ -26,7 +26,7 @@
     <resultMap id="PostVOResultMap" type="com.shxy.suiyuanentity.vo.PostVO">
         <id property="id" column="post_id" />
         <result property="userId" column="user_id" />
-        <result property="userNickName" column="nick_name" />
+        <result property="userName" column="user_name" />
         <result property="userAvatar" column="avatar" />
         <result property="title" column="title" />
         <result property="content" column="content" />
@@ -65,7 +65,7 @@
             p.images,
             p.create_time,
             p.update_time,
-            u.nick_name,
+            u.user_name,
             u.avatar
         FROM post p
                  LEFT JOIN user u ON p.user_id = u.id
@@ -91,7 +91,7 @@
         p.images,
         p.create_time,
         p.update_time,
-        u.nick_name,
+        u.user_name,
         u.avatar
         FROM post p
         LEFT JOIN user u ON p.user_id = u.id
@@ -161,7 +161,7 @@
             p.images,
             p.create_time,
             p.update_time,
-            u.nick_name,
+            u.user_name,
             u.avatar
         FROM post p
         LEFT JOIN user u ON p.user_id = u.id
@@ -205,25 +205,42 @@
 
     <select id="selectCreatorStats" resultMap="CreatorStatsResultMap">
         SELECT
-            -- 帖子统计
-            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0) AS total_posts,
-            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 1) AS published_posts,
-            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 0) AS draft_posts,
-            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 3) AS reviewing_posts,
-            (SELECT COUNT(*) FROM post WHERE user_id = #{userId} AND is_deleted = 0 AND status = 2) AS locked_posts,
-            -- 互动统计
-            COALESCE((SELECT SUM(comment_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_comments,
-            COALESCE((SELECT SUM(like_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_likes,
-            COALESCE((SELECT SUM(view_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_views,
-            COALESCE((SELECT SUM(word_count) FROM post WHERE user_id = #{userId} AND is_deleted = 0), 0) AS total_words,
-            -- 粉丝统计
-            (SELECT COUNT(*) FROM user_follow WHERE followee_id = #{userId}) AS total_followers,
-            (SELECT COUNT(*) FROM user_follow WHERE followee_id = #{userId} AND DATE(create_time) = CURDATE()) AS new_followers,
-            (SELECT COUNT(DISTINCT uf.follower_id)
-             FROM user_follow uf
-             INNER JOIN post p ON uf.follower_id = p.user_id
-             WHERE uf.followee_id = #{userId}
-             AND (p.comment_count > 0 OR p.like_count > 0)) AS interactive_followers
+            p_stats.total_posts,
+            p_stats.published_posts,
+            p_stats.draft_posts,
+            p_stats.reviewing_posts,
+            p_stats.locked_posts,
+            p_stats.total_comments,
+            p_stats.total_likes,
+            p_stats.total_views,
+            p_stats.total_words,
+            f_stats.total_followers,
+            f_stats.new_followers,
+            f_stats.interactive_followers
+        FROM (
+            SELECT
+                COUNT(*) AS total_posts,
+                SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS published_posts,
+                SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS draft_posts,
+                SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS reviewing_posts,
+                SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS locked_posts,
+                COALESCE(SUM(comment_count), 0) AS total_comments,
+                COALESCE(SUM(like_count), 0) AS total_likes,
+                COALESCE(SUM(view_count), 0) AS total_views,
+                COALESCE(SUM(word_count), 0) AS total_words
+            FROM post WHERE user_id = #{userId} AND is_deleted = 0
+        ) p_stats
+        CROSS JOIN (
+            SELECT
+                COUNT(*) AS total_followers,
+                SUM(CASE WHEN DATE(create_time) = CURDATE() THEN 1 ELSE 0 END) AS new_followers,
+                (SELECT COUNT(DISTINCT uf.follower_id)
+                 FROM user_follow uf
+                 INNER JOIN post p ON uf.follower_id = p.user_id
+                 WHERE uf.followee_id = #{userId}
+                 AND (p.comment_count > 0 OR p.like_count > 0)) AS interactive_followers
+            FROM user_follow WHERE followee_id = #{userId}
+        ) f_stats
     </select>
 
     <select id="selectCreatorPostList" resultMap="CreatorPostListResultMap">
@@ -283,7 +300,7 @@
             p.images,
             p.create_time,
             p.update_time,
-            u.nick_name,
+            u.user_name,
             u.avatar
         FROM post p
                  LEFT JOIN user u ON p.user_id = u.id
@@ -309,7 +326,7 @@
             p.images,
             p.create_time,
             p.update_time,
-            u.nick_name,
+            u.user_name,
             u.avatar
         FROM post p
         LEFT JOIN user u ON p.user_id = u.id

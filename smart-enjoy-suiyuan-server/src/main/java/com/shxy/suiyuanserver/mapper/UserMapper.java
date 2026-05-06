@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Update;
 * @author Wu, Hui Ming
 * @description 针对表【user】的数据库操作Mapper
 * @createDate 2026-04-04 21:30:08
-* @Entity com.shxy.smartenjoysuiyuanentity.entity.User
+* @Entity com.shxy.suiyuanentity.entity.User
 */
 public interface UserMapper extends BaseMapper<User> {
 
@@ -19,7 +19,7 @@ public interface UserMapper extends BaseMapper<User> {
 
     int updateUserInfo(User user);
 
-    @Select("select * from user where id = #{userId}")
+    @Select("select id, user_name, avatar, phone, create_time, update_time, role, status from user where id = #{userId}")
     User getUserInfo(Long userId);
 
     @Update("update user set avatar = #{avatarUrl} where id = #{userId}")
@@ -28,6 +28,8 @@ public interface UserMapper extends BaseMapper<User> {
     @Update("update user set phone = #{newPhone} where id = #{userId}")
     int updatePhone(Long userId, String newPhone);
 
+    @Select("select * from user where user_name = #{userName}")
+    User getUserByName(String userName);
 }
 
 

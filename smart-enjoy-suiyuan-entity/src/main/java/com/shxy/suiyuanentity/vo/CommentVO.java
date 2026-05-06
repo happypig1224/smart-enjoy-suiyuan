@@ -22,8 +22,8 @@ public class CommentVO {
     @Schema(description = "用户ID")
     private Long userId;
     
-    @Schema(description = "用户昵称")
-    private String userNickName;
+    @Schema(description = "用户名")
+    private String userName;
     
     @Schema(description = "用户头像")
     private String userAvatar;
@@ -49,8 +49,8 @@ public class CommentVO {
     @Schema(description = "被回复用户的ID（二级回复时使用）")
     private Long replyToUserId;
 
-    @Schema(description = "被回复用户的昵称（二级回复时使用）")
-    private String replyToUserNickName;
+    @Schema(description = "被回复用户的用户名（二级回复时使用）")
+    private String replyToUserName;
 
     @Schema(description = "子评论列表（二级回复）")
     private List<CommentVO> children;

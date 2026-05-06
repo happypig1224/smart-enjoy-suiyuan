@@ -19,7 +19,7 @@
     <resultMap id="CommentVOResultMap" type="com.shxy.suiyuanentity.vo.CommentVO">
         <id property="id" column="comment_id" />
         <result property="userId" column="user_id" />
-        <result property="userNickName" column="nick_name" />
+        <result property="userName" column="user_name" />
         <result property="userAvatar" column="avatar" />
         <result property="content" column="content" />
         <result property="postId" column="post_id" />
@@ -27,7 +27,7 @@
         <result property="parentId" column="parent_id" />
         <result property="createTime" column="create_time" />
         <result property="replyToUserId" column="reply_to_user_id" />
-        <result property="replyToUserNickName" column="reply_to_user_nick_name" />
+        <result property="replyToUserName" column="reply_to_user_name" />
     </resultMap>
 
     <sql id="Base_Column_List">
@@ -48,10 +48,10 @@
         c.resource_id,
         c.parent_id,
         c.create_time,
-        u.nick_name,
+        u.user_name,
         u.avatar,
         IF(c.parent_id IS NOT NULL AND c.parent_id > 0, p.user_id, NULL) as reply_to_user_id,
-        IF(c.parent_id IS NOT NULL AND c.parent_id > 0, u2.nick_name, NULL) as reply_to_user_nick_name
+        IF(c.parent_id IS NOT NULL AND c.parent_id > 0, u2.user_name, NULL) as reply_to_user_name
         FROM comment c
         LEFT JOIN user u ON c.user_id = u.id
         LEFT JOIN comment p ON c.parent_id = p.id

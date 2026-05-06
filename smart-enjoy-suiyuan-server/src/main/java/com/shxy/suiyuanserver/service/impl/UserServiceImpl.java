@@ -15,9 +15,19 @@ import com.shxy.suiyuancommon.utils.RateLimitUtil;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
 import com.shxy.suiyuancommon.utils.SmsVerifyCodeUtil;
 import com.shxy.suiyuancommon.utils.TencentCOSAvatarUtil;
+import com.shxy.suiyuanentity.dto.ForgotPasswordDTO;
+import com.shxy.suiyuanentity.dto.LoginDTO;
+import com.shxy.suiyuanentity.dto.RegisterDTO;
+import com.shxy.suiyuanentity.dto.ResetPasswordDTO;
 import com.shxy.suiyuanentity.dto.UserDTO;
 import com.shxy.suiyuanentity.entity.User;
+import com.shxy.suiyuanentity.vo.UserStatsVO;
 import com.shxy.suiyuanentity.vo.UserVO;
+import com.shxy.suiyuanentity.vo.UserProfileVO;
+import com.shxy.suiyuanserver.mapper.PostFavoriteMapper;
+import com.shxy.suiyuanserver.mapper.ResourceFavoriteMapper;
+import com.shxy.suiyuanserver.mapper.SecondhandFavoriteMapper;
+import com.shxy.suiyuanserver.mapper.UserFollowMapper;
 import com.shxy.suiyuanserver.mapper.UserMapper;
 import com.shxy.suiyuanserver.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +35,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,14 +49,10 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.shxy.suiyuancommon.constant.RedisConstant.TOKEN_BLACKLIST_KEY_PREFIX;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_INFO_KEY_PREFIX;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_TOKEN_KEY_PREFIX;
 
-/**
- * @author Wu, Hui Ming
- * @description 针对表【user】的数据库操作Service实现
- * @createDate 2026-04-04 21:30:08
- */
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
@@ -75,20 +82,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Autowired
     private SmsVerifyCodeUtil smsVerifyCodeUtil;
 
+    @Autowired
+    private UserFollowMapper userFollowMapper;
+
+    @Autowired
+    private PostFavoriteMapper postFavoriteMapper;
+
+    @Autowired
+    private ResourceFavoriteMapper resourceFavoriteMapper;
+
+    @Autowired
+    private SecondhandFavoriteMapper secondhandFavoriteMapper;
+
     private static final PasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
     @Override
-    public Result<Map<String, Object>> login(UserDTO userLoginRequestDTO) {
-        String phone = userLoginRequestDTO.getPhone();
+    public Result<Map<String, Object>> login(LoginDTO loginDTO) {
+        String phone = loginDTO.getPhone();
+
+        String loginRateLimitKey = RateLimitConstant.LOGIN_RATE_LIMIT_KEY + phone;
+        RateLimitUtil.checkRateLimit(stringRedisTemplate, loginRateLimitKey,
+                RateLimitConstant.LOGIN_TIME_WINDOW, RateLimitConstant.LOGIN_MAX_REQUESTS);
 
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getPhone, phone));
         if (user == null) {
-            log.warn("登录失败: 手机号不存在, phone={}", phone);
-            throw new AccountNotFoundException();
+            log.warn("登录失败: 手机号或密码错误, phone={}", phone.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
+            throw new PasswordErrorException();
         }
-        if (!PASSWORD_ENCODER.matches(userLoginRequestDTO.getUserPassword(), user.getUserPassword())) {
-            log.warn("登录失败: 密码错误, userId={}", user.getId());
+        if (!PASSWORD_ENCODER.matches(loginDTO.getUserPassword(), user.getUserPassword())) {
+            log.warn("登录失败: 手机号或密码错误, userId={}", user.getId());
             throw new PasswordErrorException();
         }
         if (user.getStatus() == 0) {
@@ -102,6 +125,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(user, userVO);
+        if (userVO.getPhone() != null && userVO.getPhone().length() >= 7) {
+            userVO.setPhoneMasked(userVO.getPhone().substring(0, 3) + "****" + userVO.getPhone().substring(userVO.getPhone().length() - 4));
+        }
+        userVO.setPhone(null);
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
         data.put("user", userVO);
@@ -109,42 +136,54 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String tokenKey = USER_TOKEN_KEY_PREFIX + user.getId();
         redisTemplate.opsForValue().set(tokenKey, token, jwtProperties.getUserTtl(), TimeUnit.MILLISECONDS);
 
-        log.info("用户登录成功: userId={}, phone={}", user.getId(), phone);
+        log.info("用户登录成功: userId={}", user.getId());
         return Result.success(data);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public Result<Map<String, Object>> register(UserDTO userRegisterDTO) {
-        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(userRegisterDTO.getPhone(), userRegisterDTO.getVerifyCode());
+    public Result<Map<String, Object>> register(RegisterDTO registerDTO) {
+        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(registerDTO.getPhone(), registerDTO.getVerifyCode());
         if (checked.getCode() != 200) {
             return Result.fail("验证码错误!");
         }
 
-        // 检查手机号是否已注册
         LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
-        phoneWrapper.eq(User::getPhone, userRegisterDTO.getPhone());
+        phoneWrapper.eq(User::getPhone, registerDTO.getPhone());
         if (userMapper.exists(phoneWrapper)) {
             throw new PhoneExistsException();
         }
 
-        // 生成唯一的用户名：user_ + 随机6位字符
-        String userName;
-        do {
-            userName = "user_" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
-        } while (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getUserName, userName)));
+        String userName = registerDTO.getUserName();
+        if (userName == null || userName.trim().isEmpty()) {
+            do {
+                userName = "user_" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+            } while (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getUserName, userName)));
+        } else {
+            userName = userName.trim();
+            if (userName.length() < 3 || userName.length() > 50) {
+                return Result.fail("用户名长度必须在3-50个字符之间!");
+            }
+            if (userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getUserName, userName))) {
+                throw new UsernameExistsException();
+            }
+        }
 
-        String userPassword = PASSWORD_ENCODER.encode(userRegisterDTO.getUserPassword());
+        String userPassword = PASSWORD_ENCODER.encode(registerDTO.getUserPassword());
 
         User user = User.builder()
                 .userName(userName)
                 .userPassword(userPassword)
-                .phone(userRegisterDTO.getPhone())
+                .phone(registerDTO.getPhone())
                 .createTime(new Date())
                 .updateTime(new Date())
                 .role(UserRoleEnum.USER.getCode())
                 .status(UserStatusConstant.NORMAL)
                 .build();
-        this.save(user);
+        try {
+            this.save(user);
+        } catch (DuplicateKeyException e) {
+            throw new UsernameExistsException();
+        }
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
@@ -162,7 +201,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<Map<String, Object>> logout() {
-        redisTemplate.delete(USER_TOKEN_KEY_PREFIX + BaseContext.getCurrentUserId());
+        Long userId = BaseContext.getCurrentUserId();
+        String tokenKey = USER_TOKEN_KEY_PREFIX + userId;
+        String token = (String) redisTemplate.opsForValue().get(tokenKey);
+        if (token != null) {
+            try {
+                io.jsonwebtoken.Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
+                String jti = claims.getId();
+                if (jti != null) {
+                    long ttl = claims.getExpiration().getTime() - System.currentTimeMillis();
+                    if (ttl > 0) {
+                        stringRedisTemplate.opsForValue().set(TOKEN_BLACKLIST_KEY_PREFIX + jti, "1", ttl, TimeUnit.MILLISECONDS);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("登出时解析token失败: {}", e.getMessage());
+            }
+        }
+        redisTemplate.delete(tokenKey);
         return Result.success();
     }
 
@@ -173,7 +229,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             RateLimitConstant.SMS_TIME_WINDOW, RateLimitConstant.SMS_MAX_REQUESTS);
 
         smsVerifyCodeUtil.sendSmsVerifyCode(phone);
-        log.info("短信验证码发送成功: phone={}", phone);
+        log.info("短信验证码发送成功: phone={}", phone.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
         return Result.success("验证码发送成功");
     }
 
@@ -200,17 +256,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public Result<String> resetPassword(UserDTO userResetPasswordDTO) {
+    public Result<String> resetPassword(ResetPasswordDTO resetPasswordDTO) {
         Long userId = BaseContext.getCurrentUserId();
-        String phone = userResetPasswordDTO.getPhone();
+        String phone = resetPasswordDTO.getPhone();
 
-        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(phone, userResetPasswordDTO.getVerifyCode());
+        User currentUser = userMapper.selectById(userId);
+        if (currentUser == null) {
+            return Result.fail("用户不存在");
+        }
+        if (!currentUser.getPhone().equals(phone)) {
+            return Result.fail("手机号与当前登录用户不匹配");
+        }
+
+        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(phone, resetPasswordDTO.getVerifyCode());
         if (checked.getCode() != 200) {
             log.warn("用户{}密码重置失败: 验证码错误", userId);
             return Result.fail("验证码错误!");
         }
 
-        String newPassword = PASSWORD_ENCODER.encode(userResetPasswordDTO.getNewPassword());
+        String newPassword = PASSWORD_ENCODER.encode(resetPasswordDTO.getNewPassword());
         int result = userMapper.updatePassword(userId, newPassword);
         if (result == 0) {
             log.warn("用户{}密码重置失败: 数据库更新失败", userId);
@@ -219,6 +283,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         redisTemplate.delete(USER_TOKEN_KEY_PREFIX + userId);
         log.info("用户{}密码重置成功", userId);
+        return Result.success("修改密码成功!");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Result<String> forgotPassword(ForgotPasswordDTO forgotPasswordDTO) {
+        String phone = forgotPasswordDTO.getPhone();
+
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getPhone, phone));
+        if (user == null) {
+            return Result.fail("该手机号未注册");
+        }
+
+        Result<String> checked = smsVerifyCodeUtil.checkSmsVerifyCode(phone, forgotPasswordDTO.getVerifyCode());
+        if (checked.getCode() != 200) {
+            log.warn("忘记密码重置失败: 验证码错误, phone={}", phone.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
+            return Result.fail("验证码错误!");
+        }
+
+        String newPassword = PASSWORD_ENCODER.encode(forgotPasswordDTO.getNewPassword());
+        int result = userMapper.updatePassword(user.getId(), newPassword);
+        if (result == 0) {
+            return Result.fail("修改密码失败!");
+        }
+
+        redisTemplate.delete(USER_TOKEN_KEY_PREFIX + user.getId());
+        log.info("用户{}忘记密码重置成功", user.getId());
         return Result.success("修改密码成功!");
     }
 
@@ -284,10 +376,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
 
         redisTemplate.delete(USER_INFO_KEY_PREFIX + userId);
-        log.info("用户{}修改手机号成功: newPhone={}", userId, newPhone);
+        log.info("用户{}修改手机号成功", userId);
         return Result.success("修改手机号成功!");
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Result<UserVO> getUserInfo() {
         Long userId = BaseContext.getCurrentUserId();
@@ -303,6 +396,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                     }
                     UserVO vo = new UserVO();
                     BeanUtils.copyProperties(user, vo);
+                    if (vo.getPhone() != null && vo.getPhone().length() >= 7) {
+                        vo.setPhoneMasked(vo.getPhone().substring(0, 3) + "****" + vo.getPhone().substring(vo.getPhone().length() - 4));
+                    }
+                    vo.setPhone(null);
                     return vo;
                 },
                 jwtProperties.getUserTtl() / 1000,
@@ -313,5 +410,77 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.fail("用户不存在");
         }
         return Result.success(userVO);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Result<UserStatsVO> getUserStats() {
+        Long userId = BaseContext.getCurrentUserId();
+        if (userId == null || userId <= 0) {
+            return Result.fail("用户未登录");
+        }
+
+        Integer followingCount = userFollowMapper.countFollowing(userId);
+        if (followingCount == null) {
+            followingCount = 0;
+        }
+
+        Integer postFavoriteCount = postFavoriteMapper.countByUserId(userId);
+        if (postFavoriteCount == null) {
+            postFavoriteCount = 0;
+        }
+
+        Integer resourceFavoriteCount = resourceFavoriteMapper.countByUserId(userId);
+        if (resourceFavoriteCount == null) {
+            resourceFavoriteCount = 0;
+        }
+
+        Integer secondhandFavoriteCount = secondhandFavoriteMapper.countByUserId(userId);
+        if (secondhandFavoriteCount == null) {
+            secondhandFavoriteCount = 0;
+        }
+
+        int totalFavoriteCount = Math.max(0, postFavoriteCount + resourceFavoriteCount + secondhandFavoriteCount);
+
+        UserStatsVO stats = UserStatsVO.builder()
+                .followingCount(Math.max(0, followingCount))
+                .favoriteCount(totalFavoriteCount)
+                .build();
+
+        return Result.success(stats);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Result<UserProfileVO> getUserProfileById(Long userId) {
+        if (userId == null || userId <= 0) {
+            return Result.fail("用户ID无效");
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+
+        Integer followingCount = userFollowMapper.countFollowing(userId);
+        if (followingCount == null) {
+            followingCount = 0;
+        }
+
+        Integer followersCount = userFollowMapper.countFollowers(userId);
+        if (followersCount == null) {
+            followersCount = 0;
+        }
+
+        UserProfileVO profile = UserProfileVO.builder()
+                .id(user.getId())
+                .userName(user.getUserName())
+                .avatar(user.getAvatar())
+                .createTime(user.getCreateTime())
+                .followingCount(followingCount)
+                .followersCount(followersCount)
+                .build();
+
+        return Result.success(profile);
     }
 }

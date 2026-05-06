@@ -5,6 +5,8 @@ FastAPI 应用启动文件
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.middleware.auth import ServiceAuthMiddleware
+from app.middleware.trace import TraceIdMiddleware
 from app.config.settings import settings
 from app.api.routes import mcp, lost_found_sync
 from app.utils.logger import app_logger
@@ -17,12 +19,15 @@ app = FastAPI(
     description="智享绥园 AI Agent 服务 (MCP Protocol)"
 )
 
+app.add_middleware(TraceIdMiddleware)
+app.add_middleware(ServiceAuthMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[settings.mcp.cors_origin],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Service-Token", "X-Trace-Id"],
 )
 
 app.include_router(mcp.router)
@@ -68,8 +73,31 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """健康检查"""
-    return {"status": "healthy"}
+    checks = {"status": "healthy", "checks": {}}
+
+    try:
+        from pymilvus import connections
+        connections.connect(
+            alias="health_check",
+            host=settings.milvus.host,
+            port=settings.milvus.port,
+            timeout=5
+        )
+        connections.disconnect("health_check")
+        checks["checks"]["milvus"] = "up"
+    except Exception as e:
+        checks["checks"]["milvus"] = f"down: {str(e)}"
+        checks["status"] = "degraded"
+
+    try:
+        import dashscope
+        dashscope.api_key = settings.dashscope.api_key
+        checks["checks"]["dashscope"] = "configured"
+    except Exception as e:
+        checks["checks"]["dashscope"] = f"down: {str(e)}"
+        checks["status"] = "degraded"
+
+    return checks
 
 
 if __name__ == "__main__":

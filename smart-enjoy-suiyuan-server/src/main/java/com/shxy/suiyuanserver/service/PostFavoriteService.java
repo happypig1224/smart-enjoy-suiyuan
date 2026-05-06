@@ -28,5 +28,5 @@ public interface PostFavoriteService extends IService<PostFavorite> {
     /**
      * 获取用户收藏的帖子列表
      */
-    Result<java.util.List<com.shxy.suiyuanentity.vo.PostVO>> getUserFavoritePosts();
+    Result<com.shxy.suiyuancommon.result.PageResult> getUserFavoritePosts(Integer page, Integer size);
 }

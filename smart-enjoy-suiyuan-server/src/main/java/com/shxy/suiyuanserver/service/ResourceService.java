@@ -52,6 +52,8 @@ public interface ResourceService extends IService<Resource> {
      */
     Result<List<ResourceVO>> getUserPublishedResources(Long userId);
 
+    Result<PageResult> getUserPublishedResourcesPaged(Long userId, Integer page, Integer size);
+
 
     /**
      * 获取资源详情

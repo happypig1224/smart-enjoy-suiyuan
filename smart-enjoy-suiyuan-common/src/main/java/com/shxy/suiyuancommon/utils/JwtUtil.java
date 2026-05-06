@@ -8,6 +8,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * JWT工具类
@@ -28,18 +29,16 @@ public class JwtUtil {
      */
 
     public static String createJWT(String secretKey, long ttlMillis, Map<String, Object> claims) {
-        // 1、指定签名算法
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
-        // 2、生成JWT到期时间
-        long expireMillis = System.currentTimeMillis() + ttlMillis;
+        long nowMillis = System.currentTimeMillis();
+        Date now = new Date(nowMillis);
+        long expireMillis = nowMillis + ttlMillis;
         Date expireTime = new Date(expireMillis);
-        // 3、创建JWT
         return Jwts.builder()
-                // 签名
                 .signWith(signatureAlgorithm, secretKey.getBytes(StandardCharsets.UTF_8))
-                // 添加Claims
                 .setClaims(claims)
-                // 添加过期时间
+                .setId(UUID.randomUUID().toString().replace("-", ""))
+                .setIssuedAt(now)
                 .setExpiration(expireTime)
                 .compact();
 

@@ -31,7 +31,7 @@ public class UserFollowVO {
     @Schema(description = "被关注者头像")
     private String followeeAvatar;
     
-    @Schema(description = "被关注者手机号（脱敏）")
+    @Schema(description = "被关注者手机号")
     private String followeePhone;
     
     @Schema(description = "关注时间")

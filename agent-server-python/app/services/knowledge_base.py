@@ -13,7 +13,9 @@ from app.utils.exceptions import EmbeddingError, KnowledgeBaseError
 
 class KnowledgeBaseService:
     """知识库服务"""
-    
+
+    ALLOWED_DOC_TYPES = {"campus_guide", "resource", "lost_found"}
+
     def __init__(self):
         self.milvus_repo = MilvusRepository()
         dashscope.api_key = settings.dashscope.api_key
@@ -45,16 +47,8 @@ class KnowledgeBaseService:
             raise EmbeddingError(f"Embedding 生成失败: {e}")
     
     def insert_document(self, text: str, doc_type: str = "campus_guide") -> List[int]:
-        """
-        插入文档到知识库
-        
-        Args:
-            text: 文档文本
-            doc_type: 文档类型（campus_guide/resource）
-        
-        Returns:
-            插入的主键 ID 列表
-        """
+        if doc_type not in self.ALLOWED_DOC_TYPES:
+            raise KnowledgeBaseError(f"不合法的文档类型: {doc_type}")
         try:
             app_logger.info(f"开始插入文档: {text[:50]}...")
             
@@ -88,6 +82,9 @@ class KnowledgeBaseService:
             # 构建过滤表达式
             filter_expr = None
             if doc_type:
+                if doc_type not in self.ALLOWED_DOC_TYPES:
+                    app_logger.warning(f"非法的doc_type参数: {doc_type}")
+                    return "没有找到相关知识。"
                 filter_expr = f"doc_type == '{doc_type}'"
             
             results = self.milvus_repo.search(query_vector, top_k, filter_expr=filter_expr)

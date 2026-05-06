@@ -15,7 +15,10 @@ import com.shxy.suiyuanentity.vo.CommentVO;
 import com.shxy.suiyuanserver.mapper.CommentMapper;
 import com.shxy.suiyuanserver.mapper.PostMapper;
 import com.shxy.suiyuanserver.mapper.ResourceMapper;
+import com.shxy.suiyuanserver.mapper.UserMapper;
 import com.shxy.suiyuanserver.service.CommentService;
+import com.shxy.suiyuanserver.service.UserNotificationService;
+import com.shxy.suiyuanentity.entity.User;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
@@ -36,25 +39,31 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
     private final CommentMapper commentMapper;
     private final PostMapper postMapper;
     private final ResourceMapper resourceMapper;
+    private final UserMapper userMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisCacheUtil redisCacheUtil;
+    private final UserNotificationService userNotificationService;
 
     public CommentServiceImpl(CommentMapper commentMapper, PostMapper postMapper, ResourceMapper resourceMapper,
+                              UserMapper userMapper,
                               RedisTemplate<String, Object> redisTemplate,
                               StringRedisTemplate stringRedisTemplate,
-                              RedisCacheUtil redisCacheUtil) {
+                              RedisCacheUtil redisCacheUtil,
+                              UserNotificationService userNotificationService) {
         this.commentMapper = commentMapper;
         this.postMapper = postMapper;
         this.resourceMapper = resourceMapper;
+        this.userMapper = userMapper;
         this.redisTemplate = redisTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
         this.redisCacheUtil = redisCacheUtil;
+        this.userNotificationService = userNotificationService;
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public Result<Comment> publishComment(CommentDTO commentDTO) {
+    public Result<CommentVO> publishComment(CommentDTO commentDTO) {
         Long userId = BaseContext.getCurrentUserId();
 
         if (commentDTO == null || commentDTO.getContent() == null || commentDTO.getContent().trim().isEmpty()) {
@@ -90,11 +99,44 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             postMapper.incrementCommentCount(commentDTO.getPostId());
         }
 
-        // 发送评论回复通知
         sendCommentNotification(comment, commentDTO);
 
         clearCommentListCache(commentDTO.getPostId(), commentDTO.getResourceId());
-        return Result.success(comment);
+
+        User currentUser = userMapper.selectById(userId);
+        String userName = currentUser != null ? currentUser.getUserName() : "匿名用户";
+        String userAvatar = currentUser != null ? currentUser.getAvatar() : "";
+
+        String replyToUserName = null;
+        Long replyToUserId = null;
+        if (commentDTO.getParentId() != null && commentDTO.getParentId() > 0) {
+            Comment parentComment = commentMapper.selectById(commentDTO.getParentId());
+            if (parentComment != null) {
+                replyToUserId = parentComment.getUserId();
+                User replyToUser = userMapper.selectById(replyToUserId);
+                if (replyToUser != null) {
+                    replyToUserName = replyToUser.getUserName();
+                }
+            }
+        }
+
+        CommentVO commentVO = CommentVO.builder()
+                .id(comment.getId())
+                .userId(userId)
+                .userName(userName)
+                .userAvatar(userAvatar)
+                .content(comment.getContent())
+                .postId(comment.getPostId())
+                .resourceId(comment.getResourceId())
+                .parentId(comment.getParentId())
+                .createTime(comment.getCreateTime())
+                .isOwner(true)
+                .replyToUserId(replyToUserId)
+                .replyToUserName(replyToUserName)
+                .children(new ArrayList<>())
+                .build();
+
+        return Result.success(commentVO);
     }
 
     public Result<String> deleteComment(Long id) {
@@ -123,6 +165,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         return Result.success("删除成功");
     }
 
+    @Transactional(readOnly = true)
     public Result<PageResult> listComment(Integer page, Integer size, String sort, Long postId, Long resourceId) {
         if (postId == null && resourceId == null) {
             log.error("帖子ID或资源ID至少提供一个");
@@ -281,8 +324,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
     private void sendCommentNotification(Comment comment, CommentDTO commentDTO) {
         Long currentUserId = BaseContext.getCurrentUserId();
         Long receiverId = null;
-        Long targetId = null; // 帖子ID或资源ID
-        String targetType = null; // "post" or "resource"
+        Long businessId = null;
+        String targetType = null;
 
         // 确定接收者
         if (commentDTO.getParentId() != null && commentDTO.getParentId() > 0) {
@@ -294,16 +337,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         } else {
             // 直接评论帖子或资源，通知作者
             if (commentDTO.getPostId() != null) {
-                targetId = commentDTO.getPostId();
+                businessId = commentDTO.getPostId();
                 targetType = "post";
-                var post = postMapper.selectById(targetId);
+                var post = postMapper.selectById(businessId);
                 if (post != null) {
                     receiverId = post.getUserId();
                 }
             } else if (commentDTO.getResourceId() != null) {
-                targetId = commentDTO.getResourceId();
+                businessId = commentDTO.getResourceId();
                 targetType = "resource";
-                var resource = resourceMapper.selectById(targetId);
+                var resource = resourceMapper.selectById(businessId);
                 if (resource != null) {
                     receiverId = resource.getUserId();
                 }
@@ -315,21 +358,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
             return;
         }
 
-        // 构建通知任务
-        long delayScore = System.currentTimeMillis() + 5000; // 延迟5秒
+        // 内容截取
         String contentSnippet = comment.getContent().length() > 20 
                 ? comment.getContent().substring(0, 20) 
                 : comment.getContent();
         
-        String taskValue = String.format(
-            "{\"type\":\"comment_reply\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"targetType\":\"%s\",\"content\":\"%s\",\"time\":%d}",
-            currentUserId, receiverId, targetId != null ? targetId : 0, 
-            targetType != null ? targetType : "unknown",
-            contentSnippet.replace("\"", "\\\""), // 转义双引号
-            System.currentTimeMillis()
-        );
-
-        stringRedisTemplate.opsForZSet().add(RedisConstant.NOTIFY_BUFFER_KEY, taskValue, delayScore);
-        log.info("评论通知已加入缓冲区: {} -> {}, targetId: {}", currentUserId, receiverId, targetId);
+        userNotificationService.sendCommentNotification(
+                currentUserId, receiverId, businessId, targetType, contentSnippet, businessId);
     }
 }
