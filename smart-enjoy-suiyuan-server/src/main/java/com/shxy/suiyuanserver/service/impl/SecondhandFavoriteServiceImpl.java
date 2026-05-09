@@ -1,6 +1,7 @@
 package com.shxy.suiyuanserver.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shxy.suiyuancommon.exception.BaseException;
 import com.shxy.suiyuancommon.result.Result;
@@ -55,6 +56,11 @@ public class SecondhandFavoriteServiceImpl extends ServiceImpl<SecondhandFavorit
             return Result.fail("商品不存在");
         }
 
+        // 不允许收藏自己的商品
+        if (userId.equals(item.getSellerId())) {
+            return Result.fail("不能收藏自己的商品");
+        }
+
         // 检查是否已收藏
         LambdaQueryWrapper<SecondhandFavorite> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SecondhandFavorite::getUserId, userId);
@@ -71,8 +77,9 @@ public class SecondhandFavoriteServiceImpl extends ServiceImpl<SecondhandFavorit
         secondhandFavoriteMapper.insert(favorite);
 
         // 更新商品收藏数
-        item.setFavoriteCount(item.getFavoriteCount() + 1);
-        secondhandItemMapper.updateById(item);
+        secondhandItemMapper.update(null, new LambdaUpdateWrapper<SecondhandItem>()
+                .eq(SecondhandItem::getId, itemId)
+                .setSql("favorite_count = favorite_count + 1"));
 
         log.info("用户{}收藏商品{}成功", userId, itemId);
         return Result.success("收藏成功");
@@ -95,11 +102,10 @@ public class SecondhandFavoriteServiceImpl extends ServiceImpl<SecondhandFavorit
         secondhandFavoriteMapper.delete(queryWrapper);
 
         // 更新商品收藏数
-        SecondhandItem item = secondhandItemMapper.selectById(itemId);
-        if (item != null && item.getFavoriteCount() > 0) {
-            item.setFavoriteCount(item.getFavoriteCount() - 1);
-            secondhandItemMapper.updateById(item);
-        }
+        secondhandItemMapper.update(null, new LambdaUpdateWrapper<SecondhandItem>()
+                .eq(SecondhandItem::getId, itemId)
+                .gt(SecondhandItem::getFavoriteCount, 0)
+                .setSql("favorite_count = favorite_count - 1"));
 
         log.info("用户{}取消收藏商品{}成功", userId, itemId);
         return Result.success("取消收藏成功");

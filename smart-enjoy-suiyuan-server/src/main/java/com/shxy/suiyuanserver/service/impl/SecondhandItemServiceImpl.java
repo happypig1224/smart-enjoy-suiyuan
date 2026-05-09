@@ -1,6 +1,7 @@
 package com.shxy.suiyuanserver.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -255,7 +256,7 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
                 .collect(Collectors.toList());
 
         // 填充卖家信息
-        voList.forEach(this::fillSellerInfo);
+        fillSellerInfoBatch(voList);
 
         PageResult pageResult = PageResult.builder()
                 .total(result.getTotal())
@@ -284,7 +285,6 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public Result<String> onSale(Long userId, Long itemId) {
         return updateItemStatus(userId, itemId, SecondhandStatusEnum.ON_SALE.getCode(), "上架");
     }
@@ -319,11 +319,9 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
 
     @Override
     public void incrementViewCount(Long itemId) {
-        SecondhandItem item = secondhandItemMapper.selectById(itemId);
-        if (item != null) {
-            item.setViewCount(item.getViewCount() + 1);
-            secondhandItemMapper.updateById(item);
-        }
+        secondhandItemMapper.update(null, new LambdaUpdateWrapper<SecondhandItem>()
+                .eq(SecondhandItem::getId, itemId)
+                .setSql("view_count = view_count + 1"));
     }
 
     // ==================== 私有辅助方法 ====================
@@ -362,8 +360,8 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
         vo.setPrice(item.getPrice());
         vo.setOriginalPrice(item.getOriginalPrice());
         vo.setConditionLevel(item.getConditionLevel());
-        vo.setContactPhone(item.getContactPhone());
-        vo.setContactWechat(item.getContactWechat());
+        vo.setContactPhone(maskPhone(item.getContactPhone()));
+        vo.setContactWechat(maskWechat(item.getContactWechat()));
         vo.setViewCount(item.getViewCount());
         vo.setFavoriteCount(item.getFavoriteCount());
         vo.setStatus(item.getStatus());
@@ -406,6 +404,25 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
         if (seller != null) {
             vo.setSellerUserName(seller.getUserName());
             vo.setSellerAvatar(seller.getAvatar());
+        }
+    }
+
+    void fillSellerInfoBatch(List<SecondhandItemVO> voList) {
+        if (voList == null || voList.isEmpty()) return;
+        Set<Long> sellerIds = voList.stream()
+                .map(SecondhandItemVO::getSellerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (sellerIds.isEmpty()) return;
+        List<User> sellers = userMapper.selectBatchIds(sellerIds);
+        Map<Long, User> sellerMap = sellers.stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (k1, k2) -> k1));
+        for (SecondhandItemVO vo : voList) {
+            User seller = sellerMap.get(vo.getSellerId());
+            if (seller != null) {
+                vo.setSellerUserName(seller.getUserName());
+                vo.setSellerAvatar(seller.getAvatar());
+            }
         }
     }
 
@@ -455,5 +472,21 @@ public class SecondhandItemServiceImpl extends ServiceImpl<SecondhandItemMapper,
         } catch (Exception e) {
             return "未知状态";
         }
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.isEmpty()) return phone;
+        if (phone.length() >= 7) {
+            return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+        }
+        return "***";
+    }
+
+    private String maskWechat(String wechat) {
+        if (wechat == null || wechat.isEmpty()) return wechat;
+        if (wechat.length() > 2) {
+            return wechat.substring(0, 1) + "***" + wechat.substring(wechat.length() - 1);
+        }
+        return "***";
     }
 }

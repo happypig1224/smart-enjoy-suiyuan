@@ -204,6 +204,20 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
             log.warn("获取失物招领列表失败");
             return Result.fail("获取失物招领列表失败");
         }
+
+        Long currentUserId = BaseContext.getCurrentUserId();
+        if (currentUserId != null && pageResult.getRecords() != null) {
+            for (Object obj : pageResult.getRecords()) {
+                if (obj instanceof LostFoundVO vo && currentUserId.equals(vo.getUserId())) {
+                    LostFound rawEntity = lostFoundMapper.selectById(vo.getId());
+                    if (rawEntity != null) {
+                        vo.setPhoneContact(rawEntity.getPhoneContact());
+                        vo.setWechatContact(rawEntity.getWechatContact());
+                    }
+                }
+            }
+        }
+
         log.info("获取失物招领列表成功，总数：{}", pageResult.getTotal());
         return Result.success(pageResult);
     }
@@ -247,6 +261,14 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         if (vo == null) {
             log.warn("失物招领不存在，ID：{}", id);
             return Result.fail("失物招领不存在");
+        }
+
+        if (currentUserId != null && currentUserId.equals(vo.getUserId())) {
+            LostFound rawEntity = lostFoundMapper.selectById(id);
+            if (rawEntity != null) {
+                vo.setPhoneContact(rawEntity.getPhoneContact());
+                vo.setWechatContact(rawEntity.getWechatContact());
+            }
         }
         
         // 从缓存或数据库获取浏览量，确保数据一致性
@@ -494,13 +516,8 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
                 vo.setStatusName("已完成");
             }
 
-            if (currentUserId == null || !currentUserId.equals(lostFound.getUserId())) {
-                vo.setPhoneContact(maskPhone(lostFound.getPhoneContact()));
-                vo.setWechatContact(maskWechat(lostFound.getWechatContact()));
-            } else {
-                vo.setPhoneContact(lostFound.getPhoneContact());
-                vo.setWechatContact(lostFound.getWechatContact());
-            }
+            vo.setPhoneContact(maskPhone(lostFound.getPhoneContact()));
+            vo.setWechatContact(maskWechat(lostFound.getWechatContact()));
 
             String imagesStr = lostFound.getImages();
             if (imagesStr != null && !imagesStr.isEmpty()) {
@@ -564,13 +581,22 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
     public Result<List<LostFoundVO>> getAllForSync() {
         try {
             LambdaQueryWrapper<LostFound> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(LostFound::getStatus, 0) // 只同步未解决的
+            wrapper.eq(LostFound::getStatus, 0)
                    .orderByDesc(LostFound::getCreateTime);
             
             List<LostFound> list = this.list(wrapper);
+
+            List<Long> userIds = list.stream()
+                    .map(LostFound::getUserId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            Map<Long, User> userMap = userIds.isEmpty() ? Collections.emptyMap() :
+                    userService.listByIds(userIds).stream()
+                            .collect(Collectors.toMap(User::getId, u -> u, (k1, k2) -> k1));
             
             List<LostFoundVO> voList = list.stream()
-                    .map(this::convertToSingleVO)
+                    .map(lf -> convertToSingleVO(lf, userMap))
                     .collect(Collectors.toList());
             
             log.info("同步失物招领数据，共{}条", voList.size());
@@ -581,10 +607,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
         }
     }
 
-    /**
-     * 转换单个实体为VO（用于同步）
-     */
-    private LostFoundVO convertToSingleVO(LostFound lostFound) {
+    private LostFoundVO convertToSingleVO(LostFound lostFound, Map<Long, User> userMap) {
         LostFoundVO vo = new LostFoundVO();
         BeanUtils.copyProperties(lostFound, vo);
         
@@ -607,8 +630,7 @@ public class LostFoundServiceImpl extends ServiceImpl<LostFoundMapper, LostFound
             vo.setImages(Collections.emptyList());
         }
         
-        // 获取用户信息
-        User user = userService.getById(lostFound.getUserId());
+        User user = userMap.get(lostFound.getUserId());
         if (user != null) {
             vo.setUserName(user.getUserName());
             vo.setUserAvatar(user.getAvatar());

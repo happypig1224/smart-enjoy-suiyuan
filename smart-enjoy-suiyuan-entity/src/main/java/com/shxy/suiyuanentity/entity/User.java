@@ -3,7 +3,9 @@ package com.shxy.suiyuanentity.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Date;
 
 import lombok.AllArgsConstructor;
@@ -33,9 +35,10 @@ public class User {
     private String userName;
 
     /**
-     * 登录密码，BCrypt加密存储
-     */
-    private String userPassword;
+       * 登录密码，BCrypt加密存储
+       */
+      @JsonIgnore
+      private String userPassword;
 
     /**
      * 头像图片URL地址
@@ -68,7 +71,8 @@ public class User {
     private Date updateTime;
 
     /**
-     * 逻辑删除: 0-未删除, 1-已删除
-     */
-    private Integer isDeleted;
+       * 逻辑删除: 0-未删除, 1-已删除
+       */
+      @TableLogic
+      private Integer isDeleted;
 }

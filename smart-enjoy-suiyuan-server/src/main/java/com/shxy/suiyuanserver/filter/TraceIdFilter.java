@@ -1,5 +1,6 @@
 package com.shxy.suiyuanserver.filter;
 
+import com.shxy.suiyuancommon.utils.BaseContext;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,6 +42,7 @@ public class TraceIdFilter implements Filter {
         } finally {
             MDC.remove(MDC_TRACE_ID_KEY);
             MDC.remove(MDC_SPAN_ID_KEY);
+            BaseContext.remove();
         }
     }
 }

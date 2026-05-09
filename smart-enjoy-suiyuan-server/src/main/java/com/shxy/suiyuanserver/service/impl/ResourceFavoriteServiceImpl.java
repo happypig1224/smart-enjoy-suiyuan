@@ -69,6 +69,11 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
             throw new BaseException("资源不存在");
         }
 
+        // 不允许收藏自己的资源
+        if (userId.equals(resource.getUserId())) {
+            throw new BaseException("不能收藏自己的资源");
+        }
+
         ResourceFavorite existing = resourceFavoriteMapper.checkFavorite(userId, resourceId);
         if (existing != null) {
             logger.warn("[审计日志] 用户{}收藏失败: 资源{}已收藏", userId, resourceId);
@@ -154,10 +159,8 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
         if (resourcesIds == null || resourcesIds.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
-        List<Resource> resources = resourcesIds.stream()
-                .map(resourcesId -> resourceService.getById(resourcesId))
-                .filter(Objects::nonNull)
-                .toList();
+        List<Resource> resources = resourceService.listByIds(resourcesIds);
+        resources = resources.stream().filter(Objects::nonNull).toList();
         if (resources.isEmpty()) {
             return Result.success(Collections.emptyList());
         }

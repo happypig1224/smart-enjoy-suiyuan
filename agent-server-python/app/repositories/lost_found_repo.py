@@ -3,8 +3,9 @@
 专门用于失物招领信息的向量存储和检索
 """
 from typing import List, Dict, Optional
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+from pymilvus import Collection, FieldSchema, CollectionSchema, DataType, utility
 from app.config.settings import settings
+from app.repositories.milvus_connection_manager import MilvusConnectionManager
 from app.utils.logger import app_logger
 from app.utils.exceptions import MilvusConnectionError, MilvusOperationError
 
@@ -15,21 +16,12 @@ class LostFoundMilvusRepository:
     def __init__(self):
         self.host = settings.milvus.host
         self.port = settings.milvus.port
-        self.collection_name = "lost_found_embeddings"  # 独立的集合名
+        self.collection_name = "lost_found_embeddings"
         self.dim = settings.milvus.dim
         self.collection: Optional[Collection] = None
         
-        self._connect()
+        MilvusConnectionManager.get_instance().ensure_connection()
         self._init_collection()
-    
-    def _connect(self):
-        """连接到 Milvus 服务"""
-        try:
-            connections.connect("default", host=self.host, port=self.port)
-            app_logger.info(f"成功连接到 Milvus: {self.host}:{self.port}")
-        except Exception as e:
-            app_logger.error(f"Milvus 连接失败: {e}")
-            raise MilvusConnectionError(f"无法连接到 Milvus: {e}")
     
     def _init_collection(self):
         """初始化或加载集合"""

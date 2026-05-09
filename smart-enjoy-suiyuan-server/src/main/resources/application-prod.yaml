@@ -29,7 +29,7 @@ knife4j:
 
 # CORS跨域配置
 cors:
-  allowed-origins: ${PROD_CORS_ALLOWED_ORIGINS:https://yourdomain.com}
+  allowed-origins: ${PROD_CORS_ALLOWED_ORIGINS:https://zhixiangsuiyuan.online,https://www.zhixiangsuiyuan.online}
 
 # 安全响应头配置
 security:

@@ -199,11 +199,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
                     List<CommentVO> allComments = commentMapper.selectCommentListWithUser(finalPostId, finalResourceId, 0, Integer.MAX_VALUE, "createTime");
                     Long total = commentMapper.selectCommentCount(finalPostId, finalResourceId);
 
-                    Long currentUserId = BaseContext.getCurrentUserId();
-                    for (CommentVO vo : allComments) {
-                        vo.setIsOwner(currentUserId != null && vo.getUserId().equals(currentUserId));
-                    }
-
                     List<CommentVO> nestedComments = buildNestedComments(allComments);
 
                     int offset = (finalValidatedPage - 1) * finalValidatedSize;
@@ -228,7 +223,24 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment>
         if (pageResult == null) {
             return Result.fail("获取评论列表失败");
         }
+
+        Long currentUserId = BaseContext.getCurrentUserId();
+        if (pageResult.getRecords() != null) {
+            fillIsOwnerRecursive(pageResult.getRecords(), currentUserId);
+        }
+
         return Result.success(pageResult);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void fillIsOwnerRecursive(List<?> comments, Long currentUserId) {
+        if (comments == null) return;
+        for (Object obj : comments) {
+            if (obj instanceof CommentVO vo) {
+                vo.setIsOwner(currentUserId != null && vo.getUserId().equals(currentUserId));
+                fillIsOwnerRecursive(vo.getChildren(), currentUserId);
+            }
+        }
     }
 
     private List<CommentVO> buildNestedComments(List<CommentVO> allComments) {

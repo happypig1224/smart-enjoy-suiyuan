@@ -2,7 +2,8 @@
 失物招领同步API路由
 提供数据同步接口
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.middleware.auth import verify_service_token
 from app.services.lost_found_sync import LostFoundSyncService
 from app.utils.logger import app_logger
 
@@ -10,7 +11,7 @@ router = APIRouter(prefix="/lost-found", tags=["失物招领"])
 sync_service = LostFoundSyncService()
 
 
-@router.post("/sync")
+@router.post("/sync", dependencies=[Depends(verify_service_token)])
 async def sync_lost_found_data():
     """
     手动触发失物招领数据同步
@@ -35,7 +36,7 @@ async def sync_lost_found_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/sync/single")
+@router.post("/sync/single", dependencies=[Depends(verify_service_token)])
 async def sync_single_item(item: dict):
     """
     同步单条失物招领记录
@@ -55,7 +56,7 @@ async def sync_single_item(item: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/sync/{lf_id}")
+@router.delete("/sync/{lf_id}", dependencies=[Depends(verify_service_token)])
 async def delete_item(lf_id: int):
     """
     删除失物招领记录
@@ -75,7 +76,7 @@ async def delete_item(lf_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/stats")
+@router.get("/stats", dependencies=[Depends(verify_service_token)])
 async def get_stats():
     """
     获取失物招领向量库统计信息

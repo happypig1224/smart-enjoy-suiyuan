@@ -50,7 +50,6 @@ public class AiChatServiceImpl implements AiChatService {
     private TransactionTemplate transactionTemplate;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public ChatResponseVO chat(String query, Long sessionId) {
         Long userId = BaseContext.getCurrentUserId();
         if (userId == null) {
@@ -105,7 +104,12 @@ public class AiChatServiceImpl implements AiChatService {
         }
 
         // 5. 保存聊天记录到数据库 (用户问题 + AI 回复)
-        saveChatMessage(activeSessionId, userId, query, aiReply);
+        final Long finalSessionId = activeSessionId;
+        final Long finalUserId = userId;
+        final String finalAiReply = aiReply;
+        transactionTemplate.executeWithoutResult(status -> {
+            saveChatMessage(finalSessionId, finalUserId, query, finalAiReply);
+        });
 
         // 6. 返回包含 sessionId 和回复的响应
         return ChatResponseVO.builder()

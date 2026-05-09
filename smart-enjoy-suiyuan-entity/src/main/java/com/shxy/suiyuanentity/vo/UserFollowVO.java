@@ -29,11 +29,8 @@ public class UserFollowVO {
     private String followeeUserName;
     
     @Schema(description = "被关注者头像")
-    private String followeeAvatar;
-    
-    @Schema(description = "被关注者手机号")
-    private String followeePhone;
-    
-    @Schema(description = "关注时间")
+      private String followeeAvatar;
+      
+      @Schema(description = "关注时间")
     private Date createTime;
 }

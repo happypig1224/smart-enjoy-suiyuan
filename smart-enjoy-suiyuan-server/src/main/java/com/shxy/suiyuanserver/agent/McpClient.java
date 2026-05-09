@@ -23,6 +23,8 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Wu, Hui Ming
@@ -42,15 +44,15 @@ public class McpClient {
 
     private static final Semaphore SSE_PERMITS = new Semaphore(50);
 
-    private volatile int failureCount = 0;
-    private volatile long lastFailureTime = 0;
+    private final AtomicInteger failureCount = new AtomicInteger(0);
+    private final AtomicLong lastFailureTime = new AtomicLong(0);
     private static final int CIRCUIT_BREAKER_THRESHOLD = 5;
     private static final long CIRCUIT_BREAKER_RESET_MS = 30000;
 
     private boolean isCircuitOpen() {
-        if (failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
-            if (System.currentTimeMillis() - lastFailureTime > CIRCUIT_BREAKER_RESET_MS) {
-                failureCount = 0;
+        if (failureCount.get() >= CIRCUIT_BREAKER_THRESHOLD) {
+            if (System.currentTimeMillis() - lastFailureTime.get() > CIRCUIT_BREAKER_RESET_MS) {
+                failureCount.set(0);
                 return false;
             }
             return true;
@@ -91,7 +93,7 @@ public class McpClient {
                 if (response.isOk()) {
                     String responseBody = response.body();
                     log.info("MCP Response: {}", responseBody);
-                    failureCount = 0;
+                    failureCount.set(0);
                     return JSONUtil.toBean(responseBody, McpResponse.class);
                 } else {
                     log.error("MCP 调用 HTTP 状态异常: {}", response.getStatus());
@@ -112,8 +114,8 @@ public class McpClient {
         fallback.setCode(500);
         fallback.setMessage("AI 服务暂时不可用，请稍后重试");
         fallback.setResult("抱歉,当前服务不可用，稍后重试喔~");
-        failureCount++;
-        lastFailureTime = System.currentTimeMillis();
+        failureCount.incrementAndGet();
+        lastFailureTime.set(System.currentTimeMillis());
         return fallback;
     }
 

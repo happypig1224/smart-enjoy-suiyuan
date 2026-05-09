@@ -23,7 +23,7 @@ public class PostUpdateDTO {
     @Schema(description = "帖子ID")
     private Long id;
 
-    @Size(min = 1, max = 100, message = "帖子标题长度必须在1-100个字符之间")
+    @Size(min = 1, max = 20, message = "帖子标题长度必须在1-20个字符之间")
     @Schema(description = "帖子标题")
     private String title;
 

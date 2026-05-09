@@ -106,16 +106,16 @@ public class SecondhandItemVO implements Serializable {
     private List<String> images;
 
     /**
-     * 联系电话
-     */
-    @Schema(description = "联系电话")
-    private String contactPhone;
+       * 联系电话（脱敏）
+       */
+      @Schema(description = "联系电话（脱敏）")
+      private String contactPhone;
 
-    /**
-     * 联系微信
-     */
-    @Schema(description = "联系微信")
-    private String contactWechat;
+      /**
+       * 联系微信（脱敏）
+       */
+      @Schema(description = "联系微信（脱敏）")
+      private String contactWechat;
 
     /**
      * 浏览次数

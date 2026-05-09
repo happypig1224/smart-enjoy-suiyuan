@@ -72,7 +72,7 @@ public class SmsVerifyCodeUtil {
      * @return
      */
     public Result<String> checkSmsVerifyCode(String phoneNumber, String verifyCode) {
-        log.info("开始验证短信验证码,手机号: {},验证码: {}", phoneNumber, verifyCode);
+        log.info("开始验证短信验证码,手机号: {}", phoneNumber);
         CheckSmsVerifyCodeRequest checkSmsVerifyCodeRequest = CheckSmsVerifyCodeRequest.builder()
                 .phoneNumber(phoneNumber)
                 .verifyCode(verifyCode)

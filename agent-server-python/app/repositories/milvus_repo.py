@@ -3,8 +3,9 @@ Milvus 数据访问层
 负责与 Milvus 向量数据库的交互
 """
 from typing import List, Optional
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+from pymilvus import Collection, FieldSchema, CollectionSchema, DataType, utility
 from app.config.settings import settings
+from app.repositories.milvus_connection_manager import MilvusConnectionManager
 from app.utils.logger import app_logger
 from app.utils.exceptions import MilvusConnectionError, MilvusOperationError
 
@@ -19,17 +20,8 @@ class MilvusRepository:
         self.dim = settings.milvus.dim
         self.collection: Optional[Collection] = None
         
-        self._connect()
+        MilvusConnectionManager.get_instance().ensure_connection()
         self._init_collection()
-    
-    def _connect(self):
-        """连接到 Milvus 服务"""
-        try:
-            connections.connect("default", host=self.host, port=self.port)
-            app_logger.info(f"成功连接到 Milvus: {self.host}:{self.port}")
-        except Exception as e:
-            app_logger.error(f"Milvus 连接失败: {e}")
-            raise MilvusConnectionError(f"无法连接到 Milvus: {e}")
     
     def _init_collection(self):
         """初始化或加载集合"""

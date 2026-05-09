@@ -201,6 +201,16 @@ public class TencentCOSAvatarUtil {
             return "image/gif";
         } else if (lowerCase.endsWith(".bmp")) {
             return "image/bmp";
+        } else if (lowerCase.endsWith(".pdf")) {
+            return "application/pdf";
+        } else if (lowerCase.endsWith(".doc")) {
+            return "application/msword";
+        } else if (lowerCase.endsWith(".docx")) {
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        } else if (lowerCase.endsWith(".txt")) {
+            return "text/plain";
+        } else if (lowerCase.endsWith(".md")) {
+            return "text/markdown";
         }
         return "application/octet-stream";
     }
@@ -262,7 +272,7 @@ public class TencentCOSAvatarUtil {
         String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
         List<String> allowedExts = Arrays.asList(
             "jpg", "jpeg", "png", "gif", "bmp", "pdf", "doc", "docx", "xls", "xlsx",
-            "ppt", "pptx", "txt", "zip", "rar"
+            "ppt", "pptx", "txt", "md", "zip", "rar"
         );
         if (!allowedExts.contains(ext)) {
             throw new FileUploadException("不支持的文件类型，允许的类型：图片、文档、压缩包");

@@ -16,10 +16,7 @@ import java.util.Arrays;
 
 /**
  * Web MVC配置
- * <p>
  * 包含拦截器配置、CORS跨域配置等
- * </p>
- *
  * @author Wu, Hui Ming
  * @version 2.0
  * @School Suihua University
@@ -71,19 +68,19 @@ public class WebMVCConfig implements WebMvcConfigurer {
         CorsConfiguration config = new CorsConfiguration();
         
         String[] origins = allowedOrigins.split(",");
-        // 如果配置了"*"，使用allowedOriginPatterns替代allowedOrigin以支持credentials
         if (origins.length == 1 && "*".equals(origins[0].trim())) {
             config.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
-                "http://[::1]:*"
+                "http://[::1]:*",
+                "https://*",
+                "http://*"
             ));
         } else {
             for (String origin : origins) {
-                config.addAllowedOrigin(origin.trim());
+                config.addAllowedOriginPattern(origin.trim());
             }
         }
-        
         config.setAllowCredentials(true);
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");

@@ -647,8 +647,16 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         redisTemplate.delete(detailKey);
         clearResourceListCache();
 
-        String signedUrl = tencentCOSAvatarUtil.generateSignedUrl(resource.getResourceUrl(), 30);
-        log.info("用户{}下载资源{}", userId, id);
+        String resourceUrl = resource.getResourceUrl();
+        if (resourceUrl == null || resourceUrl.isEmpty()) {
+            throw new BaseException("资源文件地址异常，请联系管理员");
+        }
+
+        String signedUrl = tencentCOSAvatarUtil.generateSignedUrl(resourceUrl, 30);
+        if (signedUrl == null || signedUrl.isEmpty()) {
+            throw new BaseException("生成下载链接失败，请稍后重试");
+        }
+        log.info("用户{}下载资源{}，签名URL生成成功", userId, id);
         return Result.success(signedUrl);
     }
 

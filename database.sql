@@ -283,3 +283,26 @@ CREATE TABLE IF NOT EXISTS `user_notification`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='用户通知表';
 
+-- ==================== 补充索引（性能优化） ====================
+
+-- post表：列表查询核心索引（按类型+状态+时间排序）
+ALTER TABLE post ADD INDEX idx_type_status_deleted_time (type, status, is_deleted, create_time DESC);
+
+-- post表：搜索优化（标题全文索引）
+ALTER TABLE post ADD INDEX idx_title_trash (title, is_deleted);
+
+-- comment表：按帖子查询+逻辑删除组合索引
+ALTER TABLE comment ADD INDEX idx_post_deleted_time (post_id, is_deleted, create_time);
+
+-- lost_found表：紧急+状态+时间组合索引
+ALTER TABLE lost_found ADD INDEX idx_urgent_status_time (urgent, status, create_time DESC);
+
+-- chat_message表：会话+时间组合索引（避免文件排序）
+ALTER TABLE chat_message ADD INDEX idx_session_time (session_id, create_time);
+
+-- secondhand_item表：搜索优化
+ALTER TABLE secondhand_item ADD INDEX idx_title_status (title, status);
+
+-- user_notification表：类型过滤索引
+ALTER TABLE user_notification ADD INDEX idx_user_type_read (user_id, type, is_read);
+
