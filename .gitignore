@@ -52,6 +52,7 @@ agent-server-python/venv.bak/
 
 # Environment Variables
 agent-server-python/.env
+env.properties
 
 # Logs
 agent-server-python/logs/
