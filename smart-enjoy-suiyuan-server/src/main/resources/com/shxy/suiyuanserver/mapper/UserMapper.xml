@@ -17,11 +17,17 @@
         <result property="isDeleted" column="is_deleted"/>
     </resultMap>
 
+    <resultMap id="AuthorStatsResultMap" type="com.shxy.suiyuanentity.vo.AuthorStatsVO">
+        <result property="postCount" column="post_count"/>
+        <result property="followerCount" column="follower_count"/>
+    </resultMap>
+
     <sql id="Base_Column_List">
         id
         ,user_name,user_password,avatar,phone,role,status,
         create_time,update_time,is_deleted
     </sql>
+    
     <update id="updateUserInfo">
         UPDATE user
         <set>
@@ -31,5 +37,22 @@
         WHERE id = #{id}
     </update>
 
+    <select id="selectAuthorStats" resultMap="AuthorStatsResultMap">
+        SELECT
+            COALESCE(p_stats.post_count, 0) AS post_count,
+            COALESCE(f_stats.follower_count, 0) AS follower_count
+        FROM (
+            SELECT COUNT(*) AS post_count
+            FROM post
+            WHERE user_id = #{userId}
+              AND is_deleted = 0
+              AND status = 1
+        ) p_stats
+        CROSS JOIN (
+            SELECT COUNT(*) AS follower_count
+            FROM user_follow
+            WHERE followee_id = #{userId}
+        ) f_stats
+    </select>
 
 </mapper>

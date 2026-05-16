@@ -8,6 +8,7 @@ import com.shxy.suiyuanentity.dto.LoginDTO;
 import com.shxy.suiyuanentity.dto.RegisterDTO;
 import com.shxy.suiyuanentity.dto.ResetPasswordDTO;
 import com.shxy.suiyuanentity.dto.UserDTO;
+import com.shxy.suiyuanentity.vo.AuthorStatsVO;
 import com.shxy.suiyuanentity.vo.NotificationStatsVO;
 import com.shxy.suiyuanentity.vo.UserFollowVO;
 import com.shxy.suiyuanentity.vo.UserStatsVO;
@@ -184,5 +185,11 @@ public class UserController {
     @Operation(summary = "获取用户公开信息", description = "获取指定用户的公开信息（不含手机号等敏感信息）")
     public Result<UserProfileVO> getUserPublicProfile(@PathVariable("userId") Long userId) {
         return userService.getUserProfileById(userId);
+    }
+
+    @GetMapping("/author/stats/{userId}")
+    @Operation(summary = "获取作者统计信息", description = "获取指定作者的文章数和粉丝数")
+    public Result<AuthorStatsVO> getAuthorStats(@PathVariable("userId") Long userId) {
+        return userService.getAuthorStats(userId);
     }
 }

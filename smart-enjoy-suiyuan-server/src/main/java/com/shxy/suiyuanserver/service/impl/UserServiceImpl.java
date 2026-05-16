@@ -21,6 +21,7 @@ import com.shxy.suiyuanentity.dto.RegisterDTO;
 import com.shxy.suiyuanentity.dto.ResetPasswordDTO;
 import com.shxy.suiyuanentity.dto.UserDTO;
 import com.shxy.suiyuanentity.entity.User;
+import com.shxy.suiyuanentity.vo.AuthorStatsVO;
 import com.shxy.suiyuanentity.vo.UserStatsVO;
 import com.shxy.suiyuanentity.vo.UserVO;
 import com.shxy.suiyuanentity.vo.UserProfileVO;
@@ -482,5 +483,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 .build();
 
         return Result.success(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Result<AuthorStatsVO> getAuthorStats(Long userId) {
+        if (userId == null || userId <= 0) {
+            return Result.fail("用户ID无效");
+        }
+
+        AuthorStatsVO stats = userMapper.selectAuthorStats(userId);
+        if (stats == null) {
+            stats = AuthorStatsVO.builder()
+                    .postCount(0)
+                    .followerCount(0)
+                    .build();
+        }
+
+        return Result.success(stats);
     }
 }

@@ -8,6 +8,7 @@ import com.shxy.suiyuanentity.dto.RegisterDTO;
 import com.shxy.suiyuanentity.dto.ResetPasswordDTO;
 import com.shxy.suiyuanentity.dto.UserDTO;
 import com.shxy.suiyuanentity.entity.User;
+import com.shxy.suiyuanentity.vo.AuthorStatsVO;
 import com.shxy.suiyuanentity.vo.UserProfileVO;
 import com.shxy.suiyuanentity.vo.UserStatsVO;
 import com.shxy.suiyuanentity.vo.UserVO;
@@ -40,4 +41,6 @@ public interface UserService extends IService<User> {
     Result<UserStatsVO> getUserStats();
 
     Result<UserProfileVO> getUserProfileById(Long userId);
+
+    Result<AuthorStatsVO> getAuthorStats(Long userId);
 }

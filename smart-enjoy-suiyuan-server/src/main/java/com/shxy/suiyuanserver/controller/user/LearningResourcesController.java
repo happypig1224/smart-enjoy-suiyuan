@@ -53,18 +53,22 @@ public class LearningResourcesController {
      * @param page 页码
      * @param pageSize 每页数量
      * @param type 类型筛选
+     * @param college 所属学院
+     * @param professional 所属专业
      * @param sort 排序字段
+     * @param keyword 搜索关键词
      * @return 分页结果
      */
     @GetMapping("/list")
-    @Operation(summary = "学习资源列表", description = "分页获取学习资源列表，支持类型筛选、学科筛选和排序")
+    @Operation(summary = "学习资源列表", description = "分页获取学习资源列表，支持类型筛选、学院/专业筛选和排序")
     public Result<PageResult> list(@RequestParam(value = "page", defaultValue = "1") @Min(value = 1, message = "页码最小值为1") Integer page,
                                    @RequestParam(value = "pageSize", defaultValue = "10") @Min(value = 1, message = "每页数量最小值为1") @Max(value = 50, message = "每页数量最大值为50") Integer pageSize,
                                    @RequestParam(value = "type", required = false)  String type,
-                                   @RequestParam(value = "subject", required = false) Integer subject,
+                                   @RequestParam(value = "college", required = false) Integer college,
+                                   @RequestParam(value = "professional", required = false) Integer professional,
                                    @RequestParam(value = "sort", required = false)  String sort,
                                    @RequestParam(value = "keyword", required = false) @Size(max = 100, message = "搜索关键词长度不能超过100个字符") String keyword) {
-        return resourceService.queryList(page, pageSize, type, subject, sort, keyword);
+        return resourceService.queryList(page, pageSize, type, college, professional, sort, keyword);
     }
 
     /**
@@ -148,6 +152,19 @@ public class LearningResourcesController {
     public Result<ResourceVO> getResourceDetail(@PathVariable("id") @NotNull(message = "资源ID不能为空") @Min(value = 1, message = "资源ID必须大于0") Long id) {
         Long userId = BaseContext.getCurrentUserId();
         return resourceService.getResourceDetail(id, userId);
+    }
+
+    /**
+     * 获取资源相关推荐接口
+     * @param id 当前资源 ID
+     * @param limit 推荐数量
+     * @return 推荐资源列表
+     */
+    @GetMapping("/{id}/recommendations")
+    @Operation(summary = "资源相关推荐", description = "根据当前资源的专业、学院、类型、作者和热度获取相关推荐")
+    public Result<List<ResourceVO>> getRecommendedResources(@PathVariable("id") @NotNull(message = "资源ID不能为空") @Min(value = 1, message = "资源ID必须大于0") Long id,
+                                                            @RequestParam(value = "limit", defaultValue = "6") @Min(value = 1, message = "推荐数量最小值为1") @Max(value = 20, message = "推荐数量最大值为20") Integer limit) {
+        return resourceService.getRecommendedResources(id, limit);
     }
 
     /**

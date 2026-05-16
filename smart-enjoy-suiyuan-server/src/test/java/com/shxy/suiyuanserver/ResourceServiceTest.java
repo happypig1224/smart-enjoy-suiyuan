@@ -48,7 +48,7 @@ public class ResourceServiceTest {
      */
     @Test
     void testQueryResourceList() {
-        Result<PageResult> result = resourceService.queryList(1, 10, null, null, "newest", null);
+        Result<PageResult> result = resourceService.queryList(1, 10, null, null, null, "newest", null);
         
         assertNotNull(result);
         assertEquals(200, result.getCode());
@@ -64,7 +64,7 @@ public class ResourceServiceTest {
      */
     @Test
     void testQueryResourceListByType() {
-        Result<PageResult> result = resourceService.queryList(1, 10, "pdf", null, "newest", null);
+        Result<PageResult> result = resourceService.queryList(1, 10, "pdf", null, null, "newest", null);
         
         assertNotNull(result);
         assertEquals(200, result.getCode());
@@ -181,8 +181,10 @@ public class ResourceServiceTest {
         );
         
         ResourceDTO dto = ResourceDTO.builder()
+                .title("测试资源")
                 .type("pdf")
-                .subject(1)
+                .college(1)
+                .professional(1)
                 .description("测试资源")
                 .build();
         
@@ -200,7 +202,7 @@ public class ResourceServiceTest {
      */
     @Test
     void testQueryResourceListByHotest() {
-        Result<PageResult> result = resourceService.queryList(1, 10, null, null, "hottest", null);
+        Result<PageResult> result = resourceService.queryList(1, 10, null, null, null, "hottest", null);
         
         assertNotNull(result);
         assertEquals(200, result.getCode());
@@ -214,8 +216,8 @@ public class ResourceServiceTest {
      */
     @Test
     void testPagination() {
-        Result<PageResult> result1 = resourceService.queryList(1, 5, null, null, null, null);
-        Result<PageResult> result2 = resourceService.queryList(2, 5, null, null, null, null);
+        Result<PageResult> result1 = resourceService.queryList(1, 5, null, null, null, null, null);
+        Result<PageResult> result2 = resourceService.queryList(2, 5, null, null, null, null, null);
         
         assertNotNull(result1);
         assertNotNull(result2);

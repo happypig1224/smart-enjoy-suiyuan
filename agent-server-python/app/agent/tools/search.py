@@ -1,6 +1,5 @@
 """
-搜索工具模块
-提供各种检索功能
+搜索工具
 """
 from app.core.dependencies import get_kb_service
 from app.repositories.lost_found_repo import LostFoundMilvusRepository
@@ -9,16 +8,7 @@ from app.utils.logger import app_logger
 
 
 def search_knowledge_base(query: str, top_k: int = 2) -> str:
-    """
-    校园指南RAG检索
-    
-    Args:
-        query: 查询文本
-        top_k: 返回结果数量
-    
-    Returns:
-        检索结果文本
-    """
+    """校园指南RAG检索，返回知识库结果文本"""
     try:
         kb_service = get_kb_service()
         result = kb_service.search_documents(query=query, top_k=top_k)
@@ -29,22 +19,12 @@ def search_knowledge_base(query: str, top_k: int = 2) -> str:
 
 
 def search_resources(query: str, top_k: int = 3) -> str:
-    """
-    学习资源数据库 RAG 检索
-    
-    Args:
-        query: 查询文本
-        top_k: 返回结果数量
-    
-    Returns:
-        检索结果文本
-    """
+    """学习资源RAG检索，返回匹配的资源文本"""
     try:
         app_logger.info(f"开始检索学习资源: {query}")
         
         kb_service = get_kb_service()
         
-        # 检索时过滤 doc_type == 'resource'
         result = kb_service.search_documents(query=query, top_k=top_k, doc_type="resource")
         
         if not result or result == "没有找到相关知识。":
@@ -57,30 +37,17 @@ def search_resources(query: str, top_k: int = 3) -> str:
 
 
 def search_lost_found(query: str, top_k: int = 5) -> str:
-    """
-    失物招领RAG检索
-    
-    Args:
-        query: 查询文本
-        top_k: 返回结果数量
-    
-    Returns:
-        检索结果文本
-    """
+    """失物招领RAG检索，返回匹配结果文本"""
     try:
         app_logger.info(f"开始检索失物招领: {query}")
         
-        # 初始化服务
         kb_service = KnowledgeBaseService()
         lf_repo = LostFoundMilvusRepository()
         
-        # 生成查询向量
         query_vector = kb_service.get_embedding(query)
         
-        # 构建过滤条件：只检索未解决的记录
         filter_expr = "status == 0"
         
-        # 执行向量检索
         results = lf_repo.search_lost_found(
             query_vector=query_vector,
             top_k=top_k,
@@ -91,7 +58,6 @@ def search_lost_found(query: str, top_k: int = 5) -> str:
             app_logger.info("未找到匹配的失物招领记录")
             return "暂未找到匹配的失物招领记录。您可以稍后再试，或在社区发布相关信息。"
         
-        # 格式化结果
         formatted_results = []
         for idx, item in enumerate(results, 1):
             type_text = "寻物启事" if item['type'] == 0 else "招领启事"

@@ -2,6 +2,7 @@ package com.shxy.suiyuanserver.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shxy.suiyuanentity.entity.User;
+import com.shxy.suiyuanentity.vo.AuthorStatsVO;
 import com.shxy.suiyuanentity.vo.UserVO;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -30,6 +31,11 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Select("select * from user where user_name = #{userName}")
     User getUserByName(String userName);
+
+    /**
+     * 查询作者统计信息（文章数和粉丝数）
+     */
+    AuthorStatsVO selectAuthorStats(Long userId);
 }
 
 

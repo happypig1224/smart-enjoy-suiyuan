@@ -1,6 +1,5 @@
 """
 MCP 路由
-处理 MCP 协议请求
 """
 from fastapi import APIRouter, Request, Body
 from fastapi.responses import StreamingResponse
@@ -102,18 +101,27 @@ async def _generate_stream_inner(query: str, user_id: int, session_id: int, hist
         chunk_count = 0
         start_time = time.monotonic()
 
-        async for chunk in streaming_llm.astream(conversation):
-            if time.monotonic() - start_time > STREAM_TIMEOUT:
-                app_logger.error("流式响应超时")
-                yield f"data: {json.dumps({'error': '响应超时，请稍后重试'}, ensure_ascii=False)}\n\n"
-                yield "data: [DONE]\n\n"
-                return
-            if hasattr(chunk, 'content') and chunk.content:
-                content = chunk.content
-                full_response += content
-                chunk_count += 1
-                yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
-                await asyncio.sleep(0)
+        try:
+            async for chunk in streaming_llm.astream(conversation):
+                if time.monotonic() - start_time > STREAM_TIMEOUT:
+                    app_logger.error("流式响应超时")
+                    yield f"data: {json.dumps({'error': '响应超时，请稍后重试'}, ensure_ascii=False)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+                if hasattr(chunk, 'content') and chunk.content:
+                    content = chunk.content
+                    full_response += content
+                    chunk_count += 1
+                    yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0)
+        except TypeError as e:
+            if "output_tokens" in str(e) or "merge_dicts" in str(e):
+                app_logger.warning(f"LangChain 合并冲突，使用备用方案: {e}")
+                response = await asyncio.to_thread(streaming_llm.invoke, conversation)
+                full_response = response.content
+                yield f"data: {json.dumps({'content': full_response}, ensure_ascii=False)}\n\n"
+            else:
+                raise
 
         app_logger.info(f"流式输出完成 - 总长度: {len(full_response)}, token数: {chunk_count}, 意图: {detected_intent}")
 
@@ -186,9 +194,7 @@ async def handle_mcp_request(request: McpRequest):
 
 @router.post("/stream")
 async def handle_mcp_stream_request(body: dict = Body(...)):
-    app_logger.info("="*60)
     app_logger.info("收到流式 MCP 请求，开始处理...")
-    app_logger.info("="*60)
     
     try:
         app_logger.info(f"成功解析请求体: tool={body.get('tool')}")

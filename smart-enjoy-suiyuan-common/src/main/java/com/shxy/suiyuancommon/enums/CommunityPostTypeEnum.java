@@ -10,10 +10,10 @@ import lombok.Getter;
 @Getter
 public enum CommunityPostTypeEnum {
     
-    TECH_DISCUSSION(0, "技术讨论"),
-    COURSE_QUESTION(1, "课程问题"),
-    CAMPUS_LIFE(2, "校园生活"),
-    OTHER(3, "其他");
+    STUDY_EXCHANGE(0, "学习交流"),
+    KNOWLEDGE_NOTES(1, "干货笔记"),
+    CAMPUS_LIFE(2, "校园日常"),
+    PHOTOGRAPHY(3, "摄影大赏");
 
     private final Integer code;
     private final String description;

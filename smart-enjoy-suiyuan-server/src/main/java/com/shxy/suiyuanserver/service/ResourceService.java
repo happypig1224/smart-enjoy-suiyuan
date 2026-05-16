@@ -22,12 +22,13 @@ public interface ResourceService extends IService<Resource> {
      * @param page 页码
      * @param pageSize 每页数量
      * @param type 类型
-     * @param subject 学科分类
+     * @param college 所属学院
+     * @param professional 所属专业
      * @param sort 排序字段
      * @param keyword 搜索关键词
      * @return 分页结果
      */
-    Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort, String keyword);
+    Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer college, Integer professional, String sort, String keyword);
 
     /**
      * 上传资源
@@ -62,6 +63,14 @@ public interface ResourceService extends IService<Resource> {
      * @return 资源详情
      */
     Result<ResourceVO> getResourceDetail(Long id, Long userId);
+
+    /**
+     * 获取资源详情页相关推荐
+     * @param id 当前资源 ID
+     * @param limit 推荐数量
+     * @return 推荐资源列表
+     */
+    Result<List<ResourceVO>> getRecommendedResources(Long id, Integer limit);
 
     /**
      * 上传图片（通用）

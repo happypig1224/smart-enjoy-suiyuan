@@ -28,6 +28,14 @@ public interface PostService extends IService<Post> {
 
     Result<PostVO> getPostDetail(Long id);
 
+    /**
+     * 获取帖子详情页相关推荐
+     * @param id 当前帖子ID
+     * @param limit 推荐数量
+     * @return 推荐帖子列表
+     */
+    Result<List<PostVO>> getRecommendedPosts(Long id, Integer limit);
+
     Result<String> deletePost(Long id);
 
     Result<Post> updatePost(PostUpdateDTO postUpdateDTO);

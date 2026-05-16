@@ -16,15 +16,20 @@ import java.util.List;
 public interface ResourceMapper extends BaseMapper<Resource> {
 
     List<ResourceVO> selectResourceListWithUser(@Param("type") String type,
-                                                 @Param("subject") Integer subject,
+                                                 @Param("college") Integer college,
+                                                 @Param("professional") Integer professional,
                                                  @Param("keyword") String keyword,
                                                  @Param("offset") int offset,
                                                  @Param("pageSize") int pageSize,
                                                  @Param("orderBy") String orderBy);
 
     Long selectResourceCount(@Param("type") String type,
-                              @Param("subject") Integer subject,
+                              @Param("college") Integer college,
+                              @Param("professional") Integer professional,
                               @Param("keyword") String keyword);
+
+    List<ResourceVO> selectRecommendedResources(@Param("resourceId") Long resourceId,
+                                                @Param("limit") Integer limit);
 }
 
 

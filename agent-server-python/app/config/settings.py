@@ -1,7 +1,6 @@
 """
-应用配置管理模块
-使用 Pydantic Settings 管理所有配置项
-支持从环境变量和 .env 文件读取配置
+应用配置
+使用 Pydantic Settings 管理配置项
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
@@ -20,14 +19,14 @@ class MilvusConfig(BaseSettings):
     host: str = "localhost"
     port: int = 19530
     collection_name: str = "smart_enjoy_suiyuan"
-    dim: int = 1536  # text-embedding-v2 的维度
+    dim: int = 1536
 
 
 class DashScopeConfig(BaseSettings):
     """阿里云百炼配置"""
     model_config = SettingsConfigDict(env_prefix="DASHSCOPE_")
     
-    api_key: str
+    api_key: str = ""
     chat_model: str = "qwen-plus"
     embedding_model: str = "text-embedding-v2"
 
@@ -52,11 +51,9 @@ class AppSettings(BaseSettings):
     debug: bool = False
     java_api_base_url: str = "http://localhost:8080"
     
-    # 子配置
     milvus: MilvusConfig = MilvusConfig()
     dashscope: DashScopeConfig = DashScopeConfig()
     mcp: MCPConfig = MCPConfig()
 
 
-# 全局配置实例
 settings = AppSettings()

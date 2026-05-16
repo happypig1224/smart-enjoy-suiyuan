@@ -50,5 +50,5 @@ public interface UserNotificationMapper extends BaseMapper<UserNotification> {
      * 删除用户的所有通知
      */
     @Select("UPDATE user_notification SET is_deleted = 1 WHERE user_id = #{userId}")
-    int deleteAllByUserId(Long userId);
+    Integer deleteAllByUserId(Long userId);
 }

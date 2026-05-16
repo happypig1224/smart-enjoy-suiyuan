@@ -2,6 +2,7 @@ package com.shxy.suiyuanentity.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -38,11 +39,20 @@ public class ResourceDTO {
     private String type;
     
     /**
-     * 学科分类 ID
+     * 所属学院ID（绥化学院二级学院）
      */
-    @Min(value = 1, message = "学科分类ID必须大于0")
-    @Schema(description = "学科分类ID")
-    private Integer subject;
+    @NotNull(message = "所属学院不能为空")
+    @Min(value = 1, message = "学院ID必须大于0")
+    @Schema(description = "所属学院ID")
+    private Integer college;
+    
+    /**
+     * 所属专业ID
+     */
+    @NotNull(message = "所属专业不能为空")
+    @Min(value = 1, message = "专业ID必须大于0")
+    @Schema(description = "所属专业ID")
+    private Integer professional;
     
     /**
      * 资源描述

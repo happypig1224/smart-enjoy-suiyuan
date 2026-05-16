@@ -60,15 +60,7 @@ workflow.set_entry_point("intent_router")
 
 
 def route_by_intent(state: SuiyuanAgentState) -> str:
-    """
-    条件路由函数
-    
-    Args:
-        state: Agent 状态
-    
-    Returns:
-        下一个节点名称
-    """
+    """根据意图路由到对应节点"""
     return state["intent"]
 
 

@@ -89,7 +89,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         this.redisCacheUtil = redisCacheUtil;
     }
 
-    public Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer subject, String sort, String keyword) {
+    public Result<PageResult> queryList(Integer page, Integer pageSize, String type, Integer college, Integer professional, String sort, String keyword) {
         String cleanType = type != null ? type.replaceAll("[^a-zA-Z0-9_-]", "") : "all";
         String cleanSort = sort != null ? sort.replaceAll("[^a-zA-Z0-9_-]", "") : "newest";
 
@@ -100,19 +100,20 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         
         // 创建final变量以供lambda表达式使用
         final String finalCleanType = cleanType;
-        final Integer finalSubject = subject;
+        final Integer finalCollege = college;
+        final Integer finalProfessional = professional;
         final String finalCleanSort = cleanSort;
         final Integer finalPage = page;
         final Integer finalPageSize = pageSize;
         final String finalKeyword = keyword != null ? keyword.trim() : null;
         
         String cacheKey;
-        if ("hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())) {
+        if ("hottest".equals(finalCleanSort) && finalCollege == null && finalProfessional == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())) {
             cacheKey = RedisConstant.RESOURCE_HOT_RANKING_KEY_PREFIX + finalPage + ":" + finalPageSize;
         } else {
             String version = (String) redisTemplate.opsForValue().get(RESOURCE_LIST_CACHE_VERSION_KEY);
             cacheKey = RedisConstant.RESOURCE_LIST_KEY_PREFIX + "v" + (version != null ? version : "0") +
-                    ":" + finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalSubject != null ? finalSubject : "all") + ":" + finalCleanSort + ":" + (finalKeyword != null ? finalKeyword : "none");
+                    ":" + finalPage + ":" + finalPageSize + ":" + finalCleanType + ":" + (finalCollege != null ? finalCollege : "all") + ":" + (finalProfessional != null ? finalProfessional : "all") + ":" + finalCleanSort + ":" + (finalKeyword != null ? finalKeyword : "none");
         }
 
         // 使用工具类解决缓存雪崩(随机过期时间)
@@ -127,7 +128,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     int offset = (finalPage - 1) * finalPageSize;
                     List<ResourceVO> voList = resourceMapper.selectResourceListWithUser(
                             "all".equals(finalCleanType) ? null : finalCleanType,
-                            finalSubject,
+                            finalCollege,
+                            finalProfessional,
                             finalKeyword,
                             offset,
                             finalPageSize,
@@ -135,7 +137,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     );
                     Long total = resourceMapper.selectResourceCount(
                             "all".equals(finalCleanType) ? null : finalCleanType,
-                            finalSubject,
+                            finalCollege,
+                            finalProfessional,
                             finalKeyword
                     );
                     return PageResult.builder()
@@ -145,7 +148,7 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                             .size(finalPageSize)
                             .build();
                 },
-                "hottest".equals(finalCleanSort) && finalSubject == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())
+                "hottest".equals(finalCleanSort) && finalCollege == null && finalProfessional == null && "all".equals(finalCleanType) && (finalKeyword == null || finalKeyword.isEmpty())
                     ? RedisConstant.RESOURCE_HOT_RANKING_TTL 
                     : RedisConstant.RESOURCE_LIST_TTL,
                 TimeUnit.SECONDS
@@ -215,7 +218,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                 .userId(userId)
                 .title(resourceDTO.getTitle())
                 .type(resourceDTO.getType())
-                .subject(resourceDTO.getSubject())
+                .college(resourceDTO.getCollege())
+                .professional(resourceDTO.getProfessional())
                 .resourceUrl(resourceUrl)
                 .fileName(sanitizedFileName)
                 .fileSize(file.getSize())
@@ -418,7 +422,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                             .userId(resource.getUserId())
                             .title(resource.getTitle())
                             .type(resource.getType())
-                            .subject(resource.getSubject())
+                            .college(resource.getCollege())
+                            .professional(resource.getProfessional())
                             .resourceUrl(resource.getResourceUrl())
                             .fileName(resource.getFileName())
                             .fileSize(resource.getFileSize())
@@ -458,6 +463,31 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         return Result.success(resourceVO);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Result<List<ResourceVO>> getRecommendedResources(Long id, Integer limit) {
+        if (id == null || id <= 0) {
+            throw new BaseException("资源 ID 不合法");
+        }
+
+        int recommendLimit = limit == null ? 6 : limit;
+        if (recommendLimit < 1) {
+            recommendLimit = 6;
+        } else if (recommendLimit > 20) {
+            recommendLimit = 20;
+        }
+
+        Resource currentResource = resourceMapper.selectById(id);
+        if (currentResource == null) {
+            throw ResourceException.notFound(String.valueOf(id));
+        }
+
+        List<ResourceVO> recommendations = resourceMapper.selectRecommendedResources(id, recommendLimit);
+        fillFavoriteStatus(recommendations);
+        recommendations.forEach(vo -> vo.setResourceUrl(null));
+        return Result.success(recommendations);
+    }
+
     /**
      * 将 Resource 转换为 ResourceVO（不包含收藏状态）
      */
@@ -483,7 +513,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     .userId(resource.getUserId())
                     .title(resource.getTitle())
                     .type(resource.getType())
-                    .subject(resource.getSubject())
+                    .college(resource.getCollege())
+                    .professional(resource.getProfessional())
                     .resourceUrl(resource.getResourceUrl())
                     .fileName(resource.getFileName())
                     .fileSize(resource.getFileSize())
@@ -574,7 +605,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
                     .userId(resource.getUserId())
                     .title(resource.getTitle())
                     .type(resource.getType())
-                    .subject(resource.getSubject())
+                    .college(resource.getCollege())
+                    .professional(resource.getProfessional())
                     .resourceUrl(resource.getResourceUrl())
                     .fileName(resource.getFileName())
                     .fileSize(resource.getFileSize())
@@ -685,8 +717,11 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceMapper, Resource>
         if (resourceDTO.getType() != null) {
             updateWrapper.set(Resource::getType, resourceDTO.getType());
         }
-        if (resourceDTO.getSubject() != null) {
-            updateWrapper.set(Resource::getSubject, resourceDTO.getSubject());
+        if (resourceDTO.getCollege() != null) {
+            updateWrapper.set(Resource::getCollege, resourceDTO.getCollege());
+        }
+        if (resourceDTO.getProfessional() != null) {
+            updateWrapper.set(Resource::getProfessional, resourceDTO.getProfessional());
         }
         if (resourceDTO.getDescription() != null) {
             updateWrapper.set(Resource::getDescription, resourceDTO.getDescription());

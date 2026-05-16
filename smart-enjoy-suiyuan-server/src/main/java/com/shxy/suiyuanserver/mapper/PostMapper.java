@@ -70,6 +70,12 @@ public interface PostMapper extends BaseMapper<Post> {
      * 根据帖子ID列表查询帖子详情
      */
     List<PostVO> selectPostListByIds(@Param("postIds") List<Long> postIds);
+
+    /**
+     * 查询帖子详情页相关推荐
+     */
+    List<PostVO> selectRecommendedPosts(@Param("postId") Long postId,
+                                        @Param("limit") Integer limit);
 }
 
 

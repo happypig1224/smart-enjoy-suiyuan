@@ -233,6 +233,29 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         return Result.success(postVO);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Result<List<PostVO>> getRecommendedPosts(Long id, Integer limit) {
+        if (id == null || id <= 0) {
+            throw new BaseException("帖子ID不合法");
+        }
+
+        int recommendLimit = limit == null ? 6 : limit;
+        if (recommendLimit < 1) {
+            recommendLimit = 6;
+        } else if (recommendLimit > 20) {
+            recommendLimit = 20;
+        }
+
+        Post currentPost = postMapper.selectById(id);
+        if (currentPost == null || Objects.equals(currentPost.getIsDeleted(), 1) || !Objects.equals(currentPost.getStatus(), 1)) {
+            throw new BaseException("帖子不存在");
+        }
+
+        List<PostVO> recommendations = postMapper.selectRecommendedPosts(id, recommendLimit);
+        return Result.success(recommendations != null ? recommendations : Collections.emptyList());
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public Result<String> deletePost(Long id) {
         if (id == null || id <= 0) {

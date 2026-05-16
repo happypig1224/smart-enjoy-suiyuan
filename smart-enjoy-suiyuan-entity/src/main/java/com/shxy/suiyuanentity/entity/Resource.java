@@ -43,9 +43,14 @@ public class Resource {
     private String type;
 
     /**
-     * 所属学科分类ID
+     * 所属学院ID（绥化学院二级学院）
      */
-    private Integer subject;
+    private Integer college;
+
+    /**
+     * 所属专业ID
+     */
+    private Integer professional;
 
     /**
      * 文件在COS/服务器的存储路径

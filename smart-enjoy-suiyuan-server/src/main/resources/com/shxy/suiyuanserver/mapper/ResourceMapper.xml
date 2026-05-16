@@ -9,7 +9,8 @@
             <result property="userId" column="user_id" />
             <result property="title" column="title" />
             <result property="type" column="type" />
-            <result property="subject" column="subject" />
+            <result property="college" column="college" />
+            <result property="professional" column="professional" />
             <result property="resourceUrl" column="resource_url" />
             <result property="fileName" column="file_name" />
             <result property="fileSize" column="file_size" />
@@ -20,7 +21,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,title,type,subject,resource_url,file_name,
+        id,user_id,title,type,college,professional,resource_url,file_name,
         file_size,description,download_count,create_time,update_time
     </sql>
 
@@ -31,7 +32,8 @@
         <result property="userAvatar" column="avatar" />
         <result property="title" column="title" />
         <result property="type" column="type" />
-        <result property="subject" column="subject" />
+        <result property="college" column="college" />
+        <result property="professional" column="professional" />
         <result property="resourceUrl" column="resource_url" />
         <result property="fileName" column="file_name" />
         <result property="fileSize" column="file_size" />
@@ -47,7 +49,8 @@
         r.user_id,
         r.title,
         r.type,
-        r.subject,
+        r.college,
+        r.professional,
         r.resource_url,
         r.file_name,
         r.file_size,
@@ -63,8 +66,11 @@
             <if test="type != null and type != 'all' and type != ''">
                 AND r.type = #{type}
             </if>
-            <if test="subject != null">
-                AND r.subject = #{subject}
+            <if test="college != null">
+                AND r.college = #{college}
+            </if>
+            <if test="professional != null">
+                AND r.professional = #{professional}
             </if>
             <if test="keyword != null and keyword != ''">
                 AND (r.title LIKE CONCAT('%', #{keyword}, '%') OR r.file_name LIKE CONCAT('%', #{keyword}, '%'))
@@ -85,12 +91,63 @@
             <if test="type != null and type != 'all' and type != ''">
                 AND r.type = #{type}
             </if>
-            <if test="subject != null">
-                AND r.subject = #{subject}
+            <if test="college != null">
+                AND r.college = #{college}
+            </if>
+            <if test="professional != null">
+                AND r.professional = #{professional}
             </if>
             <if test="keyword != null and keyword != ''">
                 AND (r.title LIKE CONCAT('%', #{keyword}, '%') OR r.file_name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
+    </select>
+
+    <select id="selectRecommendedResources" parameterType="map" resultMap="ResourceVOResultMap">
+        SELECT
+        r.id as resource_id,
+        r.user_id,
+        r.title,
+        r.type,
+        r.college,
+        r.professional,
+        r.resource_url,
+        r.file_name,
+        r.file_size,
+        r.description,
+        r.download_count,
+        r.create_time,
+        r.update_time,
+        u.user_name,
+        u.avatar
+        FROM resource current_resource
+        INNER JOIN resource r ON r.id != current_resource.id
+        LEFT JOIN user u ON r.user_id = u.id
+        WHERE current_resource.id = #{resourceId}
+        ORDER BY
+            (
+                CASE
+                    WHEN current_resource.professional IS NOT NULL AND r.professional = current_resource.professional THEN 40
+                    ELSE 0
+                END
+                +
+                CASE
+                    WHEN current_resource.college IS NOT NULL AND r.college = current_resource.college THEN 25
+                    ELSE 0
+                END
+                +
+                CASE
+                    WHEN r.type = current_resource.type THEN 20
+                    ELSE 0
+                END
+                +
+                CASE
+                    WHEN r.user_id = current_resource.user_id THEN 10
+                    ELSE 0
+                END
+            ) DESC,
+            r.download_count DESC,
+            r.create_time DESC
+        LIMIT #{limit}
     </select>
 </mapper>

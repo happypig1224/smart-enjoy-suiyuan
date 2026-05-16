@@ -179,7 +179,7 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
                             .id(resource.getId())
                             .userId(resource.getUserId())
                             .type(resource.getType())
-                            .subject(resource.getSubject())
+                            .title(resource.getTitle())
                             .resourceUrl(resource.getResourceUrl())
                             .fileName(resource.getFileName())
                             .fileSize(resource.getFileSize())

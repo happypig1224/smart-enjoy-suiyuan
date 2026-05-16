@@ -1,6 +1,5 @@
 """
 失物招领向量数据访问层
-专门用于失物招领信息的向量存储和检索
 """
 from typing import List, Dict, Optional
 from pymilvus import Collection, FieldSchema, CollectionSchema, DataType, utility
@@ -56,7 +55,6 @@ class LostFoundMilvusRepository:
         
         self.collection = Collection(name=self.collection_name, schema=schema)
         
-        # 创建向量索引
         index_params = {
             "metric_type": "COSINE",
             "index_type": "IVF_FLAT",
@@ -64,39 +62,27 @@ class LostFoundMilvusRepository:
         }
         self.collection.create_index(field_name="embedding", index_params=index_params)
         
-        # 为lf_id创建标量索引以支持过滤
         self.collection.create_index(field_name="lf_id", index_params={"index_type": "STL_SORT"})
         
         app_logger.info(f"失物招领集合 {self.collection_name} 创建完成并建立索引")
     
     def insert_lost_found(self, lf_id: int, text: str, embedding: List[float], 
                           metadata: Dict) -> int:
-        """
-        插入失物招领数据到 Milvus
-        
-        Args:
-            lf_id: 原始失物招领ID
-            text: 用于向量化的文本（标题+描述+地点的组合）
-            embedding: 向量
-            metadata: 元数据字典，包含type, status, location等
-        
-        Returns:
-            插入的主键 ID
-        """
+        """插入失物招领数据到Milvus，返回记录ID"""
         try:
             data = [
-                [lf_id],  # id (使用原始ID作为主键)
-                [lf_id],  # lf_id
-                [metadata.get('type', 0)],  # type
-                [metadata.get('status', 0)],  # status
-                [metadata.get('title', '')],  # title
-                [metadata.get('description', '')],  # description
-                [metadata.get('location', '')],  # location
-                [metadata.get('phone_contact', '')],  # phone_contact
-                [metadata.get('wechat_contact', '')],  # wechat_contact
-                [metadata.get('urgent', 0)],  # urgent
-                [metadata.get('create_time', '')],  # create_time
-                [embedding]  # embedding
+                [lf_id],  
+                [lf_id],  
+                [metadata.get('type', 0)],  
+                [metadata.get('status', 0)],  
+                [metadata.get('title', '')],  
+                [metadata.get('description', '')],  
+                [metadata.get('location', '')],  
+                [metadata.get('phone_contact', '')],  
+                [metadata.get('wechat_contact', '')],  
+                [metadata.get('urgent', 0)],  
+                [metadata.get('create_time', '')],  
+                [embedding]  
             ]
             
             result = self.collection.insert(data)
@@ -114,17 +100,7 @@ class LostFoundMilvusRepository:
         top_k: int = 5,
         filter_expr: str = None
     ) -> List[Dict]:
-        """
-        向量相似度检索失物招领
-        
-        Args:
-            query_vector: 查询向量
-            top_k: 返回结果数量
-            filter_expr: Milvus过滤表达式，如 "status == 0 and type == 1"
-        
-        Returns:
-            检索结果列表，每个元素包含元数据和相似度分数
-        """
+        """向量相似度检索失物招领，支持过滤条件"""
         try:
             self.collection.load()
             
@@ -144,11 +120,10 @@ class LostFoundMilvusRepository:
                 anns_field="embedding",
                 param=search_params,
                 limit=top_k,
-                expr=filter_expr,  # 支持过滤
+                expr=filter_expr,  
                 output_fields=output_fields
             )
             
-            # 解析结果
             parsed_results = []
             for hits in results:
                 for hit in hits:
@@ -174,15 +149,7 @@ class LostFoundMilvusRepository:
             raise MilvusOperationError(f"检索失败: {e}")
     
     def delete_lost_found(self, lf_id: int) -> bool:
-        """
-        删除指定的失物招领记录
-        
-        Args:
-            lf_id: 原始失物招领ID
-        
-        Returns:
-            是否删除成功
-        """
+        """删除指定失物招领记录，返回是否成功"""
         try:
             expr = f"lf_id == {lf_id}"
             self.collection.delete(expr)
@@ -195,24 +162,11 @@ class LostFoundMilvusRepository:
             return False
     
     def update_lost_found(self, lf_id: int, text: str, embedding: List[float],
-                          metadata: Dict) -> bool:
-        """
-        更新失物招领记录（先删除再插入）
-        
-        Args:
-            lf_id: 原始失物招领ID
-            text: 用于向量化的文本
-            embedding: 新的向量
-            metadata: 更新的元数据
-        
-        Returns:
-            是否更新成功
-        """
+                          metadata: Dict    ) -> bool:
+        """更新失物招领记录（先删后插），返回是否成功"""
         try:
-            # 先删除旧记录
             self.delete_lost_found(lf_id)
             
-            # 再插入新记录
             self.insert_lost_found(lf_id, text, embedding, metadata)
             
             app_logger.info(f"成功更新失物招领记录，ID: {lf_id}")

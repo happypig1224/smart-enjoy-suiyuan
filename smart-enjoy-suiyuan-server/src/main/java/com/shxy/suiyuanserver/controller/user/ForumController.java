@@ -78,6 +78,17 @@ public class ForumController {
         return postService.getPostDetail(id);
     }
 
+    @GetMapping("post/{id}/recommendations")
+    @Operation(summary = "帖子相关推荐", description = "根据当前帖子的分类、作者、热度和时间获取相关推荐")
+    public Result<java.util.List<PostVO>> getRecommendedPosts(
+            @PathVariable @NotNull Long id,
+            @RequestParam(value = "limit", defaultValue = "6") @Min(1) @Max(20) Integer limit) {
+        if (id <= 0) {
+            return Result.fail("帖子ID无效");
+        }
+        return postService.getRecommendedPosts(id, limit);
+    }
+
     @DeleteMapping("post/{id}")
     @RequireLogin
     @Operation(summary = "删除帖子", description = "删除自己发布的帖子")

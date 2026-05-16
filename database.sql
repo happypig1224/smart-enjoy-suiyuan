@@ -33,7 +33,8 @@ CREATE TABLE resource
     user_id        BIGINT        NOT NULL COMMENT '上传者ID，关联user.id',
     title          VARCHAR(100)  NOT NULL COMMENT '资源标题',
     type           VARCHAR(20)   NOT NULL COMMENT '资源格式: image, pdf, doc, txt, md',
-    subject        INT      DEFAULT NULL COMMENT '所属学科分类ID',
+    college        INT      DEFAULT NULL COMMENT '所属学院ID(绥化学院二级学院)',
+    professional   INT      DEFAULT NULL COMMENT '所属专业ID',
     resource_url   VARCHAR(1000) NOT NULL COMMENT '文件在COS/服务器的存储路径',
     file_name      VARCHAR(255)  NOT NULL COMMENT '原始文件名',
     file_size      BIGINT COMMENT '文件大小，单位字节(B)',
@@ -43,11 +44,13 @@ CREATE TABLE resource
     update_time    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user (user_id),
     INDEX idx_type (type),
-    INDEX idx_subject (subject),
+    INDEX idx_college (college),
+    INDEX idx_professional (professional),
     INDEX idx_title (title),
     INDEX idx_download (download_count),
     INDEX idx_type_time (type, create_time),
-    INDEX idx_download_time (download_count, create_time)
+    INDEX idx_download_time (download_count, create_time),
+    INDEX idx_college_professional (college, professional)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学习资源表';
@@ -283,26 +286,64 @@ CREATE TABLE IF NOT EXISTS `user_notification`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='用户通知表';
 
--- ==================== 补充索引（性能优化） ====================
 
--- post表：列表查询核心索引（按类型+状态+时间排序）
-ALTER TABLE post ADD INDEX idx_type_status_deleted_time (type, status, is_deleted, create_time DESC);
+-- 私信会话表
+DROP TABLE IF EXISTS `private_conversation`;
+CREATE TABLE `private_conversation`
+(
+    `id`              BIGINT   NOT NULL AUTO_INCREMENT COMMENT '会话ID',
+    `user1_id`        BIGINT   NOT NULL COMMENT '用户1 ID（值较小的一方）',
+    `user2_id`        BIGINT   NOT NULL COMMENT '用户2 ID（值较大的一方）',
+    `last_message`    VARCHAR(512)      DEFAULT NULL COMMENT '最后一条消息摘要（冗余字段，避免JOIN）',
+    `last_message_at` DATETIME          DEFAULT NULL COMMENT '最后一条消息时间',
+    `create_time`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '会话创建时间',
+    `update_time`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`      TINYINT  NOT NULL DEFAULT 0 COMMENT '逻辑删除标识 (0-正常, 1-已删除)',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_pair` (`user1_id`, `user2_id`) COMMENT '保证同一对用户只存在一条会话记录',
+    KEY `idx_user1_last_msg` (`user1_id`, `last_message_at` DESC) COMMENT '加速会话列表查询（用户1视角）',
+    KEY `idx_user2_last_msg` (`user2_id`, `last_message_at` DESC) COMMENT '加速会话列表查询（用户2视角）'
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='私信会话表';
 
--- post表：搜索优化（标题全文索引）
-ALTER TABLE post ADD INDEX idx_title_trash (title, is_deleted);
+-- 私信消息表
+DROP TABLE IF EXISTS `private_message`;
+CREATE TABLE `private_message`
+(
+    `id`              BIGINT      NOT NULL AUTO_INCREMENT COMMENT '消息ID（主键）',
+    `conversation_id` BIGINT      NOT NULL COMMENT '所属会话ID，关联 private_conversation.id',
+    `sender_id`       BIGINT      NOT NULL COMMENT '发送者用户ID',
+    `receiver_id`     BIGINT      NOT NULL COMMENT '接收者用户ID',
+    `message_type`    VARCHAR(20) NOT NULL DEFAULT 'TEXT' COMMENT '消息类型: TEXT / IMAGE / FILE',
+    `content`         TEXT        NOT NULL COMMENT '消息内容（文本消息存文字，富媒体存JSON: {"url":"...","width":...}）',
+    `seq_id`          BIGINT      NOT NULL COMMENT '会话维度消息顺序ID（单调递增，用作同步位点）',
+    `status`          VARCHAR(20) NOT NULL DEFAULT 'SENT' COMMENT '消息状态: SENT-已发送 / DELIVERED-已送达 / READ-已读',
+    `client_msg_id`   VARCHAR(64)          DEFAULT NULL COMMENT '客户端消息ID（UUID，用于幂等去重）',
+    `create_time`     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息发送时间',
+    `is_deleted`      TINYINT     NOT NULL DEFAULT 0 COMMENT '逻辑删除标识 (0-正常, 1-已删除)',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_client_msg` (`sender_id`, `client_msg_id`) COMMENT '发送端去重：同一发送者的同一clientMsgId只存一次',
+    KEY `idx_conv_seq` (`conversation_id`, `seq_id`) COMMENT '会话内按序号范围查询消息',
+    KEY `idx_receiver_unread` (`receiver_id`, `status`, `create_time`) COMMENT '加速离线消息拉取',
+    KEY `idx_sender_id` (`sender_id`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='私信消息表';
 
--- comment表：按帖子查询+逻辑删除组合索引
-ALTER TABLE comment ADD INDEX idx_post_deleted_time (post_id, is_deleted, create_time);
-
--- lost_found表：紧急+状态+时间组合索引
-ALTER TABLE lost_found ADD INDEX idx_urgent_status_time (urgent, status, create_time DESC);
-
--- chat_message表：会话+时间组合索引（避免文件排序）
-ALTER TABLE chat_message ADD INDEX idx_session_time (session_id, create_time);
-
--- secondhand_item表：搜索优化
-ALTER TABLE secondhand_item ADD INDEX idx_title_status (title, status);
-
--- user_notification表：类型过滤索引
-ALTER TABLE user_notification ADD INDEX idx_user_type_read (user_id, type, is_read);
-
+-- 用户消息已读位点表
+DROP TABLE IF EXISTS `user_read_cursor`;
+CREATE TABLE `user_read_cursor`
+(
+    `id`              BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id`         BIGINT   NOT NULL COMMENT '用户ID',
+    `conversation_id` BIGINT   NOT NULL COMMENT '会话ID，关联 private_conversation.id',
+    `last_read_seq`   BIGINT   NOT NULL DEFAULT 0 COMMENT '该用户在此会话中已读到的最大 seq_id',
+    `update_time`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_conv` (`user_id`, `conversation_id`) COMMENT '每个用户在每会话仅一条已读位点',
+    KEY `idx_user_id` (`user_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='用户消息已读位点表';

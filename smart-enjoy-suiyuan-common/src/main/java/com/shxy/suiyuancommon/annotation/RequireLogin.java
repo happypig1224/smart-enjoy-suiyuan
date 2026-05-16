@@ -7,10 +7,8 @@ import java.lang.annotation.Target;
 
 /**
  * 需要登录才能访问的接口注解
- * <p>
- * 标注此注解的方法会由 LoginUserInterceptor 拦截并验证用户登录状态。
- * 未登录用户将被拦截并返回 401 未登录响应。
- * </p>
+ * 标注此注解的方法会由 LoginUserInterceptor 拦截并验证用户登录状态,
+ * 未登录用户将被拦截并返回 401 未登录响应
  * @author Wu, Hui Ming
  * @version 1.0
  * @School SuiHua  University

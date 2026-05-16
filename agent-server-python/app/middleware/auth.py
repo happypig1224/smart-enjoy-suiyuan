@@ -1,6 +1,7 @@
 import hmac
 from fastapi import Request, HTTPException, Depends
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 from app.config.settings import settings
 from app.utils.logger import app_logger
 
@@ -13,11 +14,11 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
 
             if not expected_token:
                 app_logger.warning("MCP service token not configured")
-                raise HTTPException(status_code=500, detail="Service token not configured")
+                return JSONResponse(status_code=500, content={"detail": "Service token not configured"})
 
             if not service_token or not hmac.compare_digest(service_token, expected_token):
                 app_logger.warning(f"Unauthorized MCP access from {request.client.host}")
-                raise HTTPException(status_code=401, detail="Unauthorized")
+                return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
         response = await call_next(request)
         return response

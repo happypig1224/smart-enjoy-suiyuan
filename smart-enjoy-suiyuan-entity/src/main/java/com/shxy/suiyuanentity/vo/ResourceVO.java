@@ -58,10 +58,16 @@ public class ResourceVO {
     private String type;
     
     /**
-     * 学科分类 ID
+     * 所属学院 ID
      */
-    @Schema(description = "学科分类ID")
-    private Integer subject;
+    @Schema(description = "所属学院ID")
+    private Integer college;
+
+    /**
+     * 所属专业 ID
+     */
+    @Schema(description = "所属专业ID")
+    private Integer professional;
     
     /**
      * 资源存储路径
