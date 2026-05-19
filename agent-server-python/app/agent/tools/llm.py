@@ -12,10 +12,10 @@ llm = ChatTongyi(model=settings.dashscope.chat_model, request_timeout=30)
 
 # 流式调用使用的 LLM 实例（禁用 streaming 以避免 merge_dicts 冲突）
 def create_streaming_llm():
-    """创建 LLM 实例（使用非流式调用避免 bug）"""
+    """创建支持流式响应的 LLM 实例"""
     return ChatTongyi(
         model=settings.dashscope.chat_model,
-        streaming=False,  # 禁用流式以避免 merge_dicts 冲突
+        streaming=True,
         request_timeout=60
     )
 

@@ -19,7 +19,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 私信消息 REST 接口
+ * 私信消息接口
+ * @author Wu, Hui Ming
+ * @version 1.0
+ * @School Suihua University
+ * @since 2026/5/14 09:09
  */
 @RestController
 @RequestMapping("/user/message")

@@ -56,10 +56,6 @@ public class SecondhandFavoriteServiceImpl extends ServiceImpl<SecondhandFavorit
             return Result.fail("商品不存在");
         }
 
-        // 不允许收藏自己的商品
-        if (userId.equals(item.getSellerId())) {
-            return Result.fail("不能收藏自己的商品");
-        }
 
         // 检查是否已收藏
         LambdaQueryWrapper<SecondhandFavorite> queryWrapper = new LambdaQueryWrapper<>();

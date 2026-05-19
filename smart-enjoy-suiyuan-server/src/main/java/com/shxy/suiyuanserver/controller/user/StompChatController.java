@@ -15,11 +15,11 @@ import org.springframework.stereotype.Controller;
 import java.security.Principal;
 
 /**
- * STOMP 私信消息控制器
- * 处理 WebSocket 帧消息（非 REST API）
- * 前端发送消息到:
- *   /app/chat/private    → 发私信
- *   /app/chat/read       → 标记已读
+ * STOMP私信消息接口
+ * @author Wu, Hui Ming
+ * @version 1.0
+ * @School Suihua University
+ * @since 2026/5/14 09:09
  */
 @Slf4j
 @Controller

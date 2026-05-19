@@ -62,9 +62,6 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
 
         Long currentUserId = BaseContext.getCurrentUserId();
 
-        if (currentUserId.equals(post.getUserId())) {
-            throw new BaseException("不能收藏自己的帖子");
-        }
 
         PostFavorite existingFavorite = postFavoriteMapper.selectByPostIdAndUserId(postId, currentUserId);
         if (existingFavorite != null) {
@@ -117,8 +114,8 @@ public class PostFavoriteServiceImpl extends ServiceImpl<PostFavoriteMapper, Pos
         String safePostTitle = postTitle != null ? postTitle.replace("\"", "\\\"") : "未知帖子";
 
         String taskValue = String.format(
-            "{\"type\":\"post_favorite\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"postTitle\":\"%s\",\"time\":%d}",
-            fromUserId, toUserId, postId, safePostTitle, System.currentTimeMillis()
+                "{\"type\":\"post_favorite\",\"from\":%d,\"to\":%d,\"targetId\":%d,\"postTitle\":\"%s\",\"time\":%d}",
+                fromUserId, toUserId, postId, safePostTitle, System.currentTimeMillis()
         );
 
         stringRedisTemplate.opsForZSet().add(RedisConstant.NOTIFY_BUFFER_KEY, taskValue, delayScore);

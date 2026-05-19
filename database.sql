@@ -1,10 +1,10 @@
 -- 创建智享绥园数据库
-CREATE DATABASE IF NOT EXISTS `suiyuan` 
+CREATE DATABASE IF NOT EXISTS `smart_enjoy_suiyuan`
   DEFAULT CHARACTER SET utf8mb4 
   COLLATE utf8mb4_unicode_ci;
 
 -- 切换到目标数据库
-USE `suiyuan`;
+USE `smart_enjoy_suiyuan`;
 
 -- AI会话表
 DROP TABLE IF EXISTS `ai_session`;

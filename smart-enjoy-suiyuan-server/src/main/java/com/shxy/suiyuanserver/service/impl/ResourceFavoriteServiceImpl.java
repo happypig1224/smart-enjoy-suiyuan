@@ -69,11 +69,6 @@ public class ResourceFavoriteServiceImpl extends ServiceImpl<ResourceFavoriteMap
             throw new BaseException("资源不存在");
         }
 
-        // 不允许收藏自己的资源
-        if (userId.equals(resource.getUserId())) {
-            throw new BaseException("不能收藏自己的资源");
-        }
-
         ResourceFavorite existing = resourceFavoriteMapper.checkFavorite(userId, resourceId);
         if (existing != null) {
             logger.warn("[审计日志] 用户{}收藏失败: 资源{}已收藏", userId, resourceId);
