@@ -36,6 +36,12 @@ public interface UserMapper extends BaseMapper<User> {
      * 查询作者统计信息（文章数和粉丝数）
      */
     AuthorStatsVO selectAuthorStats(Long userId);
+
+    /**
+     * 锁定用户
+     */
+    @Update("update user set status = 0 where phone = #{phone}")
+    void lockUser(String phone);
 }
 
 

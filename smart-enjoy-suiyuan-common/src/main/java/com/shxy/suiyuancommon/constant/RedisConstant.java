@@ -177,8 +177,16 @@ public class RedisConstant {
      */
     public static final String LOSTFOUND_TODAY_NEW_KEY = "lostfound:today:new";
 
-    /**
-     * 今日新增失物招领 TTL：30 分钟
-     */
     public static final long LOSTFOUND_TODAY_NEW_TTL = 1800;
+
+    // ==================== 登录安全 ====================
+    public static final String LOGIN_FAIL_COUNT_PREFIX = "login:fail:";
+    public static final long LOGIN_FAIL_LOCK_TTL = 1800;
+
+    // ==================== 浏览量计数器 ====================
+    public static final String POST_VIEW_COUNT_PREFIX = "counter:post:view:";
+    public static final long POST_VIEW_COUNT_SYNC_INTERVAL = 300;
+
+    // ==================== 举报模块 ====================
+    public static final String REPORT_AUTO_TAKE_DOWN_THRESHOLD_KEY = "report:threshold";
 }

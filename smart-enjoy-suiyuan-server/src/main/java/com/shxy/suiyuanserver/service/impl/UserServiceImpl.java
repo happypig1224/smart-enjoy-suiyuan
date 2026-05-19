@@ -50,6 +50,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.shxy.suiyuancommon.constant.RedisConstant.LOGIN_FAIL_COUNT_PREFIX;
+import static com.shxy.suiyuancommon.constant.RedisConstant.LOGIN_FAIL_LOCK_TTL;
 import static com.shxy.suiyuancommon.constant.RedisConstant.TOKEN_BLACKLIST_KEY_PREFIX;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_INFO_KEY_PREFIX;
 import static com.shxy.suiyuancommon.constant.RedisConstant.USER_TOKEN_KEY_PREFIX;
@@ -58,6 +60,8 @@ import static com.shxy.suiyuancommon.constant.RedisConstant.USER_TOKEN_KEY_PREFI
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    private static final int LOGIN_MAX_FAIL_COUNT = 5;
 
     @Autowired
     private UserMapper userMapper;
@@ -97,7 +101,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     private static final PasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
-    @Override
     public Result<Map<String, Object>> login(LoginDTO loginDTO) {
         String phone = loginDTO.getPhone();
 
@@ -105,20 +108,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         RateLimitUtil.checkRateLimit(stringRedisTemplate, loginRateLimitKey,
                 RateLimitConstant.LOGIN_TIME_WINDOW, RateLimitConstant.LOGIN_MAX_REQUESTS);
 
+        String failCountKey = LOGIN_FAIL_COUNT_PREFIX + phone;
+        String failCountStr = stringRedisTemplate.opsForValue().get(failCountKey);
+        if (failCountStr != null) {
+            int failCount = Integer.parseInt(failCountStr);
+            if (failCount >= LOGIN_MAX_FAIL_COUNT) {
+                userMapper.lockUser(phone);
+                log.warn("登录失败: 账户因多次失败已锁定, phone={}", phone.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
+                throw new AccountLockedException("登录失败次数过多，账户已锁定30分钟，请稍后再试");
+            }
+        }
+
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getPhone, phone));
         if (user == null) {
+            incrementLoginFailCount(failCountKey);
             log.warn("登录失败: 手机号或密码错误, phone={}", phone.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
             throw new PasswordErrorException();
         }
+
+        if (user.getStatus() == UserStatusConstant.LOCKED) {
+            log.warn("登录失败: 账户已被管理员锁定, userId={}", user.getId());
+            throw new AccountLockedException("账户已被管理员锁定，请联系管理员");
+        }
+
         if (!PASSWORD_ENCODER.matches(loginDTO.getUserPassword(), user.getUserPassword())) {
-            log.warn("登录失败: 手机号或密码错误, userId={}", user.getId());
+            incrementLoginFailCount(failCountKey);
+            int currentFailCount = getCurrentFailCount(failCountKey);
+            log.warn("登录失败: 手机号或密码错误, userId={}, 连续失败次数={}", user.getId(), currentFailCount);
+            if (currentFailCount >= LOGIN_MAX_FAIL_COUNT) {
+                throw new AccountLockedException("登录失败次数过多，账户已锁定30分钟，请稍后再试");
+            }
             throw new PasswordErrorException();
         }
-        if (user.getStatus() == 0) {
-            log.warn("登录失败: 账户已被锁定, userId={}", user.getId());
-            throw new AccountLockedException();
-        }
+
+        stringRedisTemplate.delete(failCountKey);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
@@ -139,6 +163,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         log.info("用户登录成功: userId={}", user.getId());
         return Result.success(data);
+    }
+
+    private void incrementLoginFailCount(String failCountKey) {
+        Long count = stringRedisTemplate.opsForValue().increment(failCountKey);
+        if (count != null && count == 1) {
+            stringRedisTemplate.expire(failCountKey, LOGIN_FAIL_LOCK_TTL, TimeUnit.SECONDS);
+        }
+    }
+
+    private int getCurrentFailCount(String failCountKey) {
+        String val = stringRedisTemplate.opsForValue().get(failCountKey);
+        return val != null ? Integer.parseInt(val) : 0;
     }
 
     @Transactional(rollbackFor = Exception.class)

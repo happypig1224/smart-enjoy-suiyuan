@@ -371,3 +371,27 @@ CREATE TABLE `user_read_cursor` (
   DEFAULT CHARSET=utf8mb4 
   COLLATE=utf8mb4_unicode_ci 
   COMMENT='用户消息已读位点表';
+
+-- 举报记录表
+DROP TABLE IF EXISTS `report`;
+CREATE TABLE `report` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `reporter_id` bigint(20) NOT NULL COMMENT '举报人ID',
+  `target_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '举报对象类型: post-帖子, comment-评论, user-用户',
+  `target_id` bigint(20) NOT NULL COMMENT '举报对象ID',
+  `reason_type` tinyint(4) NOT NULL COMMENT '举报原因类型: 1-垃圾广告, 2-违法违规, 3-人身攻击, 4-色情低俗, 5-虚假信息, 6-其他',
+  `reason_detail` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '举报详细描述',
+  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '处理状态: 0-待处理, 1-已处理(有效), 2-已处理(无效)',
+  `handler_id` bigint(20) DEFAULT NULL COMMENT '处理人ID(管理员)',
+  `handle_result` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '处理结果说明',
+  `handle_time` datetime DEFAULT NULL COMMENT '处理时间',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '举报时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_reporter` (`reporter_id`),
+  KEY `idx_target` (`target_type`, `target_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB 
+  DEFAULT CHARSET=utf8mb4 
+  COLLATE=utf8mb4_unicode_ci 
+  COMMENT='举报记录表';

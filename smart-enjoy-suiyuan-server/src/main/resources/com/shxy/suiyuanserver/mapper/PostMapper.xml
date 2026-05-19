@@ -381,4 +381,19 @@
             LIMIT #{limit}
     </select>
 
+    <!-- 批量更新帖子浏览量 -->
+    <update id="batchUpdateViewCount">
+        UPDATE post
+        SET view_count = CASE id
+            <foreach collection="postIds" item="postId" index="index">
+                WHEN #{postId} THEN view_count + #{increments[index]}
+            </foreach>
+        END,
+        update_time = NOW()
+        WHERE id IN
+        <foreach collection="postIds" item="postId" open="(" separator="," close=")">
+            #{postId}
+        </foreach>
+    </update>
+
 </mapper>

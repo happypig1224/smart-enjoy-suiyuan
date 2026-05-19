@@ -17,12 +17,6 @@ import java.util.Set;
 /**
  * WebSocket 会话生命周期监听器
  * 管理 Redis 中的用户在线状态
- *
- * 设计：使用 INCR/DECR 计数器支持多端（多标签页）同时在线
- *   - 连接建立 → INCR，无 TTL（连接存在 = 在线）
- *   - 连接断开 → DECR，计数为 0 时删除 key
- *   - 启动时清理残留 key（处理服务器异常重启场景）
- *
  * @author Wu, Hui Ming
  * @version 2.0
  * @since 2026/5/12

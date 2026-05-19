@@ -76,6 +76,14 @@ public interface PostMapper extends BaseMapper<Post> {
      */
     List<PostVO> selectRecommendedPosts(@Param("postId") Long postId,
                                         @Param("limit") Integer limit);
+
+    /**
+     * 批量更新帖子浏览量
+     * @param postIds 帖子ID列表
+     * @param increments 对应的浏览量增量列表
+     */
+    int batchUpdateViewCount(@Param("postIds") List<Long> postIds, 
+                             @Param("increments") List<Integer> increments);
 }
 
 

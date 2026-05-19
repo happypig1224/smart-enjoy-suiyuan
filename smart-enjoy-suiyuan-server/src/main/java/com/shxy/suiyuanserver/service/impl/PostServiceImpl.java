@@ -7,9 +7,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shxy.suiyuancommon.constant.RedisConstant;
 import com.shxy.suiyuancommon.exception.BaseException;
+import com.shxy.suiyuancommon.exception.ContentAuditException;
 import com.shxy.suiyuancommon.result.PageResult;
 import com.shxy.suiyuancommon.result.Result;
 import com.shxy.suiyuancommon.utils.BaseContext;
+import com.shxy.suiyuancommon.utils.ContentAuditUtil;
 import com.shxy.suiyuancommon.utils.RedisCacheUtil;
 import com.shxy.suiyuancommon.utils.TencentCOSAvatarUtil;
 import com.shxy.suiyuanentity.dto.PostDTO;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +44,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     private final PostMapper postMapper;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final RedisCacheUtil redisCacheUtil;
     private final TencentCOSAvatarUtil tencentCOSAvatarUtil;
 
@@ -115,7 +119,18 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
     @Transactional(rollbackFor = Exception.class)
     public Result<Post> publishPost(PostDTO postDTO) {
         validatePostData(postDTO);
-        
+
+        String titleSensitiveWord = ContentAuditUtil.containsSensitiveWord(postDTO.getTitle());
+        if (titleSensitiveWord != null) {
+            log.warn("帖子标题包含敏感词: word={}", titleSensitiveWord);
+            throw new ContentAuditException("标题包含违规内容，请修改后重新发布");
+        }
+        String contentSensitiveWord = ContentAuditUtil.containsSensitiveWord(postDTO.getContent());
+        if (contentSensitiveWord != null) {
+            log.warn("帖子内容包含敏感词: word={}", contentSensitiveWord);
+            throw new ContentAuditException("内容包含违规信息，请修改后重新发布");
+        }
+
         Long currentUserId = BaseContext.getCurrentUserId();
         String imagesJson = null;
         if (postDTO.getImages() != null && !postDTO.getImages().isEmpty()) {
@@ -132,9 +147,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
 
         Integer status = postDTO.getStatus() != null ? postDTO.getStatus() : 1;
         if (status != 0 && status != 1) {
-            throw new BaseException("帖子状态不合法，只能为0(草稿)或1(已发布)");
+            throw new BaseException("帖子状态不合法，只能为0(草稿)或2(审核中)");
         }
-
         Post post = Post.builder()
                 .userId(currentUserId)
                 .title(postDTO.getTitle())
@@ -142,7 +156,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
                 .contentFormat(contentFormat)
                 .wordCount(wordCount)
                 .type(postDTO.getType())
-                .status(status)
+                .status(3)
                 .isTop(0)
                 .likeCount(0)
                 .commentCount(0)
@@ -223,9 +237,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
             throw new BaseException("帖子不存在");
         }
 
-        postMapper.update(null, new LambdaUpdateWrapper<>(Post.class)
-                .eq(Post::getId, id)
-                .setSql("view_count = view_count + 1"));
+        String viewCountKey = RedisConstant.POST_VIEW_COUNT_PREFIX + id;
+        Long increment = stringRedisTemplate.opsForValue().increment(viewCountKey);
+        if (increment != null && increment == 1) {
+            stringRedisTemplate.expire(viewCountKey, RedisConstant.POST_VIEW_COUNT_SYNC_INTERVAL * 2, TimeUnit.SECONDS);
+        }
 
         String detailKey = RedisConstant.POST_DETAIL_KEY_PREFIX + id;
         redisTemplate.delete(detailKey);
@@ -412,9 +428,22 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         return Result.success(postVOList);
     }
 
+    private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "bmp", "webp");
+
     public String uploadPostImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BaseException("上传图片不能为空");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isEmpty()) {
+            throw new BaseException("文件名不能为空");
+        }
+
+        String extension = originalFilename.toLowerCase();
+        int dotIdx = extension.lastIndexOf('.');
+        if (dotIdx < 0 || !ALLOWED_IMAGE_EXTENSIONS.contains(extension.substring(dotIdx + 1))) {
+            throw new BaseException("不支持的图片格式，仅支持jpg/jpeg/png/gif/bmp/webp");
         }
 
         String contentType = file.getContentType();
@@ -424,6 +453,14 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
 
         if (file.getSize() > 5 * 1024 * 1024) {
             throw new BaseException("图片大小不能超过5MB");
+        }
+
+        try {
+            if (!com.shxy.suiyuancommon.utils.FileMagicUtil.isValidImage(file.getInputStream(), originalFilename)) {
+                throw new BaseException("文件内容与声明类型不匹配，疑似伪造文件");
+            }
+        } catch (java.io.IOException e) {
+            throw new BaseException("文件校验失败");
         }
 
         String imageUrl = tencentCOSAvatarUtil.uploadFile(file);
